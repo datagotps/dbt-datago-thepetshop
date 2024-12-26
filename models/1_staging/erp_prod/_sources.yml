@@ -1,7 +1,7 @@
 version: 2
 sources:
-  - name: sql_erp_prod_dbo
-    database: tps-data-386515
+  - name:  sql_erp_prod_dbo
+    database:  tps-data-386515
     tables:
       - name: petshop_transfer_line_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_purchase_line_437dbf0e_84ff_417a_965d_ed2bb9650972
