@@ -20,19 +20,23 @@ clean-targets:         # directories to be removed by `dbt clean`
 
 vars:
   erp_source: "sql_erp_prod_dbo"
-  ofs_source: "marketplace_prod_master"
+  ofs_source: "mysql_ofs"
 
 
 models:
   thepetshop:
     
-    1_staging:
+    1_stg:
       +enabled: true
       +materialized: view
       +schema: stg
 
-    2_marts:
+    2_int:
+      +enabled: true
+      +materialized: incremental
+      +schema: int
+
+    3_fct:
       +enabled: true
       +materialized: table
-      +schema: dwh
-     
+      +schema: fct

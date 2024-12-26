@@ -23,3 +23,10 @@ sources:
       - name: petshop_staff_5ecfc871_5d82_43f1_9c54_59685e82318d
       - name: petshop_sales_price_437dbf0e_84ff_417a_965d_ed2bb9650972
       
+  - name:  mysql_ofs
+    database:  tps-data-386515
+    tables:
+      - name: inboundpaymentline
+      - name: orderdetail
+      - name: inboundsalesheader
+      - name: orderstatusmaster
