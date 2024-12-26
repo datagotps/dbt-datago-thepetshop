@@ -1,5 +1,5 @@
 With source as (
- select * from {{ source(var('mysql_ofs'), 'inboundsalesheader') }}
+ select * from {{ source(var('ofs_source'), 'inboundsalesheader') }}
 )
 select 
 *,
