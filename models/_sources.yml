@@ -5,9 +5,9 @@ sources:
     tables:
       - name: petshop_transfer_line_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_purchase_line_437dbf0e_84ff_417a_965d_ed2bb9650972
-      - name: petshop_item_5ecfc871_5d82_43f1_9c54_59685e82318d
-      - name: petshop_item_c91094c2_db03_49d2_8cb9_95c179ecbf9d
-      - name: petshop_item_437dbf0e_84ff_417a_965d_ed2bb9650972
+      - name: petshop_item_5ecfc871_5d82_43f1_9c54_59685e82318d # done
+      - name: petshop_item_c91094c2_db03_49d2_8cb9_95c179ecbf9d # done
+      - name: petshop_item_437dbf0e_84ff_417a_965d_ed2bb9650972 # not used
       - name: petshop_vendor_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_replenishment_mapping_c91094c2_db03_49d2_8cb9_95c179ecbf9d
       - name: petshop_stock_bin_wise_c91094c2_db03_49d2_8cb9_95c179ecbf9d
@@ -30,3 +30,5 @@ sources:
       - name: orderdetail
       - name: inboundsalesheader
       - name: orderstatusmaster
+      - name: crmorders
+      - name: inboundorderaddress
