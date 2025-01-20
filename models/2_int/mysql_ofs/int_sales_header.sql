@@ -38,7 +38,6 @@ select
 
     sh.orderdatetime,
 
-    pl.insertedon as order_date,
 
 
 
@@ -82,6 +81,8 @@ select
 
     
 
+
+
 pl.discount,
 pl.amount,
 pl.amountincltax,
@@ -98,6 +99,9 @@ cte_coupon.couponamount,
 
 cte_items.line_item_count,
 cte_items.mrpprice, --Maximum Retail Price (MRP)
+
+
+pl.insertedon as order_date,
 
 
 
