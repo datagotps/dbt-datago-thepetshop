@@ -41,11 +41,13 @@ sources:
   - name:  mysql_ofs
     database:  tps-data-386515
     tables:
+      - name: inboundpaymentline
+
       - name: inboundsalesheader # 422302
       - name: crmorders  # 422302
 
 
-      - name: inboundpaymentline
       - name: orderdetail
       - name: orderstatusmaster
       - name: inboundorderaddress
+      - name: itemdetail

@@ -5,6 +5,10 @@ select
     id,
     weborderno,
 
+    itemid,
+    itemno,
+
+
     batchcreated,
     batchid,
     batchtype,
@@ -20,8 +24,8 @@ select
     isgifting,
     ishold,
     issurface,
-    itemid,
-    itemno,
+    
+    
     ordercategory,
     ordertype,
     packaginglocation,
@@ -47,3 +51,5 @@ current_timestamp() as ingestion_timestamp,
 
 
 from source 
+
+where _fivetran_deleted is false

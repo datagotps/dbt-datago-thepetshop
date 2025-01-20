@@ -3,60 +3,65 @@ With source as (
 )
 select 
 id,
-weborderno,
-ordertype, --NORMAL, EXPRESS, EXCHANGE
-customeremail,
-firstname,
-customerphone,
-orderstatus, --30, 8, 31, 11, 27, 9, 10, 28, 53
-packaginglocation, --4, 10, 8, 6, 20, null review: locationmaster table
-ordersource, -- D, I, A, CRM, '', CRM Exchange, FOC
-
-lastname,
-customerid,
 
 
+--Order
+    weborderno,
+    referenceorderno, 
+    orderplatform, --OCC, shopify, CRM, null
+    ordercategory, -- NORMAL
+    orderdatetime, 
+    ordersource, -- D, I, A, CRM, '', CRM Exchange, FOC
+    ordertype, --NORMAL, EXPRESS, EXCHANGE
+    paymentmethod,  --PREPAID, COD, null
+    currency, --AED
+
+    -- NOt in inboundsalesheader
+    orderamount,
+    orderstatus, --30, 8, 31, 11, 27, 9, 10, 28, 53
+    packaginglocation, --4, 10, 8, 6, 20, null review: locationmaster table
+
+--Customer
+    customerid,
+    firstname,
+    middlename, 
+    lastname,
+    customeremail,
+    customerphone,
+    customertype, --NORMAL, RISKY, FRAUD, BLACKLISTED
+
+
+
+-- Not Useed
+
+case
+when PackagingLocation = 4 then 'Online Delivery'
+else 'Click & Collect'
+end as orderdeliverytype,
+
+
+
+customermobile, -- null
 
 apporderno, 
 assigndbyuserid, 
-company, 
-country, 
-currency, 
+company, --1
+country, --AE
 custdatetime, 
- 
-
-customermobile, 
- 
-customertype, 
- 
 insertedby, 
 insertedon, 
 isameyosync, 
 isrulerun, 
- 
-middlename, 
-orderamount, 
-ordercategory,
-orderdatetime, 
- 
- 
+userassign, 
 
- 
-
- 
-paymentmethod, 
-readyforarchive, 
-referenceorderno, 
-storeid, 
-syncdatetime, 
-syncmessage, 
+readyforarchive, --0
+storeid,  --all en
+syncdatetime, --null
+syncmessage, --null 
+websiteorderstatus, --null
 syncupdatedon, 
 updatedby, 
 updatedon, 
-userassign, 
- 
-websiteorderstatus, 
-orderplatform,
 
 _fivetran_deleted, 
 _fivetran_synced, 

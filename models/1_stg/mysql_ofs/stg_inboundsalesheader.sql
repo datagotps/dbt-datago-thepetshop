@@ -1,62 +1,80 @@
-With source as (
- select * from {{ source(var('ofs_source'), 'inboundsalesheader') }}
-)
-select 
-    id,
+with source as (select * from {{ source(var("ofs_source"), "inboundsalesheader") }})
+select
+
+
+id,
+
+--Order
     weborderno,
-    orderplatform, --OCC, shopify, CRM, null
-    ordertype, --NORMAL, EXPRESS, EXCHANGE
-    paymentgateway, --creditCard, cash, CreditCard, Cash On Delivery, Cash, Pay by Card, StoreCredit, Card on delivery, Cash on delivery, Tabby, Loyalty, PointsPay (Etihad, Etisalat etc.)
-    paymentmethodcode, -- PREPAID, COD, creditCard
-    ordersource, -- D, I, A, CRM, '', CRM Exchange, FOC
-
-    customerid,
-
-
     referenceorderno,
-    
-    apporderno,
-    company,
-    confirm,
-    confirmationtype, --Normal, Edit
-    country, --AE, United Arab Emirates
-    customercomment,
-    
-    errormessage,
-    expecteddispatchdate,
-    frequency,
-    insertedby,
-    insertedon,
-    isexchange,
-    isgiftwrap,
-    isorderanalysis,
-    issync,
-    ordercategory, --NORMAL
-    orderconfirmsyncon,
+    orderplatform,  -- OCC, shopify, CRM, null
+    ordercategory,  -- NORMAL
     orderdatetime,
-    orderjsonid,
-    
-    priority,
-    readyforarchive,
-    
+    ordertype,  -- NORMAL, EXPRESS, EXCHANGE
+    paymentmethodcode,  -- PREPAID, COD, creditCard
+    paymentgateway,  -- creditCard, cash, CreditCard, Cash On Delivery, Cash, Pay by Card, StoreCredit, Card on delivery, Cash on delivery, Tabby, Loyalty, PointsPay (Etihad, Etisalat etc.)
+
+
+--ordersource,  -- D, I, A, CRM, '', CRM Exchange, FOC
+
+case
+when ordersource = 'D' then 'Website'
+when ordersource in ('CRM', 'CRM Exchange', 'FOC') then 'CRM'
+when ordersource in ('A') then 'Android'
+when ordersource in ('I') then 'iOS'
+else ordersource
+end as ordersource,
+
+
+
+
+
+    expecteddispatchdate,
+
     referrer,
+
     reservedfield1,
     reservedfield2,
     reservedfield3,
     reservedfield4,
     reservedfield5,
-    retrycount,
-    storeid,
-    updatedby,
-    updatedon,
-    
-    encashamount,
 
-    _fivetran_deleted,
-    _fivetran_synced,
+
+
+
+-- Customer
+    customerid,
+    customercomment,
+
+
+
+
+
+apporderno,
+company,
+confirm,
+confirmationtype,  -- Normal, Edit
+country,  -- AE, United Arab Emirates
+errormessage,
+frequency,
+insertedby,
+insertedon,
+isexchange,
+isgiftwrap,
+isorderanalysis,
+issync,
+orderconfirmsyncon, --null
+orderjsonid,
+priority,
+readyforarchive,
+retrycount,
+storeid,
+updatedby,
+updatedon,
+encashamount,
+
+_fivetran_deleted,
+_fivetran_synced,
 current_timestamp() as ingestion_timestamp,
 
-
-
-
-from source 
+from source

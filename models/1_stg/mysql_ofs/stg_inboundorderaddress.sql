@@ -5,8 +5,38 @@ select
     id,
     weborderno,
 
-    addressblock,
+    orderdate,
+
+--order address
     addressdetailtype, --Ship, Bill
+    state,
+    region,
+    city,
+    
+    street,
+    latitude,
+    longitude,
+    flatno,
+    floorno,
+    villa,
+
+    notes,
+
+
+
+--Customer
+    customerid,
+    firstname,
+    middlename,
+    lastname,
+    emailid,
+    landline,
+    phoneno,
+
+
+
+    addressblock,
+    
 
 
     addressid,
@@ -14,35 +44,24 @@ select
     addresstype,
     alternatephoneno,
     avenue,
-    city,
     company,
     country,
-    customerid,
-    emailid,
-    firstname,
-    flatno,
-    floorno,
+
+
     insertedby,
     insertedon,
-    landline,
-    lastname,
-    latitude,
-    longitude,
-    middlename,
-    notes,
-    orderdate,
+    
+    
+    
     pacino,
-    phoneno,
+    
     postcode,
     readyforarchive,
-    region,
-    state,
-    street,
+    
     telephonecode,
     updateaddress,
     updatedby,
     updatedon,
-    villa,
 
     _fivetran_deleted,
     _fivetran_synced,
