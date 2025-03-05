@@ -1,5 +1,5 @@
 With source as (
- select * from {{ ref('int_sales_item') }}
+ select * from {{ ref('int_occ_orders') }}
 )
 select 
 

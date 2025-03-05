@@ -21,6 +21,7 @@ clean-targets:         # directories to be removed by `dbt clean`
 vars:
   erp_source: "sql_erp_prod_dbo"
   ofs_source: "mysql_ofs"
+  h_ofs_source: "h_mysql_ofs"
 
 
 models:
@@ -33,7 +34,7 @@ models:
 
     2_int:
       +enabled: true
-      +materialized: incremental
+      +materialized: table
       +schema: int
 
     3_fct:

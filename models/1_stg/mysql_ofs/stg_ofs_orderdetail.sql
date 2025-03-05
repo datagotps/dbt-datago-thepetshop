@@ -53,3 +53,5 @@ current_timestamp() as ingestion_timestamp,
 from source 
 
 where _fivetran_deleted is false
+
+--and weborderno = 'O3072896S'

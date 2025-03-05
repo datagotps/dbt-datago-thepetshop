@@ -20,6 +20,7 @@ sources:
       - name: petshop_customer_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_value_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_dimension_value_437dbf0e_84ff_417a_965d_ed2bb9650972
+      - name: petshop_dimension_set_entry_437dbf0e_84ff_417a_965d_ed2bb9650972 
 
       - name: petshop_inbound_sales_header_c91094c2_db03_49d2_8cb9_95c179ecbf9d
       - name: petshop_inbound_sales_line_c91094c2_db03_49d2_8cb9_95c179ecbf9d
@@ -42,12 +43,28 @@ sources:
     database:  tps-data-386515
     tables:
       - name: inboundpaymentline
-
       - name: inboundsalesheader # 422302
       - name: crmorders  # 422302
-
-
       - name: orderdetail
       - name: orderstatusmaster
       - name: inboundorderaddress
       - name: itemdetail
+      - name: crmorderstatus
+      - name: locationmaster
+      - name: inboundsalesline
+      - name: orderdataanalysis
+      - name: crmlinestatus
+
+      
+  - name:  h_mysql_ofs
+    database:  tps-data-386515
+    tables:
+      
+      
+      
+
+      
+      - name: boxline
+      - name: boxheader
+      - name: orderstatusline
+      - name: ordercount

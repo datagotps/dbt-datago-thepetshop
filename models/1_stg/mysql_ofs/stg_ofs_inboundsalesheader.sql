@@ -6,10 +6,21 @@ id,
 
 --Order
     weborderno,
+    orderdatetime as order_date,
+
+    
     referenceorderno,
-    orderplatform,  -- OCC, shopify, CRM, null
+    --orderplatform,  -- OCC, shopify, CRM, null
+
+    case 
+        when orderplatform ='' and referrer = 'CRM' then 'CRM'
+        else orderplatform
+        end as orderplatform,
+
+
+
     ordercategory,  -- NORMAL
-    orderdatetime,
+    
     ordertype,  -- NORMAL, EXPRESS, EXCHANGE
     paymentmethodcode,  -- PREPAID, COD, creditCard
     paymentgateway,  -- creditCard, cash, CreditCard, Cash On Delivery, Cash, Pay by Card, StoreCredit, Card on delivery, Cash on delivery, Tabby, Loyalty, PointsPay (Etihad, Etisalat etc.)
@@ -61,7 +72,7 @@ insertedby,
 insertedon,
 isexchange,
 isgiftwrap,
-isorderanalysis,
+isorderanalysis, --true, false
 issync,
 orderconfirmsyncon, --null
 orderjsonid,
@@ -78,3 +89,5 @@ _fivetran_synced,
 current_timestamp() as ingestion_timestamp,
 
 from source
+
+--where weborderno= 'O3070096S'
