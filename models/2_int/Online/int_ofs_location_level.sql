@@ -14,7 +14,7 @@ ofs_ordercount  as
 
         from {{ ref('stg_ofs_ordercount') }} as a
         left join {{ ref('stg_ofs_locationmaster') }} as b on SAFE_CAST(a.packaginglocation AS INT64) = b.id
-        where a.__hevo__source_modified_at is null  --and   a.weborderno= 'O3076606S'
+        --where a.__hevo__source_modified_at is null  --and   a.weborderno= 'O3076606S'
         group by 1,2
 
     )

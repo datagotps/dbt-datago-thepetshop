@@ -9,17 +9,23 @@ source as (
 renamed as (
 
     select
-    no_,
-            appl__from_item_entry,
+        no_,
+        appl__from_item_entry,
         appl__to_item_entry,
+        bill_to_customer_no_,
+        sell_to_customer_no_,
+
+        customer_disc__group,
 
         document_no_,
         line_no_,
+
+        posting_date,
         
         order_no_,
         order_line_no_,
                 attached_to_line_no_,
-        bill_to_customer_no_,
+        
         blanket_order_line_no_,
         blanket_order_no_,
         cross_reference_no_,
@@ -27,7 +33,7 @@ renamed as (
                 job_contract_entry_no_,
         job_no_,
         job_task_no_,
-         sell_to_customer_no_,
+         
         shipment_line_no_,
         shipment_no_,
 
@@ -70,7 +76,7 @@ case
         
         cross_reference_type,
         
-        customer_disc__group,
+        
         customer_price_group,
         deferral_code,
         depr__until_fa_posting_date,
@@ -97,7 +103,7 @@ case
         
         
         pmt__discount_amount,
-        posting_date,
+        
         posting_group,
         prepayment_line,
         price_calculation_method,

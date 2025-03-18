@@ -2,16 +2,15 @@ with
 
 source as (
 
-    select * from {{ source('h_mysql_ofs', 'ordercount') }}
+    select * from {{ source('mysql_ofs', 'ordercount') }}
 
 ),
 
 renamed as (
 
     select
+        id,
         weborderno,
-        locationstatus,
-        
         referenceorderno,
         orderitemcount,
         packaginglocation,
@@ -25,12 +24,9 @@ renamed as (
         merged,
         totalitemcount,
         sortingbintype,
-        
-        __hevo__database_name,
-        __hevo__ingested_at,
-        __hevo__loaded_at,
-        __hevo__marked_deleted,
-        __hevo__source_modified_at
+        locationstatus,
+        _fivetran_deleted,
+        _fivetran_synced
 
     from source
 

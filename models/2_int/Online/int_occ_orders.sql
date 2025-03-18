@@ -37,6 +37,52 @@ order_payment_data as
 
     )
 ,
+orderdataanalysis  as 
+    (
+
+        select
+        weborderno,
+        max(awbno) as awbno,
+   
+        from  {{ ref('stg_ofs_orderdataanalysis') }}
+        group by 1
+        
+    )
+,
+
+driverdeliverystage  as 
+    (
+
+        select
+        awb,
+        max(lattitude) lattitude,
+        max(longitude) longitude,
+
+        
+   
+        from  {{ ref('stg_ofs_driverdeliverystage') }}
+        group by 1
+        
+    )
+
+,
+ofs_address  as 
+    (
+
+        select
+        weborderno,
+        Latitude,
+        Longitude,
+        state,
+        region,
+        city,
+        street,
+        from  {{ ref('stg_ofs_inboundorderaddress') }}
+        where addressdetailtype = 'Ship'
+        
+
+    )
+,    
 
 ofs_crmlinestatus as 
 (
@@ -199,6 +245,8 @@ select
 web_order_no_,
 
 sum(invoice_value_incl__tax) as invoice_value_incl__tax,
+sum(invoice_value_excl__tax_excl_ship) as invoice_value_excl__tax_excl_ship,
+
 sum(rec_rev_in_period) as rec_rev_in_period,
 sum(rec_rev_deferred) as rec_rev_deferred,
 from {{ ref('fct_erp_occ_invoice_items') }}  
@@ -287,6 +335,65 @@ case when e.combined_posted_invoice_no is not null then 'Posted' else 'Not Poste
 
 
 
+l.Latitude as order_Latitude,
+l.Longitude as order_Longitude,
+l.state,
+l.region,
+l.city,
+l.street,
+
+
+case 
+    when l.state in ('Dubai','DU','FU') Then 'Dubai'
+    when l.state in ('Abu Dhabi') Then 'Abu Dhabi'
+    when l.state in ('Sharjah','SH') Then 'Sharjah'
+    when l.state in ('Ajman','AJ') Then 'Ajman'
+    when l.state in ('Ras al-Khaimah','RK') Then 'Ras Al-Khaimah'
+    when l.state in ('Umm al-Quwain','UQ') Then 'Umm al-Quwain'
+else l.state end as c_city,
+
+
+CASE
+    WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 25.1300046  AND 25.1482725  AND CAST(n.longitude AS DECIMAL) BETWEEN 55.2325182 AND  55.2790647 THEN 'Dubai Downtown'
+    WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 25.1300046 AND 25.1798962 AND CAST(n.longitude AS DECIMAL) BETWEEN 55.2325182 AND 55.2685525 THEN 'Business Bay'
+    WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 25.1289409 AND 25.1300046 AND CAST(n.longitude AS DECIMAL) BETWEEN 55.211463 AND 55.2325182 THEN 'Al Quoz'
+
+    WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 25.2002125 AND 25.2066955 AND CAST(n.longitude AS DECIMAL) BETWEEN 55.3164398 AND 55.3477911 THEN 'Dubai Creek'
+    WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 25.1902684 AND 25.2027912 AND CAST(n.longitude AS DECIMAL) BETWEEN 55.2357605 AND 55.2413195 THEN 'Jumeirah'
+    WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 25.0806744 AND 25.0812972 AND CAST(n.longitude AS DECIMAL) BETWEEN 55.1288754 AND 55.1397921 THEN 'Dubai Marina'
+
+        WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 25.0765153 AND 25.0692834 AND CAST(n.longitude AS DECIMAL) BETWEEN 55.1417222 AND 55.1734594 THEN 'JLT'
+
+
+    WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 25.2300 AND 25.2900 AND CAST(n.longitude AS DECIMAL) BETWEEN 55.1500 AND 55.2000 THEN 'Tecom'
+    WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 25.2500 AND 25.3700 AND CAST(n.longitude AS DECIMAL) BETWEEN 55.2700 AND 55.4000 THEN 'Barsha'
+    WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 25.4100 AND 25.4500 AND CAST(n.longitude AS DECIMAL) BETWEEN 55.3000 AND 55.4500 THEN 'Jebel Ali'
+    WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 25.0475534 AND 25.0523684 AND CAST(n.longitude AS DECIMAL) BETWEEN 55.2529684 AND 55.2673602 THEN 'Arabian Ranches'
+    WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 25.1000 AND 25.1500 AND CAST(n.longitude AS DECIMAL) BETWEEN 55.1200 AND 55.1500 THEN 'Palm Jumeirah'
+
+
+    --WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 24.4700 AND 24.4900 AND CAST(n.longitude AS DECIMAL) BETWEEN 54.3600 AND 54.3800 THEN 'Abu Dhabi Downtown'
+    --WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 24.4600 AND 24.4800 AND CAST(n.longitude AS DECIMAL) BETWEEN 54.3700 AND 54.4200 THEN 'Corniche, Abu Dhabi'
+    --WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 24.4520 AND 24.4750 AND CAST(n.longitude AS DECIMAL) BETWEEN 54.5920 AND 54.6160 THEN 'Yas Island'
+    --WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 24.4180 AND 24.4500 AND CAST(n.longitude AS DECIMAL) BETWEEN 54.5100 AND 54.5300 THEN 'Khalifa City'
+    --WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 24.4510 AND 24.4700 AND CAST(n.longitude AS DECIMAL) BETWEEN 54.6160 AND 54.6400 THEN 'Al Raha Beach'
+    --WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 24.3300 AND 24.3500 AND CAST(n.longitude AS DECIMAL) BETWEEN 54.4700 AND 54.4900 THEN 'Mussafah'
+    --WHEN CAST(n.lattitude AS DECIMAL) BETWEEN 24.5180 AND 24.5400 AND CAST(n.longitude AS DECIMAL) BETWEEN 54.4270 AND 54.4600 THEN 'Saadiyat Island'
+
+    ELSE 'Other Area'
+END AS location_area,
+
+
+m.awbno,
+
+n.lattitude as delivery_Latitude,
+n.longitude as delivery_longitude,
+
+case when l.Latitude = '25.010022863963258' and l.Longitude = '55.15683832090804' then 1 else 0 end as is_default_coords, --Flags orders with default coordinates ("Default Coordinates") if they match predefined values; otherwise, returns NULL.
+
+case when l.Latitude = n.lattitude and l.Longitude = n.longitude then 'Match' else 'Not Match' end as delivery_location_match, --Indicates if the order location matches the actual delivery location. "Match" if coordinates align, otherwise "Not Match" 
+
+
 from order_payment_data as a
 left join line_items as b on a.weborderno = b.weborderno
 left join erp_inbound_sales_header as c on c.web_order_id = a.weborderno
@@ -301,4 +408,13 @@ left join ofs_location_level as h on h.weborderno = a.weborderno
 left join ofs_inbound_sales_line as i on i.weborderno = a.weborderno
 
 left join recognized_revenue as k on k.web_order_no_ = a.weborderno
+
+
+left join ofs_address as l on l.weborderno = a.weborderno
 --where a.weborderno = 'O3070167S'
+
+left join orderdataanalysis as m on m.weborderno = a.weborderno
+
+left join driverdeliverystage n on n.awb = m.awbno
+
+--where l.Latitude = '25.010022863963258' and l.Longitude = '55.15683832090804'
