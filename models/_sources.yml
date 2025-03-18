@@ -38,6 +38,7 @@ sources:
 
       - name: petshop_tariff_number_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_staff_5ecfc871_5d82_43f1_9c54_59685e82318d
+      - name: petshop_transaction_header_5ecfc871_5d82_43f1_9c54_59685e82318d
       
   - name:  mysql_ofs
     database:  tps-data-386515
@@ -54,17 +55,15 @@ sources:
       - name: inboundsalesline
       - name: orderdataanalysis
       - name: crmlinestatus
+      - name: ordercount
 
       
   - name:  h_mysql_ofs
     database:  tps-data-386515
     tables:
       
-      
-      
-
-      
       - name: boxline
       - name: boxheader
       - name: orderstatusline
-      - name: ordercount
+      - name: driverdeliverystage
+      

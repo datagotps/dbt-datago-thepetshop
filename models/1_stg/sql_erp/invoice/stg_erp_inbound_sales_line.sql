@@ -12,6 +12,8 @@ renamed as (
         web_order_no_,
         item_id,
         invoice_date,
+        item_no_,
+        customer_no_,
 
         documentno,
         invoice_no_,
@@ -24,7 +26,7 @@ renamed as (
         
 
 
-        item_no_,
+        
         lot_no_,
 
         
@@ -71,7 +73,7 @@ renamed as (
 
 
 
-        customer_no_,
+        
         customization_base_amount,
         customization_charge,
         

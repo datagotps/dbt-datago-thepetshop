@@ -1,39 +1,74 @@
-with orderstatusline as 
-(
+with 
+inboundpaymentline as 
 
-    WITH RankedStatus AS (
-        SELECT
-            weborderno,
-            itemid,
-            statusname,
-            insertedon,
-            ROW_NUMBER() OVER (
-                PARTITION BY weborderno, itemid
-                ORDER BY insertedon DESC, statusname
-                              ) AS rn
-        FROM {{ ref('stg_ofs_orderstatusline') }}
-        where statusname != 'CLOSE'
-    )
-    SELECT
-        weborderno,
+    (
+        select
         itemid,
-        statusname AS order_line_status,
-        insertedon AS order_line_status_date,
-    FROM RankedStatus
-    WHERE rn = 1 
-)
+         
+        mrpprice as gross_subtotal,
+        amountincltax as net_subtotal,
+        discount,
+        insertedon,
+
+
+        from  {{ ref('stg_ofs_inboundpaymentline') }}
+        where isheader =0 
+        --and weborderno = 'O3070096S'
+        
+         
+        
+
+    )
+
 ,
-order_shipping as 
+order_head as 
 
     (
         select
         weborderno,
         sum(case when isheader = 1 then shippingcharges else 0 end ) as shipping,
+        sum(case when isheader = 1 then amountincltax else 0 end ) as order_value,
         from {{ ref('stg_ofs_inboundpaymentline') }} group by 1 --where weborderno = 'O3070167S' 
 
     )
 
 ,
+  
+
+orderdataanalysis as 
+
+    (
+        select
+        itemid,
+        orderdate,
+        deliverydate,
+
+        batchdatetime,
+        pickeddatetime,
+        
+
+
+        ordertype,
+        case when batchid is null or batchid = 0 then 0  else 1  end as batchcreated,
+        allocated,
+        picked,
+        case when awbno is null or awbno = '' then 0 else 1 end as packed,
+        isdelivered,
+        case when returnticket is null or returnticket = '' then 0 else 1 end as returned,
+        iscancelled,
+
+        awbno,
+
+        from  {{ ref('stg_ofs_orderdataanalysis') }} 
+        --where weborderno = 'O3070096S' 
+        
+
+    )
+
+,
+
+
+
 
 ofs_crmlinestatus as 
 (
@@ -82,10 +117,17 @@ a.itemid,
 --b.amountincltax as items_net_sales,
 --b.mrpprice as items_gross_sales,
 
+b.gross_subtotal,
+b.net_subtotal,
+b.discount,
+b.insertedon,
 
-b.mrpprice as unit_mrpprice, --_incl_tax,
-b.discount as unit_discount, --_incl_tax,
-b.amountincltax as unit_final_price,  --_incl_tax,
+--b.mrpprice as unit_mrpprice, --_incl_tax,
+--b.discount as unit_discount, --_incl_tax,
+--b.amountincltax as unit_final_price,  --_incl_tax,
+--b.tax as unit_tax,
+
+
 
 
 -- sum(unit_final_price) as items_net_sales (NMV)
@@ -94,7 +136,6 @@ b.amountincltax as unit_final_price,  --_incl_tax,
 
 
 
-b.tax as unit_tax,
 
 --b.amount as unit_final_price_exclu_tax,
 --b.mrpprice / (1 + b.TaxPercentage / 100) as unit_mrpprice_exclu_tax,
@@ -102,20 +143,17 @@ b.tax as unit_tax,
 
 --(b.amountincltax  - b.mrpprice) = b.discount
 --(unit_final_price - unit_mrpprice) = unit_discount
+
+
 a.itemno,
 a.sku,
 a.quantity,
 
+
+
+
 g.location,
-
-
-
-
-
 c.ordertype,
-
-
-d.order_line_status,
 i.statusname as crm_order_line_status,
 
 e.description as item_name,
@@ -126,17 +164,37 @@ e.brand as item_brand,
 
 h.order_date,
 h.orderplatform,
+h.customerid,
 
 f.awbno,
 f.iscancelled,
 
-(k.invoice_value_incl__tax - k.shipping_charges) as posted_merchandise_value ,
+f.isdelivered,
+f.batchcreated,
+f.packed,
+f.returned,
+
+f.batchdatetime,
+f.deliverydate,
+f.pickeddatetime,
+
+case 
+when f.isdelivered is not true then net_subtotal 
+when f.returned = 1 and f.iscancelled is true then net_subtotal
+else 0 end as unfulfilled_revenue,
+
+
+k.invoice_value_incl__tax as recognized_revenue,
+
+k.rec_rev_in_period,
+k.rec_rev_deferred,
+k.revenue_classification,
+
+(k.invoice_value_incl__tax - k.shipping_charges) as recognized_merchandise_value ,
 
 case when k.item_id is not null then 'Posted' else 'Not Posted' end as erp_posting_status,
 
-round(  COALESCE(b.amountincltax, 0) - COALESCE(k.invoice_value_incl__tax - k.shipping_charges, 0),2) as unfulfilled_sales,
-
-
+round(  COALESCE(b.net_subtotal, 0) - COALESCE(k.invoice_value_incl__tax - k.shipping_charges , 0),2) as unfulfilled_sales,
 
 
 CASE 
@@ -147,14 +205,15 @@ CASE
 
 
 from  {{ ref('stg_ofs_inboundsalesline') }} as a --5409155
-left join {{ ref('stg_ofs_inboundpaymentline') }} as b on a.itemid = b.itemid and b.isheader =0
+left join inboundpaymentline as b on a.itemid = b.itemid 
+
 left join {{ ref('stg_ofs_orderdetail') }} as c on c.itemid = a.itemid
 
-left join orderstatusline as d on d.itemid = a.itemid 
 
 left join ofs_itemdetail as e on e.itemno = a.itemno 
- 
-left join {{ ref('stg_ofs_orderdataanalysis') }} as f on f.itemid = a.itemid
+
+left join orderdataanalysis as f on f.itemid = a.itemid
+
 
 left join  {{ ref('stg_ofs_locationmaster') }} as g on g.id = SAFE_CAST(a.packaginglocation AS INT64)
 
@@ -162,9 +221,9 @@ left join  {{ ref('stg_ofs_inboundsalesheader') }} as h on h.weborderno = a.webo
 left join ofs_crmlinestatus as i on i.itemid = a.itemid
 
 
-left join {{ ref('stg_erp_inbound_sales_line') }}  as k on k.item_id = a.itemid and k.type = 1
+left join {{ ref('fct_erp_occ_invoice_items') }}  as k on k.item_id = a.itemid --and k.type = 1
 
-left join order_shipping as l on l.weborderno = a.weborderno
---where a.weborderno = 'O3070167S'
+left join order_head as l on l.weborderno = a.weborderno
+--where a.weborderno = 'O3077296S'
 
 

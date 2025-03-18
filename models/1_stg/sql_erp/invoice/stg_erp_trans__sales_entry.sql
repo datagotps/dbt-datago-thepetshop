@@ -9,6 +9,10 @@ source as (
 renamed as (
 
     select
+        net_amount,
+
+
+
         line_no_,
         pos_terminal_no_,
         store_no_,
@@ -55,7 +59,7 @@ renamed as (
         marked_for_gift_receipt,
         member_points,
         member_points_type,
-        net_amount,
+        
         net_price,
         offer_blocked_points,
         orig__from_infocode,
@@ -123,7 +127,19 @@ renamed as (
         weight_item,
         weight_manually_entered,
         xstatement_no_,
-        xtransaction_status
+        xtransaction_status,
+
+case 
+when retail_product_code = '31024' then 'Add-on'
+when retail_product_code = '31010' then 'Bird Groom'
+when retail_product_code = '31011' then 'Cat Groom'
+when retail_product_code = '31012' then 'Dog Groom'
+when retail_product_code = '31113' then 'Mobile Cat'
+when retail_product_code = '31114' then 'Mobile Dog'
+else retail_product_code
+end as retail_product_code_2,
+
+
 
     from source
 
