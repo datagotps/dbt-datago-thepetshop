@@ -6,13 +6,17 @@ inboundpaymentline as
         itemid,
          
         mrpprice as gross_subtotal,
+        COALESCE(mrpprice,0) / (1 + TaxPercentage / 100) as gross_subtotal_exclu_tax,
+        COALESCE(discount,0)  / (1 + TaxPercentage / 100) as discount_exclu_tax,
         amountincltax as net_subtotal,
+        amount as net_subtotal_exclu_tax,
         discount,
         insertedon,
 
 
         from  {{ ref('stg_ofs_inboundpaymentline') }}
         where isheader =0 
+        order by mrpprice desc
         --and weborderno = 'O3070096S'
         
          
@@ -45,6 +49,8 @@ orderdataanalysis as
 
         batchdatetime,
         pickeddatetime,
+        boxid,
+        boxdatetime,
         
 
 
@@ -67,7 +73,16 @@ orderdataanalysis as
 
 ,
 
+boxstatus as 
+(
+    SELECT 
+    boxid,
+    insertedon as packdatetime,
 
+    FROM {{ ref('stg_ofs_boxstatus') }} 
+)
+
+,
 
 
 ofs_crmlinestatus as 
@@ -119,7 +134,10 @@ a.itemid,
 
 b.gross_subtotal,
 b.net_subtotal,
+b.net_subtotal_exclu_tax,
+b.gross_subtotal_exclu_tax,
 b.discount,
+b.discount_exclu_tax,
 b.insertedon,
 
 --b.mrpprice as unit_mrpprice, --_incl_tax,
@@ -154,6 +172,9 @@ a.quantity,
 
 g.location,
 c.ordertype,
+
+
+
 i.statusname as crm_order_line_status,
 
 e.description as item_name,
@@ -162,39 +183,51 @@ e.itemcategorycode as item_category,
 e.retailproductcode as item_subcategory,
 e.brand as item_brand,
 
-h.order_date,
+
 h.orderplatform,
+h.ordersource, -- Website, CRM, Android, iOS
 h.customerid,
 
 f.awbno,
-f.iscancelled,
 
+f.iscancelled,
 f.isdelivered,
-f.batchcreated,
-f.packed,
 f.returned,
 
-f.batchdatetime,
-f.deliverydate,
-f.pickeddatetime,
+--date
+    h.order_date,
+    f.batchdatetime,
+    f.pickeddatetime,
+    m.packdatetime,
+    f.deliverydate,
+
+
+--flags
+    f.batchcreated,
+    f.picked,
+    f.packed,
+    
+
+
 
 case 
-when f.isdelivered is not true then net_subtotal 
-when f.returned = 1 and f.iscancelled is true then net_subtotal
+when f.isdelivered is not true then net_subtotal_exclu_tax 
+when f.returned = 1 and f.iscancelled is true then net_subtotal_exclu_tax
 else 0 end as unfulfilled_revenue,
 
 
-k.invoice_value_incl__tax as recognized_revenue,
+--k.invoice_value_incl__tax as recognized_revenue,
+k.invoice_value_excl__tax_excl_ship as recognized_revenue,
 
 k.rec_rev_in_period,
 k.rec_rev_deferred,
 k.revenue_classification,
 
-(k.invoice_value_incl__tax - k.shipping_charges) as recognized_merchandise_value ,
+--(k.invoice_value_incl__tax - k.shipping_charges) as recognized_merchandise_value ,
 
 case when k.item_id is not null then 'Posted' else 'Not Posted' end as erp_posting_status,
 
-round(  COALESCE(b.net_subtotal, 0) - COALESCE(k.invoice_value_incl__tax - k.shipping_charges , 0),2) as unfulfilled_sales,
+round(  COALESCE(b.net_subtotal_exclu_tax, 0) - COALESCE(k.invoice_value_excl__tax_excl_ship , 0),2) as unfulfilled_sales,
 
 
 CASE 
@@ -202,6 +235,15 @@ CASE
     ELSE 0 
   END as shipping,
 
+
+
+
+CASE
+  WHEN c.ordertype = 'EXPRESS' AND h.order_date < DATE('2025-01-16') THEN '4-Hour Express'
+  WHEN c.ordertype = 'EXPRESS' AND h.order_date >= DATE('2025-01-16') THEN '60-min Express'
+  WHEN c.ordertype = 'NORMAL' THEN 'Regular'
+  ELSE 'Regular'
+END AS delivery_mode,
 
 
 from  {{ ref('stg_ofs_inboundsalesline') }} as a --5409155
@@ -224,6 +266,7 @@ left join ofs_crmlinestatus as i on i.itemid = a.itemid
 left join {{ ref('fct_erp_occ_invoice_items') }}  as k on k.item_id = a.itemid --and k.type = 1
 
 left join order_head as l on l.weborderno = a.weborderno
+left join boxstatus as m on m.boxid = f.boxid
 --where a.weborderno = 'O3077296S'
 
 

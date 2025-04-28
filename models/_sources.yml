@@ -66,4 +66,5 @@ sources:
       - name: boxheader
       - name: orderstatusline
       - name: driverdeliverystage
+      - name: boxstatus
       
