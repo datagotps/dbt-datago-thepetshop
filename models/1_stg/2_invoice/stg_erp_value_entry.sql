@@ -279,3 +279,8 @@ case
 
 select * from renamed
 
+--where document_no_ = 'CRK-CK01-11691'
+
+ --where document_no_ = 'SI/2024/00956'
+
+  --where document_no_ = 'PSI/2025/00823'

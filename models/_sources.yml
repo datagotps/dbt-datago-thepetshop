@@ -4,9 +4,28 @@ sources:
     database:  tps-data-386515
     tables:
       - name: petshop_transfer_line_437dbf0e_84ff_417a_965d_ed2bb9650972
+      - name: petshop_transfer_line_5ecfc871_5d82_43f1_9c54_59685e82318d
+
+      - name: petshop_transfer_shipment_line_437dbf0e_84ff_417a_965d_ed2bb9650972
+      - name: petshop_transfer_shipment_line_5ecfc871_5d82_43f1_9c54_59685e82318d
+
+
+      - name: petshop_pick_detail_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+
+      - name: petshop_pna_details_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+
+
+
       - name: petshop_transfer_header_437dbf0e_84ff_417a_965d_ed2bb9650972
 
+
+######## purchase #######
       - name: petshop_purchase_line_437dbf0e_84ff_417a_965d_ed2bb9650972
+      - name: petshop_purchase_line_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+      - name: petshop_purchase_header_437dbf0e_84ff_417a_965d_ed2bb9650972
+      - name: petshop_purchase_header_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+
+
 
       - name: petshop_item_5ecfc871_5d82_43f1_9c54_59685e82318d # done
       - name: petshop_item_c91094c2_db03_49d2_8cb9_95c179ecbf9d # done
@@ -17,7 +36,16 @@ sources:
       - name: petshop_vendor_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_replenishment_mapping_c91094c2_db03_49d2_8cb9_95c179ecbf9d
       - name: petshop_stock_bin_wise_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+
+######## Customer ########      
       - name: petshop_customer_437dbf0e_84ff_417a_965d_ed2bb9650972
+      - name: petshop_customer_5ecfc871_5d82_43f1_9c54_59685e82318d
+      - name: petshop_customer_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+      - name: petshop_customer_230a02db_21eb_4476_8cfe_fef4ff006531
+      - name: petshop_customer_posting_group_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+
+
+
       - name: petshop_value_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_dimension_value_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_dimension_set_entry_437dbf0e_84ff_417a_965d_ed2bb9650972 
