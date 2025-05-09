@@ -1,3 +1,6 @@
+
+-- Just online orders, copme from OFS ssytem to ERP.
+
 with 
 
 source as (
@@ -71,3 +74,6 @@ case
 )
 
 select * from renamed
+--where web_order_id not like  'O%' and web_order_id not like  'C%'
+
+--where invoice_no_ not like  'INV%'
