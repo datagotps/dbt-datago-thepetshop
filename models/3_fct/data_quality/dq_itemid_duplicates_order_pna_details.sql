@@ -14,7 +14,7 @@ WITH duplicate_items AS (
 SELECT 
   a.itemid,
   di.match_count AS number_of_matches,
-  b.item_id,
+  --b.item_id,
   b.* -- Include all fields from pna_details
 FROM `tps-data-386515`.`dbt_dev_datago_int`.`int_occ_order_items` AS a
 JOIN duplicate_items di

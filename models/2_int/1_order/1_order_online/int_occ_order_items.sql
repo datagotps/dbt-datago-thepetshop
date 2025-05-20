@@ -46,6 +46,7 @@ orderdataanalysis as
         itemid,
         orderdate,
         deliverydate,
+        paymentmethodcode,
 
         batchdatetime,
         pickeddatetime,
@@ -253,6 +254,8 @@ when q.item_id is not null and i.statusname != 'CLOSE' then 'permanent_pna'
 when q.item_id is  null then 'no_pna'
 else 'ask anmar' 
 end as pna_flag_detail,
+
+f.paymentmethodcode,
 
 from  {{ ref('stg_ofs_inboundsalesline') }} as a --5409155
 left join inboundpaymentline as b on a.itemid = b.itemid 
