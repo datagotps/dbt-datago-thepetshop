@@ -11,6 +11,9 @@ renamed as (
     select
         document_type,
         no_,
+        status,
+        last_receiving_no_,
+
         _fivetran_deleted,
         _fivetran_synced,
         _systemid,
@@ -61,7 +64,7 @@ renamed as (
         last_posting_no_,
         last_prepayment_no_,
         last_prepmt__cr__memo_no_,
-        last_receiving_no_,
+        
         last_return_shipment_no_,
         lead_time_calculation,
         location_code,
@@ -133,7 +136,7 @@ renamed as (
         shipment_method_code,
         shortcut_dimension_1_code,
         shortcut_dimension_2_code,
-        status,
+        
         tax_area_code,
         tax_liable,
         timestamp,
@@ -157,3 +160,12 @@ renamed as (
 )
 
 select * from renamed
+--where no_ = 'TPS/2025/001217'
+--where no_ = 'HQWGP/21101'
+
+-- Purchase Order
+--Posted Purchase Receipt
+--https://erp.thepetstore.com/petshop/?node=0000233e-df25-0000-0c6c-5800836bd2d2&page=9307&company=PetShop&dc=0
+
+
+---sql_erp_prod_dbo.petshop_posted_whse__receipt_header_437dbf0e_84ff_417a_965d_ed2bb9650972

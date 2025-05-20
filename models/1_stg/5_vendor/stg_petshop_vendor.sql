@@ -1,12 +1,92 @@
-With source as (
- select * from {{ source(var('erp_source'), 'petshop_vendor_437dbf0e_84ff_417a_965d_ed2bb9650972') }}
+with 
+
+source as (
+
+    select * from {{ source('sql_erp_prod_dbo', 'petshop_vendor_437dbf0e_84ff_417a_965d_ed2bb9650972') }}
+
+),
+
+renamed as (
+
+    select
+        no_,
+        _fivetran_deleted,
+        _fivetran_synced,
+        _systemid,
+        address,
+        address_2,
+        application_method,
+        base_calendar_code,
+        block_payment_tolerance,
+        blocked,
+        budgeted_amount,
+        cash_flow_payment_terms_code,
+        city,
+        contact,
+        country_region_code,
+        county,
+        creditor_no_,
+        currency_code,
+        currency_id,
+        disable_search_by_name,
+        document_sending_profile,
+        e_mail,
+        fax_no_,
+        fin__charge_terms_code,
+        gen__bus__posting_group,
+        gln,
+        global_dimension_1_code,
+        global_dimension_2_code,
+        home_page,
+        ic_partner_code,
+        id,
+        image,
+        invoice_disc__code,
+        language_code,
+        last_date_modified,
+        last_modified_date_time,
+        lead_time_calculation,
+        location_code,
+        name,
+        name_2,
+        no__series,
+        our_account_no_,
+        over_receipt_code,
+        partner_type,
+        pay_to_vendor_no_,
+        payment_method_code,
+        payment_method_id,
+        payment_terms_code,
+        payment_terms_id,
+        phone_no_,
+        picture,
+        post_code,
+        preferred_bank_account_code,
+        prepayment__,
+        price_calculation_method,
+        prices_including_vat,
+        primary_contact_no_,
+        priority,
+        privacy_blocked,
+        purchaser_code,
+        responsibility_center,
+        search_name,
+        shipment_method_code,
+        shipping_agent_code,
+        statistics_group,
+        tax_area_code,
+        tax_liable,
+        telex_answer_back,
+        telex_no_,
+        territory_code,
+        timestamp,
+        validate_eu_vat_reg__no_,
+        vat_bus__posting_group,
+        vat_registration_no_,
+        vendor_posting_group
+
+    from source
+
 )
-select 
-*,
 
-current_timestamp() as ingestion_timestamp,
-
-
-
-
-from source 
+select * from renamed

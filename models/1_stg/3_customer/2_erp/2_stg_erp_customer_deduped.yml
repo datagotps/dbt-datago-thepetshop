@@ -1,0 +1,9 @@
+models:
+  - name: int_erp_customer
+    description: |
+      Joins OFS customer details with ERP customer data.
+      
+      **Known Issue**: Some web_customer_no_ values have duplicates in ERP.
+      Currently using the oldest record based on date_created.
+      
+      See `duplicate_web_customers` model for duplicate analysis.

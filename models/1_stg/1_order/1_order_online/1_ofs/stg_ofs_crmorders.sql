@@ -31,7 +31,6 @@ id,
     customertype, --NORMAL, RISKY, FRAUD, BLACKLISTED
 
 
-
 -- Not Useed
 
 case

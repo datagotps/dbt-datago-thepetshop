@@ -5,4 +5,4 @@ select
 
 *
 from source 
-
+--where delivery_mode != 'Regular'

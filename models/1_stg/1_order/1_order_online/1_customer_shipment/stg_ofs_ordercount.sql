@@ -10,7 +10,15 @@ renamed as (
 
     select
         id,
+        locationstatus,
+        totalitemcount,
         weborderno,
+        customerid,
+
+        contactno,
+
+
+        
         referenceorderno,
         orderitemcount,
         packaginglocation,
@@ -19,12 +27,12 @@ renamed as (
         insertedon,
         insertedby,
         readyforarchive,
-        customerid,
-        contactno,
+        
+        
         merged,
-        totalitemcount,
+        
         sortingbintype,
-        locationstatus,
+        
         _fivetran_deleted,
         _fivetran_synced
 
@@ -33,3 +41,4 @@ renamed as (
 )
 
 select * from renamed
+--where weborderno= 'O30102245S'

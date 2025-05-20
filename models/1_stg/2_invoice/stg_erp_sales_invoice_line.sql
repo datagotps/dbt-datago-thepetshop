@@ -151,4 +151,3 @@ case
 
 select * from renamed
 
---where document_no_ = 'INV00430973'
