@@ -24,6 +24,7 @@ sources:
       - name: petshop_purchase_line_c91094c2_db03_49d2_8cb9_95c179ecbf9d
       - name: petshop_purchase_header_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_purchase_header_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+      - name: petshop_purch__rcpt__line_437dbf0e_84ff_417a_965d_ed2bb9650972
 
 
 
@@ -84,6 +85,7 @@ sources:
       - name: orderdataanalysis
       - name: crmlinestatus
       - name: ordercount
+      - name: customerdetails
 
       
   - name:  h_mysql_ofs
@@ -96,3 +98,20 @@ sources:
       - name: driverdeliverystage
       - name: boxstatus
       
+
+
+  - name:  Fact
+    database:  tps-data-386515
+    tables:
+      
+      - name: Fact_Old_Online_Order_Level_Sales_Data
+      - name: Fact_Old_ERP_Sku_Level_Sales_Data
+
+
+  - name:  Archive_Old_Online_Data
+    database:  tps-data-386515
+    tables:
+      
+      - name: Dan_DD_Customer
+      - name: DD_Customer
+

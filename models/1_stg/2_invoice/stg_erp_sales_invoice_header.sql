@@ -159,10 +159,3 @@ renamed as (
 )
 
 select * from renamed
-
---where order_no_ = 'O3075972S'
-
---where no_ not like  'INV%' and customer_posting_group not in ('B2B DOMESTIC', 'P&M', 'AFFILIATES', 'PETRELOCATION', 'INTERCOM', 'INTERPETSLUX', 'OFFLINE CUSTOMERS', 'INTERLUCK', 'INTERCAFE')
-
---where no_  not like  'PSI%' and no_ not like  'INV%'
---= 'CRK-CK01-11691'

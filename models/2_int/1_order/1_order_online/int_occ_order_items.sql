@@ -246,6 +246,14 @@ CASE
 END AS delivery_mode,
 
 
+case when q.item_id is not null then 'pna' else null end as pna_flag,
+case 
+when q.item_id is not null and i.statusname = 'CLOSE' then 'resolved_pna' 
+when q.item_id is not null and i.statusname != 'CLOSE' then 'permanent_pna'
+when q.item_id is  null then 'no_pna'
+else 'ask anmar' 
+end as pna_flag_detail,
+
 from  {{ ref('stg_ofs_inboundsalesline') }} as a --5409155
 left join inboundpaymentline as b on a.itemid = b.itemid 
 
@@ -267,6 +275,8 @@ left join {{ ref('fct_erp_occ_invoice_items') }}  as k on k.item_id = a.itemid -
 
 left join order_head as l on l.weborderno = a.weborderno
 left join boxstatus as m on m.boxid = f.boxid
---where a.weborderno = 'O3077296S'
+
+left join {{ ref('stg_petshop_pick_detail') }}   p on p.itemid = a.itemid
+left join  {{ ref('stg_petshop_pna_details') }} as q on q.item_id = a.itemid
 
 

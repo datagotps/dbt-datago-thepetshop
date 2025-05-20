@@ -155,6 +155,7 @@ ofs_inbound_sales_header as
     (
         select
         weborderno,
+        max(customerid) as customerid ,
         max(order_date) as order_date,
         
         max(orderplatform) as orderplatform,
@@ -334,7 +335,6 @@ round( a.order_value - COALESCE(e.posted_amount_including_vat, 0),0) as unfulfil
 case when e.combined_posted_invoice_no is not null then 'Posted' else 'Not Posted' end as erp_posting_status,
 
 
-
 l.Latitude as order_Latitude,
 l.Longitude as order_Longitude,
 l.state,
@@ -393,7 +393,7 @@ case when l.Latitude = '25.010022863963258' and l.Longitude = '55.15683832090804
 
 case when l.Latitude = n.lattitude and l.Longitude = n.longitude then 'Match' else 'Not Match' end as delivery_location_match, --Indicates if the order location matches the actual delivery location. "Match" if coordinates align, otherwise "Not Match" 
 
-
+f.customerid,
 from order_payment_data as a
 left join line_items as b on a.weborderno = b.weborderno
 left join erp_inbound_sales_header as c on c.web_order_id = a.weborderno
@@ -417,4 +417,3 @@ left join orderdataanalysis as m on m.weborderno = a.weborderno
 
 left join driverdeliverystage n on n.awb = m.awbno
 
---where l.Latitude = '25.010022863963258' and l.Longitude = '55.15683832090804'

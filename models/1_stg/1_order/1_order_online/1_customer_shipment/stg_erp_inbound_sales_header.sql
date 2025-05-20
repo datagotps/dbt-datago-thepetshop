@@ -74,6 +74,6 @@ case
 )
 
 select * from renamed
---where web_order_id not like  'O%' and web_order_id not like  'C%'
+--where web_order_id= 'O30102245S'
 
---where invoice_no_ not like  'INV%'
+--DIP-DT01-135461, DIP-DT01-145717, INV00442971, INV00460667, INV00461422, INV00461423, INV00461426

@@ -12,6 +12,7 @@ source as (
 renamed as (
 
     select
+    source_no_,
     document_no_,
     item_no_,
 
@@ -63,10 +64,10 @@ else global_dimension_2_code end as global_dimension_2_code,
 
 
 case 
-when global_dimension_2_code in ('112125','112120','112130','112140','112150','112170','112185','112180') then 'Marketplace' --source_no_
-when global_dimension_2_code in ('122000') then 'Retail'
+when global_dimension_2_code in ('112125','112120','112130','112140','112150','112170','112185','112180') then 'Affiliate' --source_no_
+when global_dimension_2_code in ('122000') then 'Shop'
 when global_dimension_2_code in ('110000') then 'Online'
-when global_dimension_2_code in ('120010') then 'Wholesale' --source_no_
+when global_dimension_2_code in ('120010') then 'B2B' --source_no_
 when global_dimension_2_code in ('123030','123040') then 'Services' --source_no_
 
 else 'Cheack My Logic'
@@ -198,7 +199,7 @@ location_code,
         sales_amount__expected_,
         salespers__purch__code,
         
-        source_no_,
+        
         
         
         timestamp,
@@ -279,8 +280,3 @@ case
 
 select * from renamed
 
---where document_no_ = 'CRK-CK01-11691'
-
- --where document_no_ = 'SI/2024/00956'
-
-  --where document_no_ = 'PSI/2025/00823'

@@ -33,3 +33,5 @@ renamed as (
 )
 
 select * from renamed
+
+--where no_ = 'TPS/2025/001206'

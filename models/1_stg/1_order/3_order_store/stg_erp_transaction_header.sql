@@ -106,5 +106,3 @@ renamed as (
 )
 
 select * from renamed
-
---where CONCAT(store_no_, '-', pos_terminal_no_, '-', transaction_no_)  = 'WSL-WT02-7743'

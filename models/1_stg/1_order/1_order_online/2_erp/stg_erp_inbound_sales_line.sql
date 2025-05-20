@@ -113,5 +113,3 @@ renamed as (
 )
 
 select * from renamed
-
---where web_order_no_ = 'O3075972S' --and item_id = 5356629

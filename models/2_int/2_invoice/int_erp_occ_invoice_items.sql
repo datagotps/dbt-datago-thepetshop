@@ -82,4 +82,3 @@ left join erp_sales_invoice_line as d on d.document_no_ = a.documentno and d.no_
 
 
 where a.type = 1 
---and  web_order_no_ = 'O3046081S'
