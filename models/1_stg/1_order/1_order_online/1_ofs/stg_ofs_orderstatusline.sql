@@ -10,12 +10,14 @@ renamed as (
 
     select
         id,
+        insertedon,
         weborderno,
         itemid,
         statusid,
         statusname,
+
         readyforarchive,
-        insertedon,
+        
         insertedby,
         updatedon,
         updatedby,
@@ -28,6 +30,20 @@ renamed as (
 
     from source
 
+),
+
+deduplicated as (
+
+    select
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY weborderno, itemid, statusid, statusname
+            ORDER BY insertedon, id  -- Added id as a tiebreaker for identical timestamps
+        ) AS status_rank
+    from renamed
+
 )
 
-select * from renamed
+select * except(status_rank) 
+from deduplicated
+where status_rank = 1
