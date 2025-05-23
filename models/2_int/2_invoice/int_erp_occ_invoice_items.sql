@@ -38,6 +38,7 @@ value_entry as (
 */
 
 select
+a.type,
 a.item_id,
 a.web_order_no_,
 a.invoice_date,
@@ -70,7 +71,8 @@ b.mrpprice,
 a.discount_amount,
  
 d.posting_date,
-
+a.documentno,
+--d.line_no_,
 from {{ ref('stg_erp_inbound_sales_line') }} as a
 left join ofs_inboundpaymentline as b on b.itemid = a.item_id
 
@@ -81,4 +83,6 @@ left join erp_sales_invoice_line as d on d.document_no_ = a.documentno and d.no_
 --left join value_entry as e on e.document_no_ = a.documentno
 
 
-where a.type = 1 
+where a.type = 1
+--where a.documentno = 'INV00431517' and  a.type = 1 
+--where  a.web_order_no_='O3077302S'

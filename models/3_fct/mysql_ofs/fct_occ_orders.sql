@@ -6,6 +6,8 @@ select
 *
 from source 
 
+--where fulfillment_type = 'Express Delivery From Fulfillment Center'
+
  
   
   

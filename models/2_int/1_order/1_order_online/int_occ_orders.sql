@@ -308,10 +308,10 @@ f.ordertype,
 
 
 case 
-when f.ordertype = 'EXPRESS' and h.location_count = 1 and h.location = 'HQW' then 'Express Delivery From Fulfillment Center'
-when f.ordertype = 'EXPRESS' and h.location_count = 1 and h.location != 'HQW' then 'Express Delivery From Store'
-when f.ordertype = 'EXPRESS' and h.location_count > 1 then 'Mixed Fulfilment (Express & Standard)'
-when f.ordertype != 'EXPRESS' then 'Standard Delivery'
+when f.ordertype = 'EXPRESS' and h.location_count = 1 and h.location = 'HQW' then 'Express Delivery From Fulfillment Center' --Single shipment from HQW (4-Hour Express) express before 2025-01-16
+when f.ordertype = 'EXPRESS' and h.location_count = 1 and h.location != 'HQW' then 'Express Delivery From Store' --Single shipment from store (60-min Express) express orders after  2025-01-16
+when f.ordertype = 'EXPRESS' and h.location_count > 1 then 'Mixed Fulfilment (Express & Standard)' --Split shipment (Mixed Fulfilment)
+when f.ordertype != 'EXPRESS' then 'Standard Delivery' --normal orders 
 else 'Ask anmar@8020datago.ai'
 end as fulfillment_type,
 
@@ -417,3 +417,4 @@ left join orderdataanalysis as m on m.weborderno = a.weborderno
 
 left join driverdeliverystage n on n.awb = m.awbno
 
+--where a.weborderno= 'O3066151S'

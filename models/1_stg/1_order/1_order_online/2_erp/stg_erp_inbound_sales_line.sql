@@ -10,13 +10,22 @@ renamed as (
 
     select
         web_order_no_,
+        documentno,
+        invoice_no_,
+        type, --1,2
+        case 
+        when type = 1 then 'Sales'
+        when type = 2 then 'Return Sales'
+        else 'cheack my logic'
+        end as type_2,
+
         item_id,
         invoice_date,
         item_no_,
         customer_no_,
 
-        documentno,
-        invoice_no_,
+        
+        
         serial_no_,
 
         discount_amount, 
@@ -57,7 +66,8 @@ renamed as (
         
 
         
-        type,
+        
+
         _systemid,
         actual_price,
         batch_id,
@@ -113,3 +123,8 @@ renamed as (
 )
 
 select * from renamed
+
+
+--where  web_order_no_ = 'O3068719S'
+--where documentno = 'INV00426682'
+--WHERE item_no_ ='21220000'
