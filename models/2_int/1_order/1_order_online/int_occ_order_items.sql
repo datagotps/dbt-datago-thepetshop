@@ -183,7 +183,15 @@ select
         when q.item_id is not null and i.statusname != 'CLOSE' then 'permanent_pna'
         when q.item_id is null then 'no_pna'
         else 'ask anmar' 
-    end as pna_flag_detail
+    end as pna_flag_detail,
+
+    
+    case 
+    when q.item_id is null then 'no_pna'
+    when q.inserted_by = 'SYSTEM' then 'system_pna'
+    else 'manual_pna' end as pna_reasion,
+
+
 
 -- Main joins
 from {{ ref('stg_ofs_inboundsalesline') }} as a left join inboundpaymentline as b on a.itemid = b.itemid 

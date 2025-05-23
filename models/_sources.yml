@@ -87,7 +87,18 @@ sources:
       - name: ordercount
       - name: customerdetails
 
+
+  - name:  loyalty_aws
+    database:  tps-data-386515
+    tables:
       
+      - name: members
+      - name: points
+      - name: transactions
+
+
+
+
   - name:  h_mysql_ofs
     database:  tps-data-386515
     tables:

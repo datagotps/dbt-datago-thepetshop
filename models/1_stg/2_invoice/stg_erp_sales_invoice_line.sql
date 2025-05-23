@@ -10,6 +10,16 @@ renamed as (
 
     select
         no_,
+        document_no_,
+        line_no_,
+
+        case 
+ when type = 2 then  'Item'
+ when type = 1 then  'G/L Account'
+ else 'Ask DataGo'
+ end as type,
+
+
         appl__from_item_entry,
         appl__to_item_entry,
         bill_to_customer_no_,
@@ -17,8 +27,8 @@ renamed as (
 
         customer_disc__group,
 
-        document_no_,
-        line_no_,
+        
+        
 
         posting_date,
         
@@ -53,11 +63,6 @@ renamed as (
         vat_base_amount,
 
 
-case 
- when type = 2 then  'Sales Return'
- when type = 1 then  'Sales'
- else 'Ask DataGo'
- end as type,
    --     type,
 
 
@@ -151,3 +156,4 @@ case
 
 select * from renamed
 
+--where document_no_ = 'INV00427893'

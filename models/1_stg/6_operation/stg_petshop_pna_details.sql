@@ -7,6 +7,8 @@ source as (
 renamed as (
     select
         sync_id,
+        inserted_by,
+        
         _fivetran_deleted,
         _fivetran_synced,
         _systemid,
@@ -19,7 +21,7 @@ renamed as (
         document_line_no_,
         document_no_,
         insert_date_time,
-        inserted_by,
+        
         item_id,
         item_no,
         lot_no_,
