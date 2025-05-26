@@ -3,8 +3,8 @@ select
 
 
 
-case when a.source_code != 'INVTADJMT' and a.revenue_source = 'Online' and a.document_type_2 != 'Sales Credit Memo' then b.amount else 0 end as online_line_amount_excl_vat,
-case when a.source_code != 'INVTADJMT' and a.revenue_source = 'Online' and a.document_type_2 != 'Sales Credit Memo' then b.amount_including_vat else 0 end as online_line_amount_enclu_vat,
+case when a.source_code != 'INVTADJMT' and a.sales_channel = 'Online' and a.document_type_2 != 'Sales Credit Memo' then b.amount else 0 end as online_line_amount_excl_vat,
+case when a.source_code != 'INVTADJMT' and a.sales_channel = 'Online' and a.document_type_2 != 'Sales Credit Memo' then b.amount_including_vat else 0 end as online_line_amount_enclu_vat,
 
 
 --count(*)

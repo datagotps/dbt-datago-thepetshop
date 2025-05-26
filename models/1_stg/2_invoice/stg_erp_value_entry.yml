@@ -1,0 +1,184 @@
+version: 2
+models:
+- name: stg_erp_value_entry
+  description: This model integrates and transforms data from the ERP system, focusing
+    on value entries related to sales, purchases, and inventory adjustments. It categorizes
+    revenue sources, identifies core business transactions, and provides detailed
+    financial and item-level insights. The model is essential for analyzing sales
+    channels, financial postings, and inventory movements, supporting business decision-making
+    and financial reporting.
+  columns:
+  - name: sales_amount__actual_
+    description: The actual sales amount recorded for a transaction.
+  - name: source_code
+    description: The code representing the source of the transaction, such as sales
+      or purchases.
+  - name: gen__prod__posting_group
+    description: The general product posting group categorizing the type of product,
+      such as shipping or non-food.
+  - name: global_dimension_2_code_name
+    description: The name of the second global dimension, used for categorizing revenue
+      sources.
+  - name: global_dimension_2_code
+    description: The code for the second global dimension, used for categorizing revenue
+      sources.
+  - name: dimension_code
+    description: The code representing a specific dimension value.
+  - name: sales_channel
+    description: The channel through which sales are made, such as marketplace or
+      online.
+  - name: source_no_
+    description: The unique identifier for the source of the transaction.
+  - name: document_no_
+    description: The unique identifier for the document associated with the transaction.
+  - name: item_no_
+    description: The unique identifier for the item involved in the transaction.
+  - name: entry_no_
+    description: The unique entry number for the transaction.
+  - name: gen__bus__posting_group
+    description: The general business posting group categorizing the type of business
+      transaction, such as domestic or retail.
+  - name: source_posting_group
+    description: The posting group representing the source of the transaction, such
+      as online customer or domestic.
+  - name: inventory_posting_group
+    description: The posting group categorizing inventory transactions.
+  - name: global_dimension_1_code
+    description: The code for the first global dimension, used for categorizing transactions.
+  - name: dimension_set_id
+    description: The identifier for the set of dimensions associated with the transaction.
+  - name: document_date
+    description: The date the document was created.
+  - name: posting_date
+    description: The date the transaction was posted.
+  - name: valuation_date
+    description: The date the transaction was valued.
+  - name: cost_amount__actual_
+    description: The actual cost amount recorded for a transaction.
+  - name: valued_quantity
+    description: The quantity of items valued in the transaction.
+  - name: invoiced_quantity
+    description: The quantity of items invoiced in the transaction.
+  - name: purchase_amount__actual_
+    description: The actual purchase amount recorded for a transaction.
+  - name: discount_amount
+    description: The amount of discount applied to the transaction.
+  - name: cost_per_unit
+    description: The cost per unit of the item in the transaction.
+  - name: location_code
+    description: The code representing the location of the transaction.
+  - name: item_ledger_entry_type
+    description: The type of item ledger entry, such as purchase or sale.
+  - name: new_document_type
+    description: The detailed type of document associated with the transaction, such
+      as sales shipment or purchase invoice.
+  - name: document_type_2
+    description: The simplified type of document associated with the transaction,
+      such as sales invoice or purchase receipt.
+  - name: entry_type_2
+    description: The type of entry, such as direct cost or revaluation.
+  - name: source_type_2
+    description: The type of source, such as customer or vendor.
+  - name: order_type_2
+    description: The type of order, such as transfer.
+  - name: type_2
+    description: The type of transaction, such as work center.
+  - name: document_type
+    description: The raw document type code.
+  - name: order_type
+    description: The raw order type code.
+  - name: entry_type
+    description: The raw entry type code.
+  - name: source_type
+    description: The raw source type code.
+  - name: variance_type
+    description: The type of variance in the transaction.
+  - name: type
+    description: The raw type code, such as work center.
+  - name: variant_code
+    description: The code representing the variant of the item.
+  - name: cost_amount__actual___acy_
+    description: The actual cost amount in the accounting currency.
+  - name: cost_amount__expected_
+    description: The expected cost amount for a transaction.
+  - name: cost_amount__expected___acy_
+    description: The expected cost amount in the accounting currency.
+  - name: cost_amount__non_invtbl__
+    description: The non-inventoriable cost amount for a transaction.
+  - name: cost_amount__non_invtbl___acy_
+    description: The non-inventoriable cost amount in the accounting currency.
+  - name: cost_per_unit__acy_
+    description: The cost per unit in the accounting currency.
+  - name: cost_posted_to_g_l
+    description: The cost amount posted to the general ledger.
+  - name: cost_posted_to_g_l__acy_
+    description: The cost amount posted to the general ledger in the accounting currency.
+  - name: exp__cost_posted_to_g_l__acy_
+    description: The expected cost amount posted to the general ledger in the accounting
+      currency.
+  - name: expected_cost
+    description: The expected cost for a transaction.
+  - name: expected_cost_posted_to_g_l
+    description: The expected cost amount posted to the general ledger.
+  - name: purchase_amount__expected_
+    description: The expected purchase amount for a transaction.
+  - name: sales_amount__expected_
+    description: The expected sales amount for a transaction.
+  - name: document_line_no_
+    description: The line number of the document associated with the transaction.
+  - name: external_document_no_
+    description: The external document number associated with the transaction.
+  - name: order_line_no_
+    description: The line number of the order associated with the transaction.
+  - name: order_no_
+    description: The order number associated with the transaction.
+  - name: item_charge_no_
+    description: The charge number for the item in the transaction.
+  - name: item_ledger_entry_no_
+    description: The entry number in the item ledger.
+  - name: item_ledger_entry_quantity
+    description: The quantity recorded in the item ledger entry.
+  - name: job_ledger_entry_no_
+    description: The entry number in the job ledger.
+  - name: job_no_
+    description: The job number associated with the transaction.
+  - name: job_task_no_
+    description: The task number within the job associated with the transaction.
+  - name: journal_batch_name
+    description: The name of the journal batch associated with the transaction.
+  - name: _fivetran_deleted
+    description: Indicates if the record was deleted by Fivetran.
+  - name: _fivetran_synced
+    description: The timestamp when the record was last synced by Fivetran.
+  - name: _systemid
+    description: The system identifier for the record.
+  - name: adjustment
+    description: The adjustment amount in the transaction.
+  - name: applies_to_entry
+    description: The entry number to which the transaction applies.
+  - name: average_cost_exception
+    description: Indicates if there is an exception in the average cost calculation.
+  - name: capacity_ledger_entry_no_
+    description: The entry number in the capacity ledger.
+  - name: description
+    description: The description of the transaction.
+  - name: drop_shipment
+    description: Indicates if the transaction is a drop shipment.
+  - name: inventoriable
+    description: Indicates if the transaction is inventoriable.
+  - name: no_
+    description: The number associated with the transaction.
+  - name: partial_revaluation
+    description: Indicates if the transaction involves partial revaluation.
+  - name: reason_code
+    description: The code representing the reason for the transaction.
+  - name: return_reason_code
+    description: The code representing the reason for a return.
+  - name: salespers__purch__code
+    description: The code representing the salesperson or purchaser.
+  - name: timestamp
+    description: The timestamp of the transaction.
+  - name: user_id
+    description: The identifier for the user associated with the transaction.
+  - name: valued_by_average_cost
+    description: Indicates if the transaction is valued by average cost.
