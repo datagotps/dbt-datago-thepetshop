@@ -1,8 +1,13 @@
 -- 23,505,843 records
 
 with source as (
-    select * 
-    from {{ source('sql_erp_prod_dbo', 'petshop_value_entry_437dbf0e_84ff_417a_965d_ed2bb9650972') }}
+    select 
+    d.name as global_dimension_2_code_name,
+    d.dimension_code, 
+    a.*,
+    
+    from {{ source('sql_erp_prod_dbo', 'petshop_value_entry_437dbf0e_84ff_417a_965d_ed2bb9650972') }} as a
+    left join {{ ref('stg_petshop_dimension_value') }} as d on  a.global_dimension_2_code = d.code
 ),
 
 renamed as (
@@ -10,6 +15,22 @@ renamed as (
         sales_amount__actual_,
         source_code, -- INVTADJMT, SALES, RECLASSJNL, PURCHASES, BACKOFFICE, ITEMJNL, REVALJNL, TRANSFER
         gen__prod__posting_group, --SHIPPING, NON FOOD
+
+        global_dimension_2_code_name, --from dimension_value
+        global_dimension_2_code,
+        dimension_code,  --from dimension_value
+
+       -- Revenue source categorization
+       case 
+            when global_dimension_2_code_name in ('Amazon FBA','Souq/Amazon','Instashop','El Grocer','Careem','Now Now','Deliveroo','Talabat') then 'MKP' -- Affiliate, MKP, 3rd Party
+            when global_dimension_2_code_name in ('POS Sale') then 'Shop' --Retail Store, Shop
+            when global_dimension_2_code_name in ('Online') then 'Online'
+            when global_dimension_2_code_name in ('B2B Sales') then 'B2B'
+            when global_dimension_2_code_name in ('Project & Maintenance','Pet Relocation') then 'Service'
+            else 'Cheack My Logic'
+        end as sales_channel,  --revenue_source
+        --sales_channel_details
+
 
 
         -- Core identifiers
@@ -57,36 +78,11 @@ renamed as (
         end as item_ledger_entry_type,
         
         -- Global dimension 2 code transformation
-        case 
-            when global_dimension_2_code = '122000' then 'POS Sale'
-            when global_dimension_2_code = '110000' then 'Online'
-            when global_dimension_2_code = '120010' then 'B2B Sales'
-            
-            -- Third Party
-            when global_dimension_2_code = '112125' then 'Amazon FBA'
-            when global_dimension_2_code = '112120' then 'Souq/Amazon'
-            when global_dimension_2_code = '112130' then 'Instashop'
-            when global_dimension_2_code = '112140' then 'El Grocer'
-            when global_dimension_2_code = '112150' then 'Careem'
-            when global_dimension_2_code = '112170' then 'Now Now' -- NooN
-            when global_dimension_2_code = '112185' then 'Deliveroo'
-            when global_dimension_2_code = '112180' then 'Talabat' 
-            
-            -- Service    
-            when global_dimension_2_code = '123030' then 'Project & Maintenance'
-            when global_dimension_2_code = '123040' then 'Pet Relocation'
-            else global_dimension_2_code 
-        end as global_dimension_2_code,
         
-        -- Revenue source categorization
-        case 
-            when global_dimension_2_code in ('112125','112120','112130','112140','112150','112170','112185','112180') then 'Affiliate'
-            when global_dimension_2_code in ('122000') then 'Shop'
-            when global_dimension_2_code in ('110000') then 'Online'
-            when global_dimension_2_code in ('120010') then 'B2B'
-            when global_dimension_2_code in ('123030','123040') then 'Services'
-            else 'Cheack My Logic'
-        end as revenue_source,
+
+
+        
+
         
         -- Document type transformation (detailed)
         case 
@@ -246,3 +242,6 @@ select * from renamed
 
 
 --where source_code = 'SALES'
+
+
+

@@ -54,7 +54,7 @@ FROM  `tps-data-386515`.`dbt_dev_datago_stg`.`stg_erp_value_entry` AS a
 LEFT JOIN `tps-data-386515`.`dbt_dev_datago_stg`.`stg_erp_inbound_sales_header` AS b 
     ON a.document_no_ = b.documentno
 
-where  a.source_code NOT IN ('INVTADMT') and a.item_ledger_entry_type = 'Sale' and revenue_source  IN ('Shop','Online')
+where  a.source_code NOT IN ('INVTADMT') and a.item_ledger_entry_type = 'Sale' and sales_channel  IN ('Shop','Online')
 --and source_no_ ='BCN/2021/4059'
 
 GROUP BY a.source_no_

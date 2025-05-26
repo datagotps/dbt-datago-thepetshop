@@ -10,9 +10,10 @@ renamed as (
 
     select
         code,
+        name,
         dimension_code,
-        _fivetran_deleted,
-        _fivetran_synced,
+        
+        
         _systemid,
         blocked,
         consolidation_code,
@@ -24,9 +25,11 @@ renamed as (
         last_modified_date_time,
         map_to_ic_dimension_code,
         map_to_ic_dimension_value_code,
-        name,
+        
         timestamp,
-        totaling
+        totaling,
+        _fivetran_deleted,
+        _fivetran_synced,
 
     from source
 
