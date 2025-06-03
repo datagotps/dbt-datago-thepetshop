@@ -35,9 +35,3 @@ END AS phone_status,
 
 from {{ ref('stg_ofs_customerdetails') }} as a
 left join crmorders as b on a.customerid =b.customerid
-
---left join {{ ref('1_stg_erp_customer') }} as c on a.customerid = c.web_customer_no_
---where b.phone_count >1 
---where a.emailid = 'ariana121185@protonmail.com'
-
---where a.customerid= '6942144462901'

@@ -12,6 +12,7 @@ renamed as (
         no_,
         document_no_,
         line_no_,
+        amount,
 
         case 
  when type = 2 then  'Item'
@@ -50,7 +51,7 @@ renamed as (
 
 
 
-        amount,
+        
         amount_including_vat,
         line_amount,
         
@@ -157,3 +158,4 @@ renamed as (
 select * from renamed
 
 --where document_no_ = 'INV00427893'
+--where sell_to_customer_no_ = 'C000008816'

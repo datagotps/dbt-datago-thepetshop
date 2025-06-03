@@ -189,7 +189,7 @@ select
     case 
     when q.item_id is null then 'no_pna'
     when q.inserted_by = 'SYSTEM' then 'system_pna'
-    else 'manual_pna' end as pna_reasion,
+    else 'manual_pna' end as pna_reason,
 
 
 
@@ -206,3 +206,8 @@ left join order_head as l on l.weborderno = a.weborderno
 left join boxstatus as m on m.boxid = f.boxid
 left join {{ ref('stg_petshop_pick_detail') }} as p on p.itemid = a.itemid
 left join {{ ref('stg_petshop_pna_details') }} as q on q.item_id = a.itemid
+
+--where ordersource not in ('Website','CRM','IOS') --and a.weborderno =  
+
+ --ordersource - iOS - O1155312
+

@@ -10,17 +10,21 @@ renamed as (
 
     select
         code,
-        _fivetran_deleted,
-        _fivetran_synced,
-        _systemid,
         description,
+        presentation_order,
+    
+        
+        _systemid,
         has_children,
         id,
         indentation,
         last_modified_date_time,
         parent_category,
-        presentation_order,
-        timestamp
+        
+        _fivetran_deleted,
+        _fivetran_synced,
+        
+        --timestamp
 
     from source
 

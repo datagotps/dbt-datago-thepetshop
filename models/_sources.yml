@@ -32,6 +32,7 @@ sources:
       - name: petshop_item_c91094c2_db03_49d2_8cb9_95c179ecbf9d # done
       - name: petshop_item_437dbf0e_84ff_417a_965d_ed2bb9650972 # not used
       - name: petshop_item_category_437dbf0e_84ff_417a_965d_ed2bb9650972
+      - name: petshop_retail_product_group_5ecfc871_5d82_43f1_9c54_59685e82318d
 
 
       - name: petshop_vendor_437dbf0e_84ff_417a_965d_ed2bb9650972
@@ -49,7 +50,14 @@ sources:
 
       - name: petshop_value_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_dimension_value_437dbf0e_84ff_417a_965d_ed2bb9650972
-      - name: petshop_dimension_set_entry_437dbf0e_84ff_417a_965d_ed2bb9650972 
+      - name: petshop_dimension_set_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
+
+      ## GL Entries
+      - name: petshop_g_l_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
+      - name: petshop_g_l_entry_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+
+
+
 
       - name: petshop_inbound_sales_header_c91094c2_db03_49d2_8cb9_95c179ecbf9d
       - name: petshop_inbound_sales_line_c91094c2_db03_49d2_8cb9_95c179ecbf9d

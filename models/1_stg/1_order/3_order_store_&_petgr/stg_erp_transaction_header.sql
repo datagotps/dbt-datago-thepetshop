@@ -17,10 +17,12 @@ renamed as (
 
     select
         CONCAT(store_no_, '-', pos_terminal_no_, '-', transaction_no_) AS document_no_,
+        receipt_no_,
         
         pos_terminal_no_,
         store_no_,
         transaction_no_,
+
         _fivetran_deleted,
         _fivetran_synced,
         _systemid,
@@ -60,7 +62,7 @@ renamed as (
         playback_entry_no_,
         playback_recording_id,
         post_as_shipment,
-        receipt_no_,
+        
         refund_receipt_no_,
         replicated,
         replication_counter,
@@ -106,3 +108,8 @@ renamed as (
 )
 
 select * from renamed
+
+--where transaction_no_ = 8575
+
+--where receipt_no_ = '000000CK02000008408'
+--where document_no_ = 'CRK-CK02-8575'

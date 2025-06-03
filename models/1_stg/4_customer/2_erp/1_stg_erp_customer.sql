@@ -221,7 +221,8 @@ final as (
         c.sync_with_crm,
         c.sync_with_web,
         c.occ_customer_address,
-        c.occ_customer_address_2
+        c.occ_customer_address_2,
+
     from 
         customer_972 as a
         left join customer_18d as b on a.no_ = b.no_
@@ -232,3 +233,5 @@ final as (
 select * from final
 
 --where e_mail = 'amazontest@yopmail.com'
+
+ --where no_ ='C000050735' 
