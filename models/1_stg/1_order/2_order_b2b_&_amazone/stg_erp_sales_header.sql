@@ -27,15 +27,4 @@ renamed as (
 
 select * from renamed
 
---where weborderid != ''
 
---where no_ = 'SI/2024/00956'
-
-
---document_type
---0: SQ/2024/00069.  --Sales Quote
---1: SO/2025/01068.  --Sales Order
---2: SI/2024/00847.  --Sales Invoice
---3: SCM/2024/00070. -- Sales Credit Memos
---4: null
---5: RSO/2024/00244. -- Return Sales Order

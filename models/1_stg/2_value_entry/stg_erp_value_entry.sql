@@ -12,9 +12,16 @@ with source as (
 
 renamed as (
     select
+
+    case when global_dimension_2_code_name in ('POS Sale')  then location_code end as offline_order_channel,
+        
+        drop_shipment,
+        source_no_,
+        document_no_,
         sales_amount__actual_,
         source_code, -- INVTADJMT, SALES, RECLASSJNL, PURCHASES, BACKOFFICE, ITEMJNL, REVALJNL, TRANSFER
         gen__prod__posting_group, --SHIPPING, NON FOOD
+        gen__bus__posting_group, -- DOMESTIC, RETAIL, DOM-SER, FOREIGN, B2B, AFFILIATES, P&M-SER, FOR-SER, DOM-CONS, PET - REL
 
         global_dimension_2_code_name, --from dimension_value
         global_dimension_2_code,
@@ -34,13 +41,13 @@ renamed as (
 
 
         -- Core identifiers
-        source_no_,
-        document_no_,
+        
+        
         item_no_,
         entry_no_,
         
         -- Business posting groups
-        gen__bus__posting_group, -- DOMESTIC, RETAIL, DOM-SER, FOREIGN, B2B, AFFILIATES, P&M-SER, FOR-SER, DOM-CONS, PET - REL
+        
         
         source_posting_group, -- ONLINE_CUSTOMER, DOMESTIC, OFFLINE CUSTOMERS, B2B DOMESTIC, FOREIGN, DOMSERVICE, AFFILIATES, PETRELOCATION, P&M, DOMESTIC_CONSIGNMENT, FORESERVICE, INTERCOM, INTERLUCK, INTERPETSLUX
         inventory_posting_group,
@@ -224,7 +231,7 @@ renamed as (
         average_cost_exception,
         capacity_ledger_entry_no_,
         description,
-        drop_shipment,
+        
         inventoriable,
         no_,
         partial_revaluation,
@@ -240,8 +247,7 @@ renamed as (
 
 select * from renamed
 
+--where document_no_ in ('DIP-DT03-114334','CRK-CK02-8716') 
 
 --where source_code = 'SALES'
-
-
-
+--where source_no_ = 'C000106034'

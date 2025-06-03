@@ -9,42 +9,65 @@ source as (
 renamed as (
 
     select
+        
+        
+        item_no_,
+        item_category_code,
+        retail_product_code,
+        customer_no_,
+        date,
+        transaction_no_,
+        store_no_,
+        quantity,
+        discount_amount,
+        net_amount,
+        cost_amount,
+
+        vat_amount,
+        disc__amount_from_std__price,
+
+        
+        
+        
+
+
+
         line_no_,
         pos_terminal_no_,
-        store_no_,
-        transaction_no_,
+        
+        
         _fivetran_deleted,
         _fivetran_synced,
         _systemid,
         barcode_no_,
         bi_timestamp,
-        cost_amount,
+        
         counter,
         coupon_amt__for_printing,
         coupon_discount,
         created_by_staff_id,
         cust__invoice_discount,
         customer_discount,
-        customer_no_,
-        date,
+        
+        
         deal_header_line_no_,
         deal_line,
         deal_line_added_amt_,
         deal_line_no_,
         deal_modifier_added_amt_,
         deal_modifier_line_no_,
-        disc__amount_from_std__price,
-        discount_amount,
+        
+        
         discount_amt__for_printing,
         excluded_bom_line_no_,
         expiration_date,
         infocode_discount,
         infocode_entry_line_no_,
         infocode_selected_qty_,
-        item_category_code,
+        
         item_corrected_line,
         item_disc__group,
-        item_no_,
+        
         item_number_scanned,
         item_posting_group,
         keyboard_item_entry,
@@ -55,7 +78,7 @@ renamed as (
         marked_for_gift_receipt,
         member_points,
         member_points_type,
-        net_amount,
+        
         net_price,
         offer_blocked_points,
         orig__from_infocode,
@@ -76,7 +99,7 @@ renamed as (
         price_group_code,
         price_in_barcode,
         promotion_no_,
-        quantity,
+        
         receipt_no_,
         recommended_item,
         refund_qty_,
@@ -86,7 +109,7 @@ renamed as (
         refunded_trans__no_,
         replicated,
         replication_counter,
-        retail_product_code,
+        
         return_no_sale,
         sales_staff,
         sales_tax_rounding,
@@ -116,14 +139,26 @@ renamed as (
         uom_price,
         uom_quantity,
         variant_code,
-        vat_amount,
+        
         vat_bus__posting_group,
         vat_calculation_type,
         vat_code,
         weight_item,
         weight_manually_entered,
         xstatement_no_,
-        xtransaction_status
+        xtransaction_status,
+
+case 
+when retail_product_code = '31024' then 'Add-on'
+when retail_product_code = '31010' then 'Bird Groom'
+when retail_product_code = '31011' then 'Cat Groom'
+when retail_product_code = '31012' then 'Dog Groom'
+when retail_product_code = '31113' then 'Mobile Cat'
+when retail_product_code = '31114' then 'Mobile Dog'
+else retail_product_code
+end as retail_product_code_2,
+
+
 
     from source
 
@@ -131,4 +166,8 @@ renamed as (
 
 select * from renamed
 
---where 'CRK-CK01-11691'
+--where receipt_no_ = '000000CK02000008408'
+--where transaction_no_ = 8575
+
+--WHERE retail_product_code IN ('31024','31010','31011','31012','31113','31114')
+

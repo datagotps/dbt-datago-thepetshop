@@ -67,7 +67,14 @@ case
         ticket_type,
         ticketno,
         timestamp,
-        synctoloyalitydetails
+        synctoloyalitydetails,
+
+        CASE
+        WHEN global_dimension_2_code = 'D' THEN 'Website'
+        WHEN global_dimension_2_code IN ('CRM', 'CRM Exchange', 'FOC') THEN 'CRM'
+        WHEN global_dimension_2_code IN ('A', 'I') THEN 'Mobile App'
+        ELSE global_dimension_2_code
+        END AS online_order_channel,
 
     from source
 

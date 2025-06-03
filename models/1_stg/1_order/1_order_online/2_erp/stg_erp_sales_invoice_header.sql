@@ -12,6 +12,7 @@ renamed as (
 
     no_, --(Invoice Number)
     order_no_, --(Order Number)
+    sell_to_customer_no_,
 
 --date
     order_date,
@@ -118,7 +119,7 @@ renamed as (
         sell_to_county,
         sell_to_customer_name,
         sell_to_customer_name_2,
-        sell_to_customer_no_,
+        
         sell_to_e_mail,
         sell_to_phone_no_,
         sell_to_post_code,
@@ -159,3 +160,8 @@ renamed as (
 )
 
 select * from renamed
+
+--where no_= 'PSI/2025/00281' 
+
+--where no_ = 'STMTCRK/001106'
+--where sell_to_customer_no_ = 'C000008816'

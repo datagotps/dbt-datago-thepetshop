@@ -23,19 +23,6 @@ erp_sales_invoice_line as (
     group by 1,2
 )
 
-/*
-,
-value_entry as (
-    select
-        document_no_,
-         min(posting_date) as posting_date,
-         count(*)
-
-    from {{ ref('stg_erp_value_entry') }}
-    where item_ledger_entry_type = 'Sale' and global_dimension_2_code  = 'Online' and document_type_2 = 'Sales Invoice' and document_no_ = 'INV00006616'
-    group by 1
-)
-*/
 
 select
 a.type,
