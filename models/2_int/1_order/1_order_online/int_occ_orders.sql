@@ -159,7 +159,10 @@ ofs_inbound_sales_header as
         max(order_date) as order_date,
         
         max(orderplatform) as orderplatform,
-        max(ordertype) as ordertype,
+        max(ordertype) as ordertype, -- NORMAL, EXPRESS, EXCHANGE
+        max(online_order_channel) as online_order_channel,
+        max(paymentgateway) as paymentgateway,
+        max(paymentmethodcode) as paymentmethodcode,
 
         from {{ ref('stg_ofs_inboundsalesheader') }}   group by 1
     )
@@ -185,6 +188,7 @@ erp_inbound_sales_header as (
         web_order_id,
         STRING_AGG(invoice_no_, ', ') AS combined_invoice_no,
         case when COUNT(invoice_no_) = 1 then 'Single Shipment' else concat('Split Shipment - ', count(invoice_no_)) end as split_shipment_indicator,
+     
         
        
     from {{ ref('stg_erp_inbound_sales_header') }}
@@ -260,7 +264,7 @@ group by  1
 
 select
 a.weborderno,
-
+a.weborderno as web_order_id,
 a.gross_order_value,
 a.order_discount,
 a.order_value, --ofs_total
@@ -286,6 +290,8 @@ a.order_tax, --Taxes
 
 c.split_shipment_indicator, 
 f.orderplatform,
+f.paymentgateway,
+f.paymentmethodcode,
 g.crm_delivery_status,
 
 g.Customer,
@@ -305,7 +311,7 @@ b.items - COALESCE(d.fulfilled_items, 0) as unfulfilled_items,
 e.posted_total_exlu_tax,
 
 f.ordertype,
-
+f.online_order_channel,
 
 case 
 when f.ordertype = 'EXPRESS' and h.location_count = 1 and h.location = 'HQW' then 'Express Delivery From Fulfillment Center' --Single shipment from HQW (4-Hour Express) express before 2025-01-16

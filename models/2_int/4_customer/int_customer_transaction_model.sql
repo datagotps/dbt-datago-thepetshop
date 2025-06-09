@@ -1,6 +1,6 @@
 {{ config(
     materialized='table',
-    description='Customer master analysis with RFM segmentation and comprehensive customer intelligence'
+    description='Customer master analysis with RFM segmentation and comprehensive customer intelligence - Enhanced with sales_channel-based logic'
 ) }}
 
 WITH base_transactions AS (
@@ -9,9 +9,15 @@ WITH base_transactions AS (
         a.document_no_,
         a.posting_date,
         a.sales_amount__actual_,
+        a.sales_channel, -- Online or Shop
         a.offline_order_channel, --store location
+
         b.web_order_id,
-        b.online_order_channel, --website, App, CRM
+        b.online_order_channel, --website, Android, iOS, CRM, Unmapped
+        b.order_type, --EXPRESS, NORMAL, EXCHANGE
+        b.paymentgateway, -- creditCard, cash, CreditCard, Cash On Delivery, Cash, Pay by Card, StoreCredit, Card on delivery, Cash on delivery, Tabby, Loyalty, PointsPay (Etihad, Etisalat etc.)
+        b.paymentmethodcode, -- PREPAID, COD, creditCard
+
         c.name,
         c.raw_phone_no_,
         c.customer_identity_status
@@ -23,101 +29,190 @@ WITH base_transactions AS (
     WHERE 
         a.source_code NOT IN ('INVTADMT', 'INVTADJMT')
         AND a.item_ledger_entry_type = 'Sale' 
-        AND sales_channel IN ('Shop','Online')
+        AND a.sales_channel IN ('Shop','Online')
+),
+
+-- Order aggregation helper for chronological document lists
+order_chronology AS (
+    SELECT 
+        source_no_,
+        CASE 
+            WHEN sales_channel = 'Online' THEN web_order_id 
+            ELSE document_no_ 
+        END AS unified_order_id,
+        MIN(posting_date) AS order_date,
+        CASE 
+            WHEN sales_channel = 'Online' THEN 'Online'
+            WHEN sales_channel = 'Shop' THEN 'Offline'
+            ELSE 'Unknown'
+        END AS order_channel
+    FROM base_transactions
+    WHERE CASE 
+            WHEN sales_channel = 'Online' THEN web_order_id 
+            ELSE document_no_ 
+        END IS NOT NULL
+    GROUP BY 1, 2, 4
+),
+
+-- Chronological order lists
+customer_order_lists AS (
+    SELECT 
+        source_no_,
+        STRING_AGG(unified_order_id, ' | ' ORDER BY order_date ASC) AS document_ids_list,
+        STRING_AGG(
+            CASE WHEN order_channel = 'Online' THEN unified_order_id END, ' | ' 
+            ORDER BY CASE WHEN order_channel = 'Online' THEN order_date END ASC
+        ) AS online_order_ids,
+        STRING_AGG(
+            CASE WHEN order_channel = 'Offline' THEN unified_order_id END, ' | ' 
+            ORDER BY CASE WHEN order_channel = 'Offline' THEN order_date END ASC
+        ) AS offline_order_ids
+    FROM order_chronology
+    GROUP BY 1
+),
+
+-- ENHANCED: Clean acquisition analysis using sales_channel
+first_transactions AS (
+    SELECT 
+        source_no_,
+        posting_date,
+        sales_channel,
+        offline_order_channel,
+        online_order_channel,
+        paymentgateway,
+        order_type,
+
+        ROW_NUMBER() OVER (
+            PARTITION BY source_no_ 
+            ORDER BY 
+                posting_date ASC,
+                -- Prioritize rows with non-null channel information
+                CASE WHEN sales_channel = 'Online' AND online_order_channel IS NOT NULL THEN 1
+                     WHEN sales_channel = 'Shop' AND offline_order_channel IS NOT NULL THEN 1
+                     ELSE 2 END,
+                document_no_ ASC  -- Final tie-breaker for consistency
+        ) AS rn
+    FROM base_transactions
+)
+,
+
+first_transaction_details AS (
+    SELECT 
+        source_no_,
+        posting_date AS first_order_date,
+        sales_channel,
+        offline_order_channel,
+        online_order_channel,
+        paymentgateway,
+        order_type,
+
+        CASE 
+            WHEN sales_channel = 'Online' THEN 'Online'
+            WHEN sales_channel = 'Shop' THEN 'Offline'
+            ELSE 'Unknown'
+        END AS customer_acquisition_channel
+    FROM first_transactions 
+    WHERE rn = 1
+),
+
+customer_acquisition_analysis AS (
+    SELECT 
+        source_no_,
+        first_order_date,
+        customer_acquisition_channel,
+        
+        -- First order analysis (simplified - since we already have the first transaction)
+        CASE WHEN customer_acquisition_channel = 'Online' THEN first_order_date END AS first_online_order_date,
+        CASE WHEN customer_acquisition_channel = 'Offline' THEN first_order_date END AS first_offline_order_date,
+        
+        -- BEST PRACTICE: Conditional acquisition channels (clean separation)
+        CASE 
+            WHEN customer_acquisition_channel = 'Offline' THEN offline_order_channel
+            ELSE NULL  -- NULL if acquired online
+        END AS first_acquisition_store,
+        
+        CASE 
+            WHEN customer_acquisition_channel = 'Online' THEN online_order_channel
+            ELSE NULL  -- NULL if acquired offline
+        END AS first_acquisition_platform,
+
+        paymentgateway AS first_acquisition_paymentgateway,
+        order_type AS first_acquisition_order_type,
+
+
+        
+    FROM first_transaction_details
 ),
 
 customer_base_metrics AS (
     SELECT 
-        source_no_,
-        name,
-        raw_phone_no_,
-        customer_identity_status,
+        bt.source_no_,
+        bt.name,
+        bt.raw_phone_no_,
+        bt.customer_identity_status,
         
         -- Date metrics
-        MIN(posting_date) AS customer_acquisition_date,
-        MIN(posting_date) AS first_order_date,
-        MAX(posting_date) AS last_order_date,
+        MIN(bt.posting_date) AS customer_acquisition_date,
+        MIN(bt.posting_date) AS first_order_date,
+        MAX(bt.posting_date) AS last_order_date,
         
         -- Channel Distribution Lists
-        STRING_AGG(DISTINCT offline_order_channel, ' | ') AS stores_used,
-        STRING_AGG(DISTINCT online_order_channel, ' | ') AS platforms_used,
+        STRING_AGG(DISTINCT bt.offline_order_channel, ' | ') AS stores_used,
+        STRING_AGG(DISTINCT bt.online_order_channel, ' | ') AS platforms_used,
         
-        -- Order counts
+        -- Order counts using sales_channel
         COUNT(DISTINCT 
             CASE 
-                WHEN document_no_ LIKE 'INV%' THEN web_order_id 
-                ELSE document_no_ 
+                WHEN bt.sales_channel = 'Online' THEN bt.web_order_id 
+                ELSE bt.document_no_ 
             END
         ) AS total_order_count,
         
-        COUNT(DISTINCT CASE WHEN document_no_ LIKE 'INV%' THEN web_order_id END) AS online_order_count,
-        COUNT(DISTINCT CASE WHEN document_no_ NOT LIKE 'INV%' THEN document_no_ END) AS offline_order_count,
+        COUNT(DISTINCT CASE WHEN bt.sales_channel = 'Online' THEN bt.web_order_id END) AS online_order_count,
+        COUNT(DISTINCT CASE WHEN bt.sales_channel = 'Shop' THEN bt.document_no_ END) AS offline_order_count,
         
-        -- Sales values
-        SUM(sales_amount__actual_) AS total_sales_value,
-        SUM(CASE WHEN document_no_ LIKE 'INV%' THEN sales_amount__actual_ ELSE 0 END) AS online_sales_value,
-        SUM(CASE WHEN document_no_ NOT LIKE 'INV%' THEN sales_amount__actual_ ELSE 0 END) AS offline_sales_value,
+        -- Sales values using sales_channel
+        SUM(bt.sales_amount__actual_) AS total_sales_value,
+        SUM(CASE WHEN bt.sales_channel = 'Online' THEN bt.sales_amount__actual_ ELSE 0 END) AS online_sales_value,
+        SUM(CASE WHEN bt.sales_channel = 'Shop' THEN bt.sales_amount__actual_ ELSE 0 END) AS offline_sales_value,
         
         -- YTD Sales
         SUM(CASE 
-            WHEN posting_date >= DATE(EXTRACT(YEAR FROM CURRENT_DATE()), 1, 1)
-            AND posting_date <= CURRENT_DATE()
-            THEN sales_amount__actual_ 
+            WHEN bt.posting_date >= DATE(EXTRACT(YEAR FROM CURRENT_DATE()), 1, 1)
+            AND bt.posting_date <= CURRENT_DATE()
+            THEN bt.sales_amount__actual_ 
             ELSE 0 
         END) AS ytd_sales,
         
         -- MTD Sales
         SUM(CASE 
-            WHEN posting_date >= DATE(EXTRACT(YEAR FROM CURRENT_DATE()), EXTRACT(MONTH FROM CURRENT_DATE()), 1)
-            AND posting_date <= CURRENT_DATE()
-            THEN sales_amount__actual_ 
+            WHEN bt.posting_date >= DATE(EXTRACT(YEAR FROM CURRENT_DATE()), EXTRACT(MONTH FROM CURRENT_DATE()), 1)
+            AND bt.posting_date <= CURRENT_DATE()
+            THEN bt.sales_amount__actual_ 
             ELSE 0 
         END) AS mtd_sales
         
-    FROM base_transactions
+    FROM base_transactions bt
     GROUP BY 1, 2, 3, 4
 ),
 
--- Separate CTE for acquisition analysis
-customer_acquisition_analysis AS (
-    SELECT 
-        source_no_,
-        
-        -- First order analysis
-        MIN(posting_date) AS first_order_date,
-        MIN(CASE WHEN document_no_ LIKE 'INV%' THEN posting_date END) AS first_online_order_date,
-        MIN(CASE WHEN document_no_ NOT LIKE 'INV%' THEN posting_date END) AS first_offline_order_date,
-        
-        -- First acquisition channels
-        ARRAY_AGG(offline_order_channel ORDER BY posting_date LIMIT 1)[OFFSET(0)] AS first_acquisition_store,
-        ARRAY_AGG(online_order_channel ORDER BY posting_date LIMIT 1)[OFFSET(0)] AS first_acquisition_platform
-        
-    FROM base_transactions
-    GROUP BY 1
-),
-
--- Join base metrics with acquisition analysis
-customer_enriched_metrics AS (
+-- Join order lists with customer metrics AND acquisition data
+customer_base_metrics_with_lists AS (
     SELECT 
         cbm.*,
+        col.document_ids_list,
+        col.online_order_ids,
+        col.offline_order_ids,
         caa.first_acquisition_store,
         caa.first_acquisition_platform,
+        caa.customer_acquisition_channel,
+        caa.first_acquisition_paymentgateway,
+        caa.first_acquisition_order_type,
         
-        -- Acquisition Channel Analysis
-        CASE 
-            WHEN caa.first_online_order_date = cbm.first_order_date THEN 'Online'
-            WHEN caa.first_offline_order_date = cbm.first_order_date THEN 'Offline'
-            ELSE 'Unknown'
-        END AS customer_acquisition_channel,
-        
-        -- NEW: Combined Acquisition Channel Detail
-        CASE 
-            WHEN caa.first_online_order_date = cbm.first_order_date THEN caa.first_acquisition_platform
-            WHEN caa.first_offline_order_date = cbm.first_order_date THEN caa.first_acquisition_store
-            ELSE 'Unknown'
-        END AS customer_acquisition_channel_detail
-                
+        -- Combined Acquisition Channel Detail (simplified)
+        COALESCE(caa.first_acquisition_platform, caa.first_acquisition_store, 'Unknown') AS customer_acquisition_channel_detail
     FROM customer_base_metrics cbm
+    LEFT JOIN customer_order_lists col ON cbm.source_no_ = col.source_no_
     LEFT JOIN customer_acquisition_analysis caa ON cbm.source_no_ = caa.source_no_
 ),
 
@@ -134,12 +229,9 @@ customer_calculated_metrics AS (
         ROUND(
             total_sales_value / NULLIF(DATE_DIFF(CURRENT_DATE(), customer_acquisition_date, MONTH), 0), 2
         ) AS avg_monthly_demand,
- 
-        
         
         -- Months since acquisition (numeric for calculations)
         DATE_DIFF(CURRENT_DATE(), customer_acquisition_date, MONTH) AS months_since_acquisition,
-        
         
         -- Customer Type: New vs Repeat
         CASE 
@@ -169,7 +261,6 @@ customer_calculated_metrics AS (
         END AS customer_channel_distribution,
         
         -- Dynamic Customer Acquisition Age Segmentation
-        -- Always goes back to January of current year, then groups by full years
         CASE 
             -- MTD: Current month 
             WHEN customer_acquisition_date >= DATE(EXTRACT(YEAR FROM CURRENT_DATE()), EXTRACT(MONTH FROM CURRENT_DATE()), 1)
@@ -204,42 +295,40 @@ customer_calculated_metrics AS (
             ELSE 'Unknown'
         END AS acquisition_cohort,
 
-CASE 
-    -- MTD: Current month (highest priority - sort first)
-    WHEN customer_acquisition_date >= DATE(EXTRACT(YEAR FROM CURRENT_DATE()), EXTRACT(MONTH FROM CURRENT_DATE()), 1)
-    THEN 1000
-    
-    -- Current year months (recent months get higher numbers)
-    WHEN customer_acquisition_date >= DATE(EXTRACT(YEAR FROM CURRENT_DATE()), 1, 1)
-    AND customer_acquisition_date < DATE(EXTRACT(YEAR FROM CURRENT_DATE()), EXTRACT(MONTH FROM CURRENT_DATE()), 1)
-    THEN 900 + EXTRACT(MONTH FROM customer_acquisition_date)  -- 901-912 (Jan=901, Feb=902, etc.)
-    
-    -- Previous years (recent years get higher numbers)
-    WHEN EXTRACT(YEAR FROM customer_acquisition_date) = EXTRACT(YEAR FROM CURRENT_DATE()) - 1
-    THEN 800  -- Year 24
-    
-    WHEN EXTRACT(YEAR FROM customer_acquisition_date) = EXTRACT(YEAR FROM CURRENT_DATE()) - 2
-    THEN 700  -- Year 23
-    
-    WHEN EXTRACT(YEAR FROM customer_acquisition_date) = EXTRACT(YEAR FROM CURRENT_DATE()) - 3
-    THEN 600  -- Year 22
-    
-    WHEN EXTRACT(YEAR FROM customer_acquisition_date) = EXTRACT(YEAR FROM CURRENT_DATE()) - 4
-    THEN 500  -- Year 21
-    
-    WHEN EXTRACT(YEAR FROM customer_acquisition_date) = EXTRACT(YEAR FROM CURRENT_DATE()) - 5
-    THEN 400  -- Year 20
-    
-    -- 6+ years old
-    WHEN EXTRACT(YEAR FROM customer_acquisition_date) <= EXTRACT(YEAR FROM CURRENT_DATE()) - 6
-    THEN 100  -- Year 19 & Before
-    
-    ELSE 1  -- Unknown - sort last
-END AS acquisition_cohort_rank,
-
-
+        CASE 
+            -- MTD: Current month (highest priority - sort first)
+            WHEN customer_acquisition_date >= DATE(EXTRACT(YEAR FROM CURRENT_DATE()), EXTRACT(MONTH FROM CURRENT_DATE()), 1)
+            THEN 1000
+            
+            -- Current year months (recent months get higher numbers)
+            WHEN customer_acquisition_date >= DATE(EXTRACT(YEAR FROM CURRENT_DATE()), 1, 1)
+            AND customer_acquisition_date < DATE(EXTRACT(YEAR FROM CURRENT_DATE()), EXTRACT(MONTH FROM CURRENT_DATE()), 1)
+            THEN 900 + EXTRACT(MONTH FROM customer_acquisition_date)  -- 901-912 (Jan=901, Feb=902, etc.)
+            
+            -- Previous years (recent years get higher numbers)
+            WHEN EXTRACT(YEAR FROM customer_acquisition_date) = EXTRACT(YEAR FROM CURRENT_DATE()) - 1
+            THEN 800  -- Year 24
+            
+            WHEN EXTRACT(YEAR FROM customer_acquisition_date) = EXTRACT(YEAR FROM CURRENT_DATE()) - 2
+            THEN 700  -- Year 23
+            
+            WHEN EXTRACT(YEAR FROM customer_acquisition_date) = EXTRACT(YEAR FROM CURRENT_DATE()) - 3
+            THEN 600  -- Year 22
+            
+            WHEN EXTRACT(YEAR FROM customer_acquisition_date) = EXTRACT(YEAR FROM CURRENT_DATE()) - 4
+            THEN 500  -- Year 21
+            
+            WHEN EXTRACT(YEAR FROM customer_acquisition_date) = EXTRACT(YEAR FROM CURRENT_DATE()) - 5
+            THEN 400  -- Year 20
+            
+            -- 6+ years old
+            WHEN EXTRACT(YEAR FROM customer_acquisition_date) <= EXTRACT(YEAR FROM CURRENT_DATE()) - 6
+            THEN 100  -- Year 19 & Before
+            
+            ELSE 1  -- Unknown - sort last
+        END AS acquisition_cohort_rank
         
-    FROM customer_enriched_metrics
+    FROM customer_base_metrics_with_lists
 ),
 
 customer_rfm_scores AS (

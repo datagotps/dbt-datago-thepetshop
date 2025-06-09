@@ -41,5 +41,11 @@ customer_acquisition_channel_detail,
 
 months_since_acquisition,
 
+document_ids_list,
+--online_order_ids,
+--offline_order_ids,
+
+first_acquisition_paymentgateway,
+first_acquisition_order_type,
 
 from {{ ref('int_customer_transaction_model') }}
