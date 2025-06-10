@@ -1,6 +1,6 @@
 {{ config(
     materialized='table',
-    description='Customer master analysis with RFM segmentation and comprehensive customer intelligence - Enhanced with sales_channel-based logic'
+    description='Customer master analysis with RFM segmentation and comprehensive customer intelligence - Enhanced with sales_channel-based logic and Purchase Frequency Analysis'
 ) }}
 
 WITH base_transactions AS (
@@ -137,9 +137,7 @@ customer_acquisition_analysis AS (
         END AS first_acquisition_platform,
 
         paymentgateway AS first_acquisition_paymentgateway,
-        order_type AS first_acquisition_order_type,
-
-
+        order_type AS first_acquisition_order_type
         
     FROM first_transaction_details
 ),
@@ -190,7 +188,55 @@ customer_base_metrics AS (
             AND bt.posting_date <= CURRENT_DATE()
             THEN bt.sales_amount__actual_ 
             ELSE 0 
-        END) AS mtd_sales
+        END) AS mtd_sales,
+        
+        -- HYPERLOCAL METRICS: Pre-Hyperlocal (before 2025-01-16)
+        COUNT(DISTINCT CASE 
+            WHEN bt.posting_date < '2025-01-16' 
+            THEN CASE WHEN bt.sales_channel = 'Online' THEN bt.web_order_id ELSE bt.document_no_ END 
+        END) AS pre_hyperlocal_orders,
+        
+        SUM(CASE 
+            WHEN bt.posting_date < '2025-01-16' 
+            THEN bt.sales_amount__actual_ 
+            ELSE 0 
+        END) AS pre_hyperlocal_revenue,
+        
+        -- HYPERLOCAL METRICS: Post-Hyperlocal (after 2025-01-16)
+        COUNT(DISTINCT CASE 
+            WHEN bt.posting_date >= '2025-01-16' 
+            THEN CASE WHEN bt.sales_channel = 'Online' THEN bt.web_order_id ELSE bt.document_no_ END 
+        END) AS post_hyperlocal_orders,
+        
+        SUM(CASE 
+            WHEN bt.posting_date >= '2025-01-16' 
+            THEN bt.sales_amount__actual_ 
+            ELSE 0 
+        END) AS post_hyperlocal_revenue,
+        
+        -- HYPERLOCAL METRICS: 60-Min Express Orders (after 2025-01-16)
+        COUNT(DISTINCT CASE 
+            WHEN bt.order_type = 'EXPRESS' AND bt.posting_date >= '2025-01-16'
+            THEN CASE WHEN bt.sales_channel = 'Online' THEN bt.web_order_id ELSE bt.document_no_ END 
+        END) AS hyperlocal_60min_orders,
+        
+        SUM(CASE 
+            WHEN bt.order_type = 'EXPRESS' AND bt.posting_date >= '2025-01-16'
+            THEN bt.sales_amount__actual_ 
+            ELSE 0 
+        END) AS hyperlocal_60min_revenue,
+        
+        -- HYPERLOCAL METRICS: 4-Hour Express Orders (before 2025-01-16)
+        COUNT(DISTINCT CASE 
+            WHEN bt.order_type = 'EXPRESS' AND bt.posting_date < '2025-01-16'
+            THEN CASE WHEN bt.sales_channel = 'Online' THEN bt.web_order_id ELSE bt.document_no_ END 
+        END) AS express_4hour_orders,
+        
+        SUM(CASE 
+            WHEN bt.order_type = 'EXPRESS' AND bt.posting_date < '2025-01-16'
+            THEN bt.sales_amount__actual_ 
+            ELSE 0 
+        END) AS express_4hour_revenue
         
     FROM base_transactions bt
     GROUP BY 1, 2, 3, 4
@@ -233,10 +279,70 @@ customer_calculated_metrics AS (
         -- Months since acquisition (numeric for calculations)
         DATE_DIFF(CURRENT_DATE(), customer_acquisition_date, MONTH) AS months_since_acquisition,
         
+        -- HYPERLOCAL SEGMENTATION: Customer segment based on Hyperlocal launch date (2025-01-16)
+        CASE 
+            WHEN customer_acquisition_date >= '2025-01-16' THEN 'New Post-Hyperlocal'
+            WHEN customer_acquisition_date < '2025-01-16' THEN 'Existing Pre-Hyperlocal'
+            ELSE 'Unknown'
+        END AS hyperlocal_customer_segment,
+        
+        -- HYPERLOCAL USAGE: Whether customer has used 60-min Hyperlocal service
+        CASE 
+            WHEN hyperlocal_60min_orders > 0 THEN 'Used Hyperlocal'
+            ELSE 'Never Used Hyperlocal'
+        END AS hyperlocal_usage_flag,
+        
+        -- DELIVERY SERVICE PREFERENCE: What type of delivery services customer uses
+        CASE 
+            WHEN hyperlocal_60min_orders > 0 AND express_4hour_orders > 0 THEN 'Both Express Types'
+            WHEN hyperlocal_60min_orders > 0 AND express_4hour_orders = 0 THEN '60-Min Only'
+            WHEN hyperlocal_60min_orders = 0 AND express_4hour_orders > 0 THEN '4-Hour Only'
+            ELSE 'Standard Delivery Only'
+        END AS delivery_service_preference,
+        
+        -- ADDED: Purchase Frequency Analysis Bucket
+        CASE 
+            WHEN total_order_count <= 1 THEN '1 Order'
+            WHEN total_order_count BETWEEN 2 AND 3 THEN '2-3 Orders'
+            WHEN total_order_count BETWEEN 4 AND 6 THEN '4-6 Orders'
+            WHEN total_order_count BETWEEN 7 AND 10 THEN '7-10 Orders'
+            WHEN total_order_count >= 11 THEN '11+ Orders'
+            ELSE 'Unknown'
+        END AS purchase_frequency_bucket,
+        
+        -- ADDED: Purchase Frequency Bucket Sort Order
+        CASE 
+            WHEN total_order_count <= 1 THEN 1
+            WHEN total_order_count BETWEEN 2 AND 3 THEN 2
+            WHEN total_order_count BETWEEN 4 AND 6 THEN 3
+            WHEN total_order_count BETWEEN 7 AND 10 THEN 4
+            WHEN total_order_count >= 11 THEN 5
+            ELSE 6
+        END AS purchase_frequency_bucket_order,
+
+        -- Customer Recency Segmentation: Groups customers based on days since last order
+
+        CASE 
+            WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) <= 30 THEN 'Active'
+            WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) BETWEEN 31 AND 60 THEN 'Low Frequency'
+            WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) BETWEEN 61 AND 90 THEN 'At Risk'
+            WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) > 90 THEN 'Churned'
+            ELSE 'Unclassified'
+        END AS customer_recency_segment,
+            
+        CASE 
+            WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) <= 30 THEN 1
+            WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) BETWEEN 31 AND 60 THEN 2
+            WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) BETWEEN 61 AND 90 THEN 3
+            WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) > 90 THEN 4
+            ELSE 5
+        END AS customer_recency_segment_order,
+
+        
         -- Customer Type: New vs Repeat
         CASE 
             -- New: Only 1 order AND acquired within last 30 days
-            WHEN total_order_count = 1 
+            WHEN total_order_count <= 1 
                  AND customer_acquisition_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) 
             THEN 'New'
             
@@ -245,7 +351,7 @@ customer_calculated_metrics AS (
             THEN 'Repeat'
             
             -- One Time Customer: Only 1 order BUT acquired more than 30 days ago
-            WHEN total_order_count = 1 
+            WHEN total_order_count <= 1 
                  AND customer_acquisition_date < DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) 
             THEN 'One-Time'
             
@@ -255,7 +361,7 @@ customer_calculated_metrics AS (
         -- Customer Channel Distribution
         CASE 
             WHEN online_order_count > 0 AND offline_order_count > 0 THEN 'Hybrid'
-            WHEN online_order_count > 0 AND offline_order_count = 0 THEN 'Online'
+            WHEN online_order_count >= 0 AND offline_order_count = 0 THEN 'Online'
             WHEN online_order_count = 0 AND offline_order_count > 0 THEN 'Shop'
             ELSE 'Unknown'
         END AS customer_channel_distribution,
@@ -375,7 +481,17 @@ customer_segments AS (
             WHEN PERCENT_RANK() OVER (ORDER BY monetary_total_value DESC) <= 0.60 THEN 'Middle 30-60%'
             ELSE 'Bottom 40%'
         END AS customer_value_segment,
-        
+
+
+        -- Customer Value Tier based on spending percentiles
+        CASE 
+            WHEN PERCENT_RANK() OVER (ORDER BY monetary_total_value DESC) <= 0.01 THEN 1
+            WHEN PERCENT_RANK() OVER (ORDER BY monetary_total_value DESC) <= 0.20 THEN 2
+            WHEN PERCENT_RANK() OVER (ORDER BY monetary_total_value DESC) <= 0.60 THEN 3
+            ELSE 4
+        END AS customer_value_segment_order,     
+
+
         -- Customer Segment Classification
         CASE 
             WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN 'Champions'
@@ -386,7 +502,19 @@ customer_segments AS (
             WHEN r_score <= 2 AND f_score >= 2 AND m_score >= 2 THEN 'At Risk'
             WHEN r_score = 1 AND f_score = 1 AND m_score <= 2 THEN 'Lost'
             ELSE 'Others'
-        END AS customer_rfm_segment
+        END AS customer_rfm_segment,
+        
+        -- Customer RFM Segment Sort Order
+        CASE 
+            WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN 1  -- Champions
+            WHEN r_score >= 3 AND f_score >= 3 AND m_score >= 3 THEN 2  -- Loyal Customers
+            WHEN r_score >= 4 AND (f_score >= 2 OR m_score >= 3) THEN 3  -- Potential Loyalists
+            WHEN r_score <= 2 AND f_score >= 4 AND m_score >= 4 THEN 4  -- Cant Lose Them
+            WHEN customer_tenure_days <= 90 OR (r_score >= 4 AND f_score = 1) THEN 5  -- New Customers
+            WHEN r_score <= 2 AND f_score >= 2 AND m_score >= 2 THEN 6  -- At Risk
+            WHEN r_score = 1 AND f_score = 1 AND m_score <= 2 THEN 7  -- Lost
+            ELSE 8  -- Others
+        END AS customer_rfm_segment_order
         
     FROM customer_rfm_scores
 )

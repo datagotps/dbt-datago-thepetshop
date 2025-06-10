@@ -35,8 +35,11 @@ acquisition_cohort_rank,
 --f_score,
 --m_score,
 --rfm_segment,
-customer_value_segment,
-customer_rfm_segment,
+customer_value_segment, --Top 1%, Top 20, Middle 30-60%, Bottom 40%
+customer_value_segment_order,
+
+customer_rfm_segment, -- Champions, Loyal Customers, Potential Loyalists, Cant Lose Them, New Customers, At Risk, Lost
+customer_rfm_segment_order,
 customer_acquisition_channel_detail,
 
 months_since_acquisition,
@@ -47,5 +50,24 @@ document_ids_list,
 
 first_acquisition_paymentgateway,
 first_acquisition_order_type,
+
+purchase_frequency_bucket,
+purchase_frequency_bucket_order, --('1 Order', '2-3 Orders', '4-6 Orders', '7-10 Orders', '11+ Orders')
+
+customer_recency_segment,
+customer_recency_segment_order,
+
+pre_hyperlocal_orders,
+pre_hyperlocal_revenue,
+post_hyperlocal_orders,
+post_hyperlocal_revenue,
+hyperlocal_60min_orders,
+hyperlocal_60min_revenue,
+express_4hour_orders,
+express_4hour_revenue,
+
+hyperlocal_customer_segment,
+hyperlocal_usage_flag,
+delivery_service_preference,
 
 from {{ ref('int_customer_transaction_model') }}
