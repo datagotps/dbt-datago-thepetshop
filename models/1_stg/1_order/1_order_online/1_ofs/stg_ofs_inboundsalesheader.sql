@@ -6,6 +6,7 @@ id,
 
 --Order
     weborderno,
+    weborderno as web_order_id,
     orderdatetime as order_date,
 
     
@@ -28,13 +29,14 @@ id,
 
 --ordersource,  -- D, I, A, CRM, '', CRM Exchange, FOC
 
+ordersource,
 case
 when ordersource = 'D' then 'Website'
 when ordersource in ('CRM', 'CRM Exchange', 'FOC') then 'CRM'
 when ordersource in ('A') then 'Android'
 when ordersource in ('I') then 'iOS'
 else ordersource
-end as ordersource,
+end as online_order_channel,
 
 
 
