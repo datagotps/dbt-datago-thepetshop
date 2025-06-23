@@ -31,7 +31,7 @@ renamed as (
        case 
             when global_dimension_2_code_name in ('Amazon FBA','Souq/Amazon','Instashop','El Grocer','Careem','Now Now','Deliveroo','Talabat') then 'MKP' -- Affiliate, MKP, 3rd Party
             when global_dimension_2_code_name in ('POS Sale') then 'Shop' --Retail Store, Shop
-            when global_dimension_2_code_name in ('Online') then 'Online'
+            when global_dimension_2_code_name in ('Online') and document_type in( 2,4) then 'Online' --Email: Validation Required for Unusual Document Prefixes in Value Entry
             when global_dimension_2_code_name in ('B2B Sales') then 'B2B'
             when global_dimension_2_code_name in ('Project & Maintenance','Pet Relocation') then 'Service'
             else 'Cheack My Logic'

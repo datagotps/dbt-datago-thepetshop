@@ -5,8 +5,8 @@
 
 WITH params AS (
   SELECT 
-    DATE '2021-01-01' AS start_date,
-    DATE '2040-12-31' AS end_date
+    DATE '2021-06-01' AS start_date,
+    CURRENT_DATE() AS end_date
 ),
 
 -- Generate daily dates between start and end date

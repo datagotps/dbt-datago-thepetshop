@@ -2,7 +2,7 @@ select
 
 source_no_,
 name,
-raw_phone_no_,
+std_phone_no_,
 customer_identity_status,
 customer_acquisition_date,
 first_order_date,
@@ -31,10 +31,10 @@ customer_channel_distribution,
 acquisition_cohort,
 acquisition_cohort_rank,
 
---r_score,
---f_score,
---m_score,
---rfm_segment,
+r_score,
+f_score,
+m_score,
+rfm_segment,
 customer_value_segment, --Top 1%, Top 20, Middle 30-60%, Bottom 40%
 customer_value_segment_order,
 
@@ -66,8 +66,20 @@ hyperlocal_60min_revenue,
 express_4hour_orders,
 express_4hour_revenue,
 
-hyperlocal_customer_segment,
-hyperlocal_usage_flag,
-delivery_service_preference,
+hyperlocal_usage_flag, --Used Hyperlocal, Never Used Hyperlocal
+delivery_service_preference, --Both Express Types, 60-Min Only, 4-Hour Only, Standard Delivery Only
+
+hyperlocal_customer_detailed_segment, --Post-HL Acq + HL User, Post-HL Acq + Non-HL User, Pre-HL Acq + HL User, Pre-HL Acq + Non-HL User
+hyperlocal_customer_detailed_segment_order,
+
+hyperlocal_customer_segment, --Acquired Post-Launch, Acquired Pre-Launch
+
+
+customer_tenure_segment,
+customer_tenure_segment_order,
+
+    -- REPORT METADATA
+    CURRENT_DATETIME() AS report_last_updated_at, 
+
 
 from {{ ref('int_customer_transaction_model') }}

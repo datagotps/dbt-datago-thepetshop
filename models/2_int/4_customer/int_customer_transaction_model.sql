@@ -19,7 +19,7 @@ WITH base_transactions AS (
         b.paymentmethodcode, -- PREPAID, COD, creditCard
 
         c.name,
-        c.raw_phone_no_,
+        c.std_phone_no_,
         c.customer_identity_status
     FROM {{ ref('stg_erp_value_entry') }} AS a
     LEFT JOIN {{ ref('stg_erp_inbound_sales_header') }} AS b 
@@ -146,13 +146,14 @@ customer_base_metrics AS (
     SELECT 
         bt.source_no_,
         bt.name,
-        bt.raw_phone_no_,
+        bt.std_phone_no_,
         bt.customer_identity_status,
         
         -- Date metrics
-        MIN(bt.posting_date) AS customer_acquisition_date,
-        MIN(bt.posting_date) AS first_order_date,
-        MAX(bt.posting_date) AS last_order_date,
+        DATE(MIN(bt.posting_date)) AS customer_acquisition_date,
+        DATE(MIN(bt.posting_date)) AS first_order_date,
+        DATE(MAX(bt.posting_date)) AS last_order_date,
+
         
         -- Channel Distribution Lists
         STRING_AGG(DISTINCT bt.offline_order_channel, ' | ') AS stores_used,
@@ -281,8 +282,8 @@ customer_calculated_metrics AS (
         
         -- HYPERLOCAL SEGMENTATION: Customer segment based on Hyperlocal launch date (2025-01-16)
         CASE 
-            WHEN customer_acquisition_date >= '2025-01-16' THEN 'New Post-Hyperlocal'
-            WHEN customer_acquisition_date < '2025-01-16' THEN 'Existing Pre-Hyperlocal'
+            WHEN customer_acquisition_date >= '2025-01-16' THEN 'Acquired Post-Launch'
+            WHEN customer_acquisition_date < '2025-01-16' THEN 'Acquired Pre-Launch'
             ELSE 'Unknown'
         END AS hyperlocal_customer_segment,
         
@@ -299,6 +300,42 @@ customer_calculated_metrics AS (
             WHEN hyperlocal_60min_orders = 0 AND express_4hour_orders > 0 THEN '4-Hour Only'
             ELSE 'Standard Delivery Only'
         END AS delivery_service_preference,
+        
+        -- HYPERLOCAL CUSTOMER SEGMENTATION: Based on first order date and HL usage
+        CASE 
+            -- Post-HL Acq + HL User: First order date on or after Jan 16 AND placed at least one HL order
+            WHEN customer_acquisition_date >= '2025-01-16' 
+                 AND hyperlocal_60min_orders > 0 
+            THEN 'Post-HL Acq + HL User'
+            
+            -- Pre-HL Acq + HL User: First order date before Jan 16 AND placed at least one HL order
+            WHEN customer_acquisition_date < '2025-01-16' 
+                 AND hyperlocal_60min_orders > 0 
+            THEN 'Pre-HL Acq + HL User'
+            
+            -- Post-HL Acq + Non-HL User: First order date on or after Jan 16 AND never placed HL order (includes 0-order customers)
+            WHEN customer_acquisition_date >= '2025-01-16' 
+                 AND hyperlocal_60min_orders = 0 
+                 AND total_order_count >= 0
+            THEN 'Post-HL Acq + Non-HL User'
+            
+            -- Pre-HL Acq + Non-HL User: First order date before Jan 16 AND never placed HL order (includes 0-order customers)
+            WHEN customer_acquisition_date < '2025-01-16' 
+                 AND hyperlocal_60min_orders = 0 
+                 AND total_order_count >= 0
+            THEN 'Pre-HL Acq + Non-HL User'
+            
+            ELSE 'UNCLASSIFIED'
+        END AS hyperlocal_customer_detailed_segment,
+        
+        -- Sort order for the detailed hyperlocal segmentation
+        CASE 
+            WHEN customer_acquisition_date >= '2025-01-16' AND hyperlocal_60min_orders > 0 THEN 1  -- Post-HL Acq + HL User
+            WHEN customer_acquisition_date < '2025-01-16' AND hyperlocal_60min_orders > 0 THEN 2   -- Pre-HL Acq + HL User
+            WHEN customer_acquisition_date >= '2025-01-16' AND hyperlocal_60min_orders = 0 AND total_order_count >= 0 THEN 3  -- Post-HL Acq + Non-HL User
+            WHEN customer_acquisition_date < '2025-01-16' AND hyperlocal_60min_orders = 0 AND total_order_count >= 0 THEN 4   -- Pre-HL Acq + Non-HL User
+            ELSE 5  -- UNCLASSIFIED
+        END AS hyperlocal_customer_detailed_segment_order,
         
         -- ADDED: Purchase Frequency Analysis Bucket
         CASE 
@@ -321,12 +358,13 @@ customer_calculated_metrics AS (
         END AS purchase_frequency_bucket_order,
 
         -- Customer Recency Segmentation: Groups customers based on days since last order
-
         CASE 
             WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) <= 30 THEN 'Active'
-            WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) BETWEEN 31 AND 60 THEN 'Low Frequency'
+            WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) BETWEEN 31 AND 60 THEN 'Recent'
             WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) BETWEEN 61 AND 90 THEN 'At Risk'
-            WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) > 90 THEN 'Churned'
+            WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) BETWEEN 91 AND 180 THEN 'Churn'
+            WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) BETWEEN 181 AND 365 THEN 'Inactive'
+            WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) > 365 THEN 'Lost'
             ELSE 'Unclassified'
         END AS customer_recency_segment,
             
@@ -334,11 +372,36 @@ customer_calculated_metrics AS (
             WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) <= 30 THEN 1
             WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) BETWEEN 31 AND 60 THEN 2
             WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) BETWEEN 61 AND 90 THEN 3
-            WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) > 90 THEN 4
-            ELSE 5
+            WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) BETWEEN 91 AND 180 THEN 4
+            WHEN DATE_DIFF(CURRENT_DATE(), last_order_date, DAY) BETWEEN 181 AND 365 THEN 5
+            ELSE 6
         END AS customer_recency_segment_order,
 
+        -- ADD CUSTOMER TENURE SEGMENTATION HERE:
+        CASE 
+            WHEN DATE_DIFF(CURRENT_DATE(), customer_acquisition_date, DAY) BETWEEN 0 AND 29 THEN '1 Month'
+            WHEN DATE_DIFF(CURRENT_DATE(), customer_acquisition_date, DAY) BETWEEN 30 AND 89 THEN '3 Months'
+            WHEN DATE_DIFF(CURRENT_DATE(), customer_acquisition_date, DAY) BETWEEN 90 AND 179 THEN '6 Months'
+            WHEN DATE_DIFF(CURRENT_DATE(), customer_acquisition_date, DAY) BETWEEN 180 AND 364 THEN '1 Year'
+            WHEN DATE_DIFF(CURRENT_DATE(), customer_acquisition_date, DAY) BETWEEN 365 AND 729 THEN '2 Years'
+            WHEN DATE_DIFF(CURRENT_DATE(), customer_acquisition_date, DAY) BETWEEN 730 AND 1094 THEN '3 Years'
+            WHEN DATE_DIFF(CURRENT_DATE(), customer_acquisition_date, DAY) >= 1095 THEN '4+ Years'
+            ELSE 'Unknown'
+        END AS customer_tenure_segment,
         
+        CASE 
+            WHEN DATE_DIFF(CURRENT_DATE(), customer_acquisition_date, DAY) BETWEEN 0 AND 29 THEN 1
+            WHEN DATE_DIFF(CURRENT_DATE(), customer_acquisition_date, DAY) BETWEEN 30 AND 89 THEN 2
+            WHEN DATE_DIFF(CURRENT_DATE(), customer_acquisition_date, DAY) BETWEEN 90 AND 179 THEN 3
+            WHEN DATE_DIFF(CURRENT_DATE(), customer_acquisition_date, DAY) BETWEEN 180 AND 364 THEN 4
+            WHEN DATE_DIFF(CURRENT_DATE(), customer_acquisition_date, DAY) BETWEEN 365 AND 729 THEN 5
+            WHEN DATE_DIFF(CURRENT_DATE(), customer_acquisition_date, DAY) BETWEEN 730 AND 1094 THEN 6
+            WHEN DATE_DIFF(CURRENT_DATE(), customer_acquisition_date, DAY) >= 1095 THEN 7
+            ELSE 8
+        END AS customer_tenure_segment_order,
+
+
+
         -- Customer Type: New vs Repeat
         CASE 
             -- New: Only 1 order AND acquired within last 30 days
@@ -439,6 +502,7 @@ customer_calculated_metrics AS (
 
 customer_rfm_scores AS (
     SELECT *,
+        --business logic R + percentile F&M
         -- R Score: Recency
         CASE 
             WHEN recency_days <= 30 THEN 5
@@ -448,23 +512,23 @@ customer_rfm_scores AS (
             ELSE 1
         END AS r_score,
         
-        -- F Score: Frequency  
+        -- F Score: Frequency - PERCENTILE-BASED  
         CASE 
-            WHEN frequency_orders >= 10 THEN 5
-            WHEN frequency_orders >= 6 THEN 4
-            WHEN frequency_orders >= 4 THEN 3
-            WHEN frequency_orders >= 2 THEN 2
-            ELSE 1
+            WHEN PERCENT_RANK() OVER (ORDER BY frequency_orders) >= 0.8 THEN 5  -- Top 20%
+            WHEN PERCENT_RANK() OVER (ORDER BY frequency_orders) >= 0.6 THEN 4  -- 60-80%
+            WHEN PERCENT_RANK() OVER (ORDER BY frequency_orders) >= 0.4 THEN 3  -- 40-60%
+            WHEN PERCENT_RANK() OVER (ORDER BY frequency_orders) >= 0.2 THEN 2  -- 20-40%
+            ELSE 1  -- Bottom 20%
         END AS f_score,
         
-        -- M Score: Monetary
+        -- M Score: Monetary - PERCENTILE-BASED
         CASE 
-            WHEN monetary_total_value >= 2000 THEN 5
-            WHEN monetary_total_value >= 1000 THEN 4
-            WHEN monetary_total_value >= 500 THEN 3
-            WHEN monetary_total_value >= 200 THEN 2
-            ELSE 1
-        END AS m_score
+            WHEN PERCENT_RANK() OVER (ORDER BY monetary_total_value) >= 0.8 THEN 5  -- Top 20%
+            WHEN PERCENT_RANK() OVER (ORDER BY monetary_total_value) >= 0.6 THEN 4  -- 60-80%
+            WHEN PERCENT_RANK() OVER (ORDER BY monetary_total_value) >= 0.4 THEN 3  -- 40-60%
+            WHEN PERCENT_RANK() OVER (ORDER BY monetary_total_value) >= 0.2 THEN 2  -- 20-40%
+            ELSE 1  -- Bottom 20%
+        END AS m_score,
         
     FROM customer_calculated_metrics
 ),
@@ -482,7 +546,6 @@ customer_segments AS (
             ELSE 'Bottom 40%'
         END AS customer_value_segment,
 
-
         -- Customer Value Tier based on spending percentiles
         CASE 
             WHEN PERCENT_RANK() OVER (ORDER BY monetary_total_value DESC) <= 0.01 THEN 1
@@ -491,31 +554,43 @@ customer_segments AS (
             ELSE 4
         END AS customer_value_segment_order,     
 
-
-        -- Customer Segment Classification
+        -- Customer Segment Classification (HIERARCHICAL - No Overlaps)
         CASE 
             WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN 'Champions'
             WHEN r_score >= 3 AND f_score >= 3 AND m_score >= 3 THEN 'Loyal Customers'
-            WHEN r_score <= 2 AND f_score >= 4 AND m_score >= 4 THEN 'Cant Lose Them'
-            WHEN r_score >= 4 AND (f_score >= 2 OR m_score >= 3) THEN 'Potential Loyalists'
-            WHEN customer_tenure_days <= 90 OR (r_score >= 4 AND f_score = 1) THEN 'New Customers'
-            WHEN r_score <= 2 AND f_score >= 2 AND m_score >= 2 THEN 'At Risk'
-            WHEN r_score = 1 AND f_score = 1 AND m_score <= 2 THEN 'Lost'
-            ELSE 'Others'
+            WHEN f_score >= 4 AND m_score >= 4 THEN 'Cant Lose Them'
+            WHEN r_score >= 4 AND (f_score >= 2 OR m_score >= 2) THEN 'Potential Loyalists'
+            WHEN customer_tenure_days <= 90 OR r_score >= 4 THEN 'New Customers'
+            WHEN f_score >= 2 AND m_score >= 2 OR m_score IN (2,3) THEN 'At Risk'
+            WHEN r_score = 1 AND f_score = 1 OR m_score = 1 THEN 'Lost'
+            
+            -- ASSIGN REMAINING "OTHERS" TO SUITABLE BUCKETS
+            WHEN m_score >= 4 THEN 'Cant Lose Them'        -- High spenders regardless of R&F
+            WHEN f_score >= 3 THEN 'At Risk'                -- Frequent buyers regardless of M&R  
+            WHEN r_score >= 3 THEN 'At Risk'                -- Recent buyers regardless of F&M
+            WHEN f_score >= 2 OR m_score >= 2 THEN 'At Risk' -- Any moderate engagement
+            
+            ELSE 'Lost'  -- Bottom tier: R<=2, F<=1, M<=1
         END AS customer_rfm_segment,
-        
-        -- Customer RFM Segment Sort Order
+
         CASE 
-            WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN 1  -- Champions
-            WHEN r_score >= 3 AND f_score >= 3 AND m_score >= 3 THEN 2  -- Loyal Customers
-            WHEN r_score >= 4 AND (f_score >= 2 OR m_score >= 3) THEN 3  -- Potential Loyalists
-            WHEN r_score <= 2 AND f_score >= 4 AND m_score >= 4 THEN 4  -- Cant Lose Them
-            WHEN customer_tenure_days <= 90 OR (r_score >= 4 AND f_score = 1) THEN 5  -- New Customers
-            WHEN r_score <= 2 AND f_score >= 2 AND m_score >= 2 THEN 6  -- At Risk
-            WHEN r_score = 1 AND f_score = 1 AND m_score <= 2 THEN 7  -- Lost
-            ELSE 8  -- Others
-        END AS customer_rfm_segment_order
-        
+            WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN 1
+            WHEN r_score >= 3 AND f_score >= 3 AND m_score >= 3 THEN 2
+            WHEN f_score >= 4 AND m_score >= 4 THEN 3
+            WHEN r_score >= 4 AND (f_score >= 2 OR m_score >= 2) THEN 4
+            WHEN customer_tenure_days <= 90 OR r_score >= 4 THEN 5
+            WHEN f_score >= 2 AND m_score >= 2 OR m_score IN (2,3) THEN 6
+            WHEN r_score = 1 AND f_score = 1 OR m_score = 1 THEN 7
+            
+            -- ASSIGN REMAINING "OTHERS" TO SUITABLE BUCKETS
+            WHEN m_score >= 4 THEN 3        -- High spenders regardless of R&F
+            WHEN f_score >= 3 THEN 6                -- Frequent buyers regardless of M&R  
+            WHEN r_score >= 3 THEN 6                -- Recent buyers regardless of F&M
+            WHEN f_score >= 2 OR m_score >= 2 THEN 6 -- Any moderate engagement
+            
+            ELSE 7  -- Bottom tier: R<=2, F<=1, M<=1
+        END AS customer_rfm_segment_order,
+
     FROM customer_rfm_scores
 )
 
