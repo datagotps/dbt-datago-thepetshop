@@ -35,6 +35,8 @@ select
     a.e_mail,
     a.blocked,
 
+    a.loyality_member_id,
+
 
             CASE 
         WHEN a.no_ IN (
@@ -51,3 +53,4 @@ select
 from {{ ref("2_stg_erp_customer_deduped") }} as a
 left join {{ ref("int_ofs_customer") }} as b on a.web_customer_no_ = b.customerid
 
+--where loyality_member_id =  'd20b11c7-efea-4ce9-a6c5-e1ca05147a06'

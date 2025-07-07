@@ -19,9 +19,12 @@ raw_dates AS (
 
 calendar AS (
   SELECT
-    date,  -- Date (e.g., 2025-06-01)
+    date(date) as date,  -- Date (e.g., 2025-06-01)
 
-    EXTRACT(YEAR FROM date) AS year,  -- Year (e.g., 2025)
+    EXTRACT(YEAR FROM date) AS year_number,  -- Year (e.g., 2025)
+    FORMAT_DATE('%Y', date) AS year,
+
+
     EXTRACT(MONTH FROM date) AS month_number,  -- Month number (e.g., 6 for June)
     FORMAT_DATE('%B', date) AS month_name,  -- Full month name (e.g., June)
     FORMAT_DATE('%b', date) AS month_abbr,  -- Abbreviated month name (e.g., Jun)
