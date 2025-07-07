@@ -120,6 +120,11 @@ churn_action_required,  --Recommended action based on churn risk analysis
 purchase_frequency_type,  --Customer buying pattern: 'New Customer', 'One-Time Buyer', 'Weekly Buyer', 'Monthly Buyer', 'Quarterly Buyer', 'Annual Buyer', 'Inconsistent Buyer'
 purchase_frequency_type_order,  
 
+
+m1_retention_segment,
+transacted_last_month,
+transacted_current_month,
+
     -- REPORT METADATA
     CURRENT_DATETIME() AS report_last_updated_at, 
 
