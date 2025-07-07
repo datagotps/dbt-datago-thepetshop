@@ -302,7 +302,40 @@ customer_calculated_metrics AS (
             WHEN customer_acquisition_date < '2025-01-16' THEN 'Acquired Pre-Launch'
             ELSE 'Unknown'
         END AS hyperlocal_customer_segment,
-        
+
+        -- M1 RETENTION SEGMENT: Customers who transacted last month but haven't transacted in current month by 21st
+        CASE 
+            WHEN 
+                -- Condition 1: Customer transacted in last month
+                DATE(last_order_date) >= DATE(EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)), 
+                                               EXTRACT(MONTH FROM DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)), 1)
+                AND DATE(last_order_date) <= LAST_DAY(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH))
+                
+                -- Condition 2: Haven't transacted in current month at all
+                AND DATE(last_order_date) < DATE(EXTRACT(YEAR FROM CURRENT_DATE()), EXTRACT(MONTH FROM CURRENT_DATE()), 1)
+                
+                -- Condition 3: We're already past the 21st of current month
+                AND CURRENT_DATE() >= DATE(EXTRACT(YEAR FROM CURRENT_DATE()), EXTRACT(MONTH FROM CURRENT_DATE()), 21)
+            THEN 'M1 Retention Target'
+            ELSE 'Not M1 Target'
+        END AS m1_retention_segment,
+
+        -- Helper fields for analysis
+        CASE 
+            WHEN DATE(last_order_date) >= DATE(EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)), 
+                                               EXTRACT(MONTH FROM DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)), 1)
+            AND DATE(last_order_date) <= LAST_DAY(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH))
+            THEN 'Yes'
+            ELSE 'No'
+        END AS transacted_last_month,
+
+        CASE 
+            WHEN DATE(last_order_date) >= DATE(EXTRACT(YEAR FROM CURRENT_DATE()), EXTRACT(MONTH FROM CURRENT_DATE()), 1)
+            AND DATE(last_order_date) <= CURRENT_DATE()
+            THEN 'Yes'
+            ELSE 'No'
+        END AS transacted_current_month,
+
         -- HYPERLOCAL USAGE: Whether customer has used 60-min Hyperlocal service
         CASE 
             WHEN hyperlocal_60min_orders > 0 THEN 'Used Hyperlocal'
