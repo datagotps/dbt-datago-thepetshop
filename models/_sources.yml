@@ -94,6 +94,7 @@ sources:
       - name: crmlinestatus
       - name: ordercount
       - name: customerdetails
+      - name: itemstock
 
 
   - name:  loyalty_aws
