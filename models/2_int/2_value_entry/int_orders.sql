@@ -461,16 +461,42 @@ final_enhanced AS (
         FORMAT_DATE('%b %Y', rm.customer_acquisition_date) as acquisition_month,
         EXTRACT(YEAR FROM rm.customer_acquisition_date) as acquisition_year,
 
+
+        -- =============================================
+        -- MONTHLY COHORT FIELDS
+        -- =============================================
+
+        -- MONTHLY: Actual calendar month names (Jan 2021, Feb 2021, etc.)
         CASE 
-            WHEN rm.customer_acquisition_date IS NULL THEN NULL
-            ELSE DATE_DIFF(
-                DATE_TRUNC(rm.order_date, MONTH),
-                DATE_TRUNC(rm.customer_acquisition_date, MONTH),
-                MONTH
+            WHEN rm.customer_acquisition_date IS NULL THEN 'Unknown'
+            ELSE FORMAT_DATE('%b %Y', 
+                DATE_ADD(
+                    DATE_TRUNC(rm.customer_acquisition_date, MONTH), 
+                    INTERVAL DATE_DIFF(
+                        DATE_TRUNC(rm.order_date, MONTH),
+                        DATE_TRUNC(rm.customer_acquisition_date, MONTH),
+                        MONTH
+                    ) MONTH
+                )
             )
-        END as cohort_month_number,
+        END as cohort_month_actual_name,
 
+        -- MONTHLY: Sort key for actual month names (YYYYMM format: 202101, 202102, etc.)
+        CASE 
+            WHEN rm.customer_acquisition_date IS NULL THEN 999999
+            ELSE CAST(FORMAT_DATE('%Y%m', 
+                DATE_ADD(
+                    DATE_TRUNC(rm.customer_acquisition_date, MONTH), 
+                    INTERVAL DATE_DIFF(
+                        DATE_TRUNC(rm.order_date, MONTH),
+                        DATE_TRUNC(rm.customer_acquisition_date, MONTH),
+                        MONTH
+                    ) MONTH
+                )
+            ) AS INT64)
+        END as cohort_month_actual_sort,
 
+        -- MONTHLY: Relative position labels (Month 0, Month 1, Month 2, etc.)
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN 'Unknown'
             ELSE CONCAT('Month ', 
@@ -482,14 +508,65 @@ final_enhanced AS (
             )
         END as cohort_month_label,
 
-
-        -- QUARTERLY COHORTS
+        -- MONTHLY: Numeric position only (0, 1, 2, 3, etc.)
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN NULL
-            ELSE (EXTRACT(YEAR FROM rm.order_date) - EXTRACT(YEAR FROM rm.customer_acquisition_date)) * 4 + 
-                (EXTRACT(QUARTER FROM rm.order_date) - EXTRACT(QUARTER FROM rm.customer_acquisition_date))
-        END as cohort_quarter_number,
+            ELSE DATE_DIFF(
+                DATE_TRUNC(rm.order_date, MONTH),
+                DATE_TRUNC(rm.customer_acquisition_date, MONTH),
+                MONTH
+            )
+        END as cohort_month_number,
 
+        -- =============================================
+        -- QUARTERLY COHORT FIELDS
+        -- =============================================
+
+        -- QUARTERLY: Actual calendar quarter names (Q1 2021, Q2 2021, etc.)
+        CASE 
+            WHEN rm.customer_acquisition_date IS NULL THEN 'Unknown'
+            ELSE CONCAT(
+                'Q',
+                EXTRACT(QUARTER FROM DATE_ADD(
+                    DATE_TRUNC(rm.customer_acquisition_date, QUARTER),
+                    INTERVAL (
+                        (EXTRACT(YEAR FROM rm.order_date) - EXTRACT(YEAR FROM rm.customer_acquisition_date)) * 4 + 
+                        (EXTRACT(QUARTER FROM rm.order_date) - EXTRACT(QUARTER FROM rm.customer_acquisition_date))
+                    ) QUARTER
+                )),
+                ' ',
+                EXTRACT(YEAR FROM DATE_ADD(
+                    DATE_TRUNC(rm.customer_acquisition_date, QUARTER),
+                    INTERVAL (
+                        (EXTRACT(YEAR FROM rm.order_date) - EXTRACT(YEAR FROM rm.customer_acquisition_date)) * 4 + 
+                        (EXTRACT(QUARTER FROM rm.order_date) - EXTRACT(QUARTER FROM rm.customer_acquisition_date))
+                    ) QUARTER
+                ))
+            )
+        END as cohort_quarter_actual_name,
+
+        -- QUARTERLY: Sort key for actual quarter names (YYYYQ format: 20211, 20212, etc.)
+        CASE 
+            WHEN rm.customer_acquisition_date IS NULL THEN 99999
+            ELSE CAST(CONCAT(
+                EXTRACT(YEAR FROM DATE_ADD(
+                    DATE_TRUNC(rm.customer_acquisition_date, QUARTER),
+                    INTERVAL (
+                        (EXTRACT(YEAR FROM rm.order_date) - EXTRACT(YEAR FROM rm.customer_acquisition_date)) * 4 + 
+                        (EXTRACT(QUARTER FROM rm.order_date) - EXTRACT(QUARTER FROM rm.customer_acquisition_date))
+                    ) QUARTER
+                )),
+                EXTRACT(QUARTER FROM DATE_ADD(
+                    DATE_TRUNC(rm.customer_acquisition_date, QUARTER),
+                    INTERVAL (
+                        (EXTRACT(YEAR FROM rm.order_date) - EXTRACT(YEAR FROM rm.customer_acquisition_date)) * 4 + 
+                        (EXTRACT(QUARTER FROM rm.order_date) - EXTRACT(QUARTER FROM rm.customer_acquisition_date))
+                    ) QUARTER
+                ))
+            ) AS INT64)
+        END as cohort_quarter_actual_sort,
+
+        -- QUARTERLY: Relative position labels (Q 0, Q 1, Q 2, etc.)
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN 'Unknown'
             ELSE CONCAT('Q ', 
@@ -498,16 +575,46 @@ final_enhanced AS (
             )
         END as cohort_quarter_label,
 
-        -- YEARLY COHORTS  
+        -- QUARTERLY: Numeric position only (0, 1, 2, 3, etc.)
+        CASE 
+            WHEN rm.customer_acquisition_date IS NULL THEN NULL
+            ELSE (EXTRACT(YEAR FROM rm.order_date) - EXTRACT(YEAR FROM rm.customer_acquisition_date)) * 4 + 
+                (EXTRACT(QUARTER FROM rm.order_date) - EXTRACT(QUARTER FROM rm.customer_acquisition_date))
+        END as cohort_quarter_number,
+
+        -- =============================================
+        -- YEARLY COHORT FIELDS
+        -- =============================================
+
+        -- YEARLY: Actual calendar year (2021, 2022, 2023, etc.)
+        CASE 
+            WHEN rm.customer_acquisition_date IS NULL THEN 'Unknown'
+            ELSE CAST(
+                EXTRACT(YEAR FROM rm.customer_acquisition_date) + 
+                (EXTRACT(YEAR FROM rm.order_date) - EXTRACT(YEAR FROM rm.customer_acquisition_date))
+            AS STRING)
+        END as cohort_year_actual_name,
+
+        -- YEARLY: Sort key for actual year (YYYY format: 2021, 2022, etc.)
+        CASE 
+            WHEN rm.customer_acquisition_date IS NULL THEN 9999
+            ELSE EXTRACT(YEAR FROM rm.customer_acquisition_date) + 
+                (EXTRACT(YEAR FROM rm.order_date) - EXTRACT(YEAR FROM rm.customer_acquisition_date))
+        END as cohort_year_actual_sort,
+
+        -- YEARLY: Relative position labels (Year 0, Year 1, Year 2, etc.)
+        CASE 
+            WHEN rm.customer_acquisition_date IS NULL THEN 'Unknown'
+            ELSE CONCAT('Year ', EXTRACT(YEAR FROM rm.order_date) - EXTRACT(YEAR FROM rm.customer_acquisition_date))
+        END as cohort_year_label,
+
+        -- YEARLY: Numeric position only (0, 1, 2, 3, etc.)
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN NULL
             ELSE EXTRACT(YEAR FROM rm.order_date) - EXTRACT(YEAR FROM rm.customer_acquisition_date)
         END as cohort_year_number,
 
-        CASE 
-            WHEN rm.customer_acquisition_date IS NULL THEN 'Unknown'
-            ELSE CONCAT('Year ', EXTRACT(YEAR FROM rm.order_date) - EXTRACT(YEAR FROM rm.customer_acquisition_date))
-        END as cohort_year_label,
+
 
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN NULL
@@ -656,8 +763,8 @@ END AS store_location_sort,
     acquisition_year,
     acquisition_quarter_sort,
     acquisition_month_sort,
-    cohort_month_number,
-    cohort_month_label,
+    
+    
     weeks_since_acquisition,
     acquisition_week,
     is_acquisition_month,
@@ -665,13 +772,37 @@ END AS store_location_sort,
     acquisition_month_date,
     customer_acquisition_date,
 
-    cohort_quarter_number,
-    cohort_quarter_label,
-    cohort_year_number,
-    cohort_year_label,
+    
+    
+    
+    
 
     order_value_bucket,
     order_value_bucket_sort,
+
+
+--Cohort Fields Monthly, Quarterly and Yearly
+
+    --Actual calendar Time Period names
+    cohort_year_actual_name,  --(2021, 2022, 2023, etc.)
+    cohort_quarter_actual_name, --(Q1 2021, Q2 2021, etc.)
+    cohort_month_actual_name, --(Jan 2021, Feb 2021, etc.)
+
+    --Relative position labels
+    cohort_year_label, --(Year 0, Year 1, Year 2, etc.)
+    cohort_quarter_label, --(Q 0, Q 1, Q 2, etc.)
+    cohort_month_label, --(Month 0, Month 1, Month 2, etc.)
+
+
+    cohort_year_actual_sort,
+    cohort_quarter_actual_sort,
+    cohort_month_actual_sort,
+    
+    cohort_year_number,
+    cohort_quarter_number,
+    cohort_month_number,
+
+
 
 
 FROM final_enhanced

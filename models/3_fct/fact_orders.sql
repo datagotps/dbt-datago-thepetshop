@@ -86,8 +86,6 @@ acquisition_month,
 acquisition_year,
 acquisition_quarter_sort,
 acquisition_month_sort,
-cohort_month_number,
-cohort_month_label,
 weeks_since_acquisition,
 acquisition_week,
 is_acquisition_month,
@@ -99,10 +97,6 @@ transaction_frequency_segment,
 transaction_frequency_segment_sort,
 
 
-cohort_quarter_number,
-cohort_quarter_label,
-cohort_year_number,
-cohort_year_label,
 
 
 order_value_bucket,
@@ -111,6 +105,27 @@ order_value_bucket_sort,
 order_channel_detail,
 
 store_location_sort,
+
+
+cohort_year_actual_name,
+cohort_quarter_actual_name,
+cohort_month_actual_name,
+
+cohort_year_number,
+
+
+
+cohort_year_label,
+cohort_quarter_label,
+cohort_month_label,
+
+cohort_month_number,
+cohort_quarter_number,
+
+cohort_year_actual_sort,
+cohort_quarter_actual_sort,
+cohort_month_actual_sort,
+
 
 -- REPORT METADATA
 CURRENT_DATETIME() AS report_last_updated_at, 
