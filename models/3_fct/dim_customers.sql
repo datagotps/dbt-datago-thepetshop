@@ -126,7 +126,9 @@ transacted_last_month,
 transacted_current_month,
 
     -- REPORT METADATA
-    CURRENT_DATETIME() AS report_last_updated_at, 
+    DATETIME_ADD(CURRENT_DATETIME(), INTERVAL 4 HOUR) AS report_last_updated_at,
+
+
 
 
 from {{ ref('int_customers') }}
