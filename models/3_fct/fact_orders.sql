@@ -128,7 +128,7 @@ cohort_month_actual_sort,
 
 
 -- REPORT METADATA
-CURRENT_DATETIME() AS report_last_updated_at, 
+DATETIME_ADD(CURRENT_DATETIME(), INTERVAL 4 HOUR) AS report_last_updated_at, 
 
 -- TOTAL: 65 columns
 
