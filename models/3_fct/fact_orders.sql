@@ -13,7 +13,7 @@ refund_amount,
 total_order_amount,
 line_items_count,
 positive_line_items,
-document_type_2,
+document_type,
 transaction_type,
 
 -- ORDER ATTRIBUTES (6 columns)

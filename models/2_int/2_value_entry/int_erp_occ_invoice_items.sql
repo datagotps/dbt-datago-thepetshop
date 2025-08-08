@@ -59,6 +59,8 @@ a.discount_amount,
  
 d.posting_date,
 a.documentno,
+
+a.item_no_,
 --d.line_no_,
 from {{ ref('stg_erp_inbound_sales_line') }} as a
 left join ofs_inboundpaymentline as b on b.itemid = a.item_id

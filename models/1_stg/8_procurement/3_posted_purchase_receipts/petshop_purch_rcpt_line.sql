@@ -142,6 +142,5 @@ renamed as (
 
 select * from renamed
 
---where document_no_ = 'HQWGP/21101'
+--where order_no_ = 'TPS/2024/001236'
 
---where order_no_ = 'TPS/2025/001238'

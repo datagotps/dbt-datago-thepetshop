@@ -33,6 +33,7 @@ sources:
       - name: petshop_item_437dbf0e_84ff_417a_965d_ed2bb9650972 # not used
       - name: petshop_item_category_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_retail_product_group_5ecfc871_5d82_43f1_9c54_59685e82318d
+      - name: petshop_division_5ecfc871_5d82_43f1_9c54_59685e82318d
 
 
       - name: petshop_vendor_437dbf0e_84ff_417a_965d_ed2bb9650972

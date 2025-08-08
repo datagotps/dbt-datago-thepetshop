@@ -14,7 +14,7 @@ WITH base_transactions AS (
         a.sales_amount__actual_,
         a.sales_channel, -- Online or Shop
         a.offline_order_channel, --store location
-        a.document_type_2, -- Sales Invoice or Sales Credit Memo
+        a.document_type, -- Sales Invoice or Sales Credit Memo
 
         b.web_order_id,
         b.online_order_channel, --website, Android, iOS, CRM, Unmapped
@@ -63,19 +63,19 @@ order_aggregation AS (
         -- Revenue metrics - aggregate across line items
         SUM(CASE 
             WHEN sales_channel = 'Shop' THEN sales_amount__actual_
-            WHEN document_type_2 = 'Sales Invoice' THEN sales_amount__actual_
+            WHEN document_type = 'Sales Invoice' THEN sales_amount__actual_
             ELSE 0
         END) AS order_value,
         
         SUM(CASE 
-            WHEN document_type_2 = 'Sales Credit Memo' THEN sales_amount__actual_
+            WHEN document_type = 'Sales Credit Memo' THEN sales_amount__actual_
             ELSE 0
         END) AS refund_amount,
         
         SUM(sales_amount__actual_) AS total_order_amount,  -- Total across all line items
         
         -- Order characteristics (take first non-null value)
-        MAX(document_type_2) AS document_type_2,  -- Assuming consistent per order
+        MAX(document_type) AS document_type,  -- Assuming consistent per order
         
         -- Order metrics
         COUNT(*) AS line_items_count,
@@ -84,8 +84,8 @@ order_aggregation AS (
         -- Transaction type classification
         CASE 
             WHEN sales_channel = 'Shop' THEN 'Sale'
-            WHEN MAX(document_type_2) = 'Sales Invoice' THEN 'Sale'
-            WHEN MAX(document_type_2) = 'Sales Credit Memo' THEN 'Refund'
+            WHEN MAX(document_type) = 'Sales Invoice' THEN 'Sale'
+            WHEN MAX(document_type) = 'Sales Credit Memo' THEN 'Refund'
             ELSE 'Other'
         END AS transaction_type
         
@@ -201,11 +201,11 @@ order_enriched AS (
             WHEN oa.sales_channel = 'Shop' AND oa.order_type = 'EXPRESS' AND oa.order_date < '2025-01-16' THEN '4-Hour Express'
             WHEN oa.sales_channel = 'Shop' AND oa.order_type = 'NORMAL' THEN 'Standard Delivery'
             WHEN oa.sales_channel = 'Shop' AND oa.order_type = 'EXCHANGE' THEN 'Exchange Order'
-            WHEN oa.document_type_2 = 'Sales Invoice' AND oa.order_type = 'EXPRESS' AND oa.order_date >= '2025-01-16' THEN '60-Min Hyperlocal'
-            WHEN oa.document_type_2 = 'Sales Invoice' AND oa.order_type = 'EXPRESS' AND oa.order_date < '2025-01-16' THEN '4-Hour Express'
-            WHEN oa.document_type_2 = 'Sales Invoice' AND oa.order_type = 'NORMAL' THEN 'Standard Delivery'
-            WHEN oa.document_type_2 = 'Sales Invoice' AND oa.order_type = 'EXCHANGE' THEN 'Exchange Order'
-            WHEN oa.document_type_2 = 'Sales Credit Memo' THEN 'Refund Transaction'
+            WHEN oa.document_type = 'Sales Invoice' AND oa.order_type = 'EXPRESS' AND oa.order_date >= '2025-01-16' THEN '60-Min Hyperlocal'
+            WHEN oa.document_type = 'Sales Invoice' AND oa.order_type = 'EXPRESS' AND oa.order_date < '2025-01-16' THEN '4-Hour Express'
+            WHEN oa.document_type = 'Sales Invoice' AND oa.order_type = 'NORMAL' THEN 'Standard Delivery'
+            WHEN oa.document_type = 'Sales Invoice' AND oa.order_type = 'EXCHANGE' THEN 'Exchange Order'
+            WHEN oa.document_type = 'Sales Credit Memo' THEN 'Refund Transaction'
             ELSE 'Other'
         END AS delivery_service_type,
         
@@ -213,9 +213,9 @@ order_enriched AS (
         CASE 
             WHEN oa.sales_channel = 'Shop' AND oa.order_type = 'EXPRESS' THEN 'Express Service'
             WHEN oa.sales_channel = 'Shop' THEN 'Standard Service'
-            WHEN oa.document_type_2 = 'Sales Invoice' AND oa.order_type = 'EXPRESS' THEN 'Express Service'
-            WHEN oa.document_type_2 = 'Sales Invoice' THEN 'Standard Service'
-            WHEN oa.document_type_2 = 'Sales Credit Memo' THEN 'Refund Transaction'
+            WHEN oa.document_type = 'Sales Invoice' AND oa.order_type = 'EXPRESS' THEN 'Express Service'
+            WHEN oa.document_type = 'Sales Invoice' THEN 'Standard Service'
+            WHEN oa.document_type = 'Sales Credit Memo' THEN 'Refund Transaction'
             ELSE 'Other'
         END AS service_tier,
         
@@ -223,9 +223,9 @@ order_enriched AS (
         CASE 
             WHEN oa.sales_channel = 'Shop' AND oa.order_type = 'EXPRESS' AND oa.order_date >= '2025-01-16' THEN 'Hyperlocal Order'
             WHEN oa.sales_channel = 'Shop' THEN 'Non-Hyperlocal Order'
-            WHEN oa.document_type_2 = 'Sales Invoice' AND oa.order_type = 'EXPRESS' AND oa.order_date >= '2025-01-16' THEN 'Hyperlocal Order'
-            WHEN oa.document_type_2 = 'Sales Invoice' THEN 'Non-Hyperlocal Order'
-            WHEN oa.document_type_2 = 'Sales Credit Memo' THEN 'Refund Transaction'
+            WHEN oa.document_type = 'Sales Invoice' AND oa.order_type = 'EXPRESS' AND oa.order_date >= '2025-01-16' THEN 'Hyperlocal Order'
+            WHEN oa.document_type = 'Sales Invoice' THEN 'Non-Hyperlocal Order'
+            WHEN oa.document_type = 'Sales Credit Memo' THEN 'Refund Transaction'
             ELSE 'Other'
         END AS hyperlocal_order_flag,
         
@@ -666,7 +666,7 @@ SELECT
     total_order_amount,                 -- SUM of all line amounts
     line_items_count,                   -- COUNT of line items in order
     positive_line_items,                -- COUNT of positive amount lines
-    document_type_2,
+    document_type,
     transaction_type,
     
     -- Order attributes

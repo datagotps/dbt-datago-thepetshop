@@ -161,7 +161,7 @@ renamed as (
 
 select * from renamed
 
---where no_= 'PSI/2025/00281' 
+--where no_= 'PSI/2025/03223' 
 
 --where no_ = 'STMTCRK/001106'
 --where sell_to_customer_no_ = 'C000008816'

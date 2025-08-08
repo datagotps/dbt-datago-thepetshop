@@ -1,7 +1,7 @@
 with 
 
 source as (
-
+    
     select * from {{ source('sql_erp_prod_dbo', 'petshop_dimension_set_entry_437dbf0e_84ff_417a_965d_ed2bb9650972') }}
 
 ),
