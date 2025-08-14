@@ -36,3 +36,4 @@ renamed as (
 )
 
 select * from renamed
+where _fivetran_deleted is not true

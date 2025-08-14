@@ -1,6 +1,42 @@
 select
     a.date_created,
     a.no_,
+    a.std_phone_no_,
+    -- Flag duplicate records
+    CASE 
+        WHEN COUNT(*) OVER (PARTITION BY a.std_phone_no_) > 1 
+        THEN 'Duplicate'
+        ELSE 'Unique'
+    END AS duplicate_flag,
+    
+    -- Instance number for each phone number
+    ROW_NUMBER() OVER (
+        PARTITION BY a.std_phone_no_ 
+        ORDER BY a.date_created ASC, a.no_ ASC
+    ) AS customer_instance,
+    
+            -- Create a master customer ID based on phone number
+        FIRST_VALUE(a.no_) OVER (
+            PARTITION BY a.std_phone_no_ 
+            ORDER BY 
+                a.date_created ASC,  -- Prioritize earliest created
+                a.no_ ASC     -- Consistent tie-breaker
+        ) AS master_customer_id,
+
+
+
+
+    -- Additional helpful fields for analysis
+    CASE 
+        WHEN COUNT(*) OVER (PARTITION BY a.std_phone_no_) > 1 
+             AND ROW_NUMBER() OVER (PARTITION BY a.std_phone_no_ ORDER BY a.date_created ASC, a.no_ ASC) = 1
+        THEN 'Primary'
+        WHEN COUNT(*) OVER (PARTITION BY a.std_phone_no_) > 1 
+        THEN 'Duplicate'
+        ELSE 'Unique'
+    END AS customer_record_type,
+    
+
 
     a.web_customer_no_,
     b.customerid,  -- ofs
@@ -30,7 +66,7 @@ select
 
     a.raw_phone_no_,
     a.phone_no_status,
-    a.std_phone_no_,
+    
 
     a.e_mail,
     a.blocked,
@@ -52,5 +88,6 @@ select
 
 from {{ ref("2_stg_erp_customer_deduped") }} as a
 left join {{ ref("int_ofs_customer") }} as b on a.web_customer_no_ = b.customerid
-
+--where std_phone_no_ != '000000000000'
+--order by 5 desc
 --where loyality_member_id =  'd20b11c7-efea-4ce9-a6c5-e1ca05147a06'

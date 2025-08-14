@@ -368,7 +368,7 @@ select
             a.no_ AS item_no_,
             a.description AS item_name,
             e.brand AS item_brand,
-            A.inventory_posting_group AS Division,
+            A.inventory_posting_group,
             
             A.no__2 AS OldItemNo,
             A.vendor_no_ AS VendorNo,
@@ -391,6 +391,8 @@ select
 
             a.item_category_code,
             c.retail_product_code,
+
+            c.division_code,
 
             F.description AS Tariff_Description,
 

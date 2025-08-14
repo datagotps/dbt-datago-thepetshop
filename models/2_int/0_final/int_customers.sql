@@ -22,6 +22,9 @@ WITH base_transactions AS (
         c.std_phone_no_,
         c.customer_identity_status,
         c.loyality_member_id,
+        c.date_created,
+        c.raw_phone_no_,
+        c.duplicate_flag,
         
     FROM {{ ref('stg_erp_value_entry') }} AS a
     LEFT JOIN {{ ref('stg_erp_inbound_sales_header') }} AS b 
@@ -150,6 +153,9 @@ customer_base_metrics AS (
         bt.name,
         bt.std_phone_no_,
         bt.customer_identity_status,
+        bt.duplicate_flag,
+        bt.raw_phone_no_,
+
         MAX(bt.loyality_member_id) AS loyality_member_id,
 
         COUNT(DISTINCT DATE_TRUNC(bt.posting_date, MONTH)) AS active_months_count,
@@ -248,7 +254,7 @@ customer_base_metrics AS (
         END) AS express_4hour_revenue
         
     FROM base_transactions bt
-    GROUP BY 1, 2, 3, 4
+    GROUP BY 1, 2, 3, 4, 5, 6
 ),
 
 -- Join order lists with customer metrics AND acquisition data

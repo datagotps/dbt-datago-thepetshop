@@ -22,6 +22,11 @@ renamed as (
         web_order_id,
        -- order_type, -- 0,1,2,4 
        -- type, --1,2
+
+        customer_id,
+        nav_customer_id,
+        global_dimension_2_code,
+
         
 case 
  when type = 2 then  'Sales Return'
@@ -50,13 +55,12 @@ case
         box_id,
         currency_code,
         currency_factor,
-        customer_id,
+        
         delivery_date,
         docket_no,
         dsp_code,
         error_message,
-        global_dimension_2_code,
-        nav_customer_id,
+        
         order_category,
         order_created,
         

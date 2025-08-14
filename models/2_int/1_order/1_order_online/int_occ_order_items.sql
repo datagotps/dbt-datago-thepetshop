@@ -191,10 +191,11 @@ select
     when q.inserted_by = 'SYSTEM' then 'system_pna'
     else 'manual_pna' end as pna_reason,
 
-
+q.insert_date_time as pna_date,
 
 -- Main joins
-from {{ ref('stg_ofs_inboundsalesline') }} as a left join inboundpaymentline as b on a.itemid = b.itemid 
+from {{ ref('stg_ofs_inboundsalesline') }} as a 
+left join inboundpaymentline as b on a.itemid = b.itemid 
 left join {{ ref('stg_ofs_orderdetail') }} as c on c.itemid = a.itemid
 left join ofs_itemdetail as e on e.itemno = a.itemno 
 left join orderdataanalysis as f on f.itemid = a.itemid

@@ -157,5 +157,5 @@ renamed as (
 
 select * from renamed
 
---where document_no_ = 'INV00427893'
+--where document_no_ = 'INV00425821'
 --where sell_to_customer_no_ = 'C000008816'
