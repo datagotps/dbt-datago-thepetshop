@@ -1,15 +1,96 @@
---recorder 25938372
+with inbound_sales_line_dedup AS (
+    SELECT 
+        documentno,
+        item_no_,
+        -- Aggregate other needed columns
+      --  MAX(web_order_no_) as web_order_no_,
+       -- MAX(customer_no_) as customer_no_,
+      --  SUM(quantity) as total_quantity,
+      --  MAX(invoice_value_incl__tax) as invoice_value_incl__tax,
+      --  MAX(unit_price_excl__vat) as unit_price_excl__vat,
+        MAX(discount_amount) as discount_amount,
+      --  MAX(coupon_discount) as coupon_discount,
+      --  MAX(tax_amount) as tax_amount,
+      --  MAX(type) as type,
+      --  COUNT(*) as line_count  -- Track how many lines were aggregated
+    FROM {{ ref('stg_erp_inbound_sales_line') }}
+    GROUP BY documentno, item_no_
+) 
+
+
 select
 
 a.source_no_,
 a.document_no_,
 a.posting_date,
 
+a.invoiced_quantity,
+a.sales_channel,
+a.transaction_type,
+    -- Alternative: You could also create a text indicator
+    CASE 
+        WHEN a.sales_channel = 'Online' AND f.discount_amount IS NOT NULL AND f.discount_amount != 0 THEN 'Discounted'
+        WHEN a.sales_channel != 'Online' AND a.discount_amount IS NOT NULL AND a.discount_amount != 0 THEN 'Discounted'
+        ELSE 'No Discount'
+    END AS discount_status,
+
+    -- GROSS SALES AMOUNT CALCULATION
+    -- For Sales: Net sales + absolute value of discount = Gross sales
+    -- For Refunds: Net refund - discount = Gross refund (more negative)
+    -- Using ROUND to avoid floating point precision issues
+    ROUND(
+        CASE 
+            WHEN a.transaction_type = 'Refund' THEN 
+                -- For refunds: subtract the discount to get the original gross amount (more negative)
+                a.sales_amount__actual_ - ABS(
+                    CASE 
+                        WHEN a.sales_channel = 'Online' THEN ROUND(COALESCE(-1*f.discount_amount,0) / (1 + 5 / 100), 2)
+                        ELSE COALESCE(a.discount_amount, 0)
+                    END
+                )
+            ELSE 
+                -- For sales: add the discount to get the original gross amount
+                a.sales_amount__actual_ + ABS(
+                    CASE 
+                        WHEN a.sales_channel = 'Online' THEN ROUND(COALESCE(-1*f.discount_amount,0) / (1 + 5 / 100), 2)
+                        ELSE COALESCE(a.discount_amount, 0)
+                    END
+                )
+        END, 2
+    ) AS sales_amount_gross,
+
+
+    -- CONSOLIDATED DISCOUNT AMOUNT
+    -- Use online discount for Online sales channel, otherwise use standard discount
+    CASE 
+        WHEN a.sales_channel = 'Online' THEN ROUND(COALESCE(-1*f.discount_amount,0) / (1 + 5 / 100), 2)
+        ELSE COALESCE(a.discount_amount, 0)
+    END AS discount_amount,
+
 a.sales_amount__actual_,
 a.cost_amount__actual_,
-a.discount_amount,
+a.discount_amount as offline_discount_amount,
+ROUND(COALESCE(-1*f.discount_amount,0) / (1 + 5 / 100), 2) as online_discount_amount,
 
-a.sales_channel, 
+
+a.document_type,
+
+
+
+
+    
+    -- DISCOUNT INDICATOR FLAG
+    -- Check if any discount exists (non-zero value)
+    CASE 
+        WHEN a.sales_channel = 'Online' AND f.discount_amount IS NOT NULL AND f.discount_amount != 0 THEN 1
+        WHEN a.sales_channel != 'Online' AND a.discount_amount IS NOT NULL AND a.discount_amount != 0 THEN 1
+        ELSE 0
+    END AS has_discount,
+    
+
+
+
+ 
 a.sales_channel_sort,
 
 a.offline_order_channel, --store location
@@ -27,11 +108,11 @@ a.location_code,
 a.clc_location_code,
 a.user_id,
 a.entry_type_2,
-a.document_type,
+
 a.dimension_code,
 a.global_dimension_2_code_name,
 a.clc_global_dimension_2_code_name,
-a.transaction_type,
+
 --case when transaction_type = 'Sale' then a.sales_amount__actual_ else 0 end as posted_revenue,
 --case when transaction_type = 'Refund' then a.sales_amount__actual_ else 0 end as refund,
 
@@ -123,14 +204,21 @@ CASE WHEN DATE_TRUNC(a.posting_date, YEAR) = DATE_TRUNC(DATE_SUB(CURRENT_DATE(),
      THEN 1 ELSE 0 END as is_y_2,
 
 
+
 FROM {{ ref('stg_erp_value_entry') }} as a
 LEFT JOIN  {{ ref('stg_erp_inbound_sales_header') }}  as b on a.document_no_ = b.documentno
 LEFT JOIN {{ ref('int_erp_customer') }} AS c ON a.source_no_ = c.no_
 
---left join {{ ref('stg_erp_sales_invoice_line') }} as c on a.document_no_ = c.document_no_ and source_code = 'SALES' and a.document_line_no_ = c.line_no_
+left join {{ ref('stg_erp_sales_invoice_line') }} as d on a.document_no_ = d.document_no_ and a.source_code = 'SALES' and a.document_line_no_ = d.line_no_
+
+--left join {{ ref('stg_erp_inbound_sales_line') }} as f on d.document_no_ = f.documentno and d.sell_to_customer_no_ = f.customer_no_ 
+LEFT JOIN inbound_sales_line_dedup as f ON a.document_no_ = f.documentno AND a.item_no_ = f.item_no_
+
 
 --left join {{ ref('stg_dimension_value') }} as d on  a.global_dimension_2_code = d.code
+
 left join  {{ ref('int_items') }} as e on  e.item_no_ = a.item_no_
+
 
 
 
@@ -140,6 +228,11 @@ and a.source_code  IN ('BACKOFFICE', 'SALES')
 and a.document_type NOT IN ('Sales Shipment', 'Sales Return Receipt')
 and a.dimension_code = 'PROFITCENTER'
 
+
+and a.posting_date BETWEEN '2025-01-01' AND '2025-01-31'
+
+
+--and a.transaction_type != 'Sale'
 --and a.posting_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 25 MONTH) AND CURRENT_DATE()
 
---and   b.web_order_id = 'O3087438S'
+--and   b.web_order_id = 'O3067781S'

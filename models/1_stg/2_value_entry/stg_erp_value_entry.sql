@@ -58,14 +58,22 @@ renamed as (
             else 'cheak my logic'
         end as document_type,
 
-        -- Transaction type classification
-        CASE 
-            --WHEN clc_global_dimension_2_code_name  = 'POS Sale' THEN 'Sale'
-            WHEN document_type = 0 THEN 'Sale'
-            WHEN document_type = 2 THEN 'Sale'
-            WHEN document_type = 4 THEN 'Refund'
-            ELSE 'Other'
-        END AS transaction_type,
+
+        -- Transaction type classification with improved logic for negative amounts
+CASE 
+    -- Handle document_type = 0 with amount check
+    WHEN document_type = 0 AND sales_amount__actual_ >= 0 THEN 'Sale'
+    WHEN document_type = 0 AND sales_amount__actual_ < 0 THEN 'Refund'
+    
+    -- Standard document type classifications
+    WHEN document_type = 2 THEN 'Sale'
+    WHEN document_type = 4 THEN 'Refund'
+    
+    -- Everything else
+    ELSE 'Other'
+END AS transaction_type,
+
+
 
 
 
@@ -259,3 +267,5 @@ location_code,
 )
 
 select * from renamed
+ --where document_no_ in ('PSI/2021/01307', 'PSI/2023/00937') and source_code = 'SALES'
+

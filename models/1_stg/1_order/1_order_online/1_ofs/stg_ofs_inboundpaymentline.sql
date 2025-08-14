@@ -15,6 +15,7 @@ renamed as (
         amount,
         amountincltax,
         invoicediscountamount,
+        loyaltypoints,
         
         isheader,
         itemid,
@@ -51,7 +52,7 @@ renamed as (
         isrecalculated,
         
         
-        loyaltypoints,
+        
         
         orderchargesprocessed,
         othercharges,

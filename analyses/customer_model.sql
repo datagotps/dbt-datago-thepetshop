@@ -2,10 +2,45 @@
     materialized='table',
     description='Customer master analysis with RFM segmentation and comprehensive customer intelligence - Enhanced with sales_channel-based logic and Purchase Frequency Analysis'
 ) }}
-
-WITH base_transactions AS (
+WITH customer_golden_record AS (
     SELECT 
-        a.source_no_,
+        no_,
+        std_phone_no_,
+        name,
+        customer_identity_status,
+        loyality_member_id,
+        date_created,
+        -- Create a master customer ID based on phone number
+        FIRST_VALUE(no_) OVER (
+            PARTITION BY std_phone_no_ 
+            ORDER BY 
+                date_created ASC,  -- Prioritize earliest created
+                no_ ASC     -- Consistent tie-breaker
+        ) AS master_customer_id,
+        
+        -- Flag duplicate records
+        CASE 
+            WHEN COUNT(*) OVER (PARTITION BY std_phone_no_) > 1 
+            THEN 'Duplicate'
+            ELSE 'Unique'
+        END AS duplicate_flag,
+        
+        ROW_NUMBER() OVER (
+            PARTITION BY std_phone_no_ 
+            ORDER BY date_created ASC, no_ ASC
+        ) AS customer_instance
+        
+    FROM {{ ref('int_erp_customer') }}
+    WHERE std_phone_no_ IS NOT NULL 
+      AND std_phone_no_ != ''
+      AND std_phone_no_ != 'NULL'
+),
+
+ base_transactions AS (
+    SELECT 
+        
+        COALESCE(cgr.master_customer_id, a.source_no_) AS source_no_,  -- Use master ID
+        a.source_no_ AS original_source_no_,  -- Keep original for audit
         a.document_no_,
         a.posting_date,
         a.sales_amount__actual_,
@@ -23,14 +58,19 @@ WITH base_transactions AS (
         c.customer_identity_status,
         c.loyality_member_id,
         c.date_created,
-        c.raw_phone_no_,
-        c.duplicate_flag,
+
+        cgr.duplicate_flag,
+        cgr.customer_instance,
+
         
     FROM {{ ref('stg_erp_value_entry') }} AS a
     LEFT JOIN {{ ref('stg_erp_inbound_sales_header') }} AS b 
         ON a.document_no_ = b.documentno
     LEFT JOIN {{ ref('int_erp_customer') }} AS c 
         ON a.source_no_ = c.no_
+
+    LEFT JOIN customer_golden_record AS cgr 
+        ON a.source_no_ = cgr.no_
     WHERE 
         a.source_code NOT IN ('INVTADMT', 'INVTADJMT')
         AND a.item_ledger_entry_type = 'Sale' 
@@ -153,9 +193,6 @@ customer_base_metrics AS (
         bt.name,
         bt.std_phone_no_,
         bt.customer_identity_status,
-        bt.duplicate_flag,
-        bt.raw_phone_no_,
-
         MAX(bt.loyality_member_id) AS loyality_member_id,
 
         COUNT(DISTINCT DATE_TRUNC(bt.posting_date, MONTH)) AS active_months_count,
@@ -164,7 +201,7 @@ customer_base_metrics AS (
 
         
         -- Date metrics
-        DATE(MIN(bt.posting_date)) AS customer_acquisition_date,
+        DATE(MIN(bt.date_created)) AS customer_acquisition_date,
         DATE(MIN(bt.posting_date)) AS first_order_date,
         DATE(MAX(bt.posting_date)) AS last_order_date,
 
@@ -254,7 +291,7 @@ customer_base_metrics AS (
         END) AS express_4hour_revenue
         
     FROM base_transactions bt
-    GROUP BY 1, 2, 3, 4, 5, 6
+    GROUP BY 1, 2, 3, 4
 ),
 
 -- Join order lists with customer metrics AND acquisition data
@@ -549,7 +586,26 @@ customer_calculated_metrics AS (
             THEN 100  -- Year 19 & Before
             
             ELSE 1  -- Unknown - sort last
-        END AS acquisition_cohort_rank
+        END AS acquisition_cohort_rank,
+
+
+                -- Data Quality Indicators
+        COUNT(DISTINCT original_source_no_) OVER (
+            PARTITION BY source_no_
+        ) AS duplicate_customer_ids_count,
+        
+        STRING_AGG(DISTINCT original_source_no_, ' | ') OVER (
+            PARTITION BY source_no_
+        ) AS duplicate_customer_ids_list,
+        
+        -- Flag for reporting
+        CASE 
+            WHEN COUNT(DISTINCT original_source_no_) OVER (
+                PARTITION BY source_no_
+            ) > 1 THEN 'Has Duplicates'
+            ELSE 'Clean'
+        END AS customer_data_quality_flag,
+
         
     FROM customer_base_metrics_with_lists
 ),

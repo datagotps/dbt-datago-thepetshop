@@ -2,7 +2,12 @@ with
 
 source as (
 
-    select * from {{ source('sql_erp_prod_dbo', 'petshop_inbound_sales_line_c91094c2_db03_49d2_8cb9_95c179ecbf9d') }}
+    select 
+    a.* ,
+    b.nav_customer_id,
+    from {{ source('sql_erp_prod_dbo', 'petshop_inbound_sales_line_c91094c2_db03_49d2_8cb9_95c179ecbf9d') }} as a
+    LEFT JOIN  {{ ref('stg_erp_inbound_sales_header') }}  as b on a.documentno = b.documentno and a.type = 1 
+   
 
 ),
 
@@ -19,6 +24,8 @@ renamed as (
         else 'cheack my logic'
         end as type_2,
 
+        nav_customer_id,
+
         item_id,
         invoice_date,
         item_no_,
@@ -28,7 +35,7 @@ renamed as (
         
         serial_no_,
 
-        discount_amount, 
+        discount_amount, -- incluvat
     
         coupon_discount,  -- repereted
         invoice_discount, -- not work string.
@@ -49,7 +56,7 @@ renamed as (
 
         unit_price_excl__vat,
 
-        mrp_price, -- not correct.
+        mrp_price, -- not correct.  =  invoice_value_incl__tax
 
 
 
@@ -125,6 +132,6 @@ renamed as (
 select * from renamed
 
 
---where  web_order_no_ = 'O3087438S'
+--where  web_order_no_ = 'O3067781S'
 --where documentno = 'INV00426682'
 --WHERE item_no_ ='21220000'
