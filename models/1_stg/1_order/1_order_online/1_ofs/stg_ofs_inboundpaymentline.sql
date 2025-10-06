@@ -9,53 +9,43 @@ source as (
 renamed as (
 
     select
+        -- Primary Identifiers
         id,
         weborderno,
+        itemid,
+        
+        -- Pricing (Base)
         mrpprice,
+        unitprice,
+        unitpriceincludingtax,
         amount,
         amountincltax,
-        invoicediscountamount,
-        loyaltypoints,
         
-        isheader,
-        itemid,
-
-        loyalitypointamount,
-        
-        
-        agentcode,
-        agentcommission,
-        
-        
-
-        authorizationid,
-        celebrityordersync,
-        codcharges,
-        couponamount,
-        couponcode,
-        currencycode,
-        currencyfactor,
-        customduty,
-        customdutypercentage,
-        customizedcharges,
-        customthresholdlimit,
+        -- Discounts
         discount,
         discounttype,
-        errormessage,
-        giftcharges,
-        insertedby,
-        insertedon,
-        
+        couponamount,
+        couponcode,
+        invoicediscountamount,
         invoicediscounttax,
         invoicediscountwithtax,
         
-        isrecalculated,
-        
-        
-        
-        
-        orderchargesprocessed,
+        -- Additional Charges
+        codcharges,
+        shippingcharges,
+        customizedcharges,
+        giftcharges,
         othercharges,
+        
+        -- Tax & Customs
+        tax,
+        taxpercentage,
+        customduty,
+        customdutypercentage,
+        customthresholdlimit,
+        
+        -- Payment Gateways
+        paymentmethodcode,
         paymentgateway,
         paymentgateway2,
         paymentgateway3,
@@ -64,25 +54,52 @@ renamed as (
         paymentgatewayamount2,
         paymentgatewayamount3,
         paymentgatewayamount4,
-        paymentmethodcode,
-        readyforarchive,
-        recalculatedamount,
-        retrycounter,
-        roundingdifference,
-        shippingcharges,
-        storecredit,
-        tax,
-        taxpercentage,
-        transactionid,
-        unitprice,
-        unitpriceincludingtax,
-        updatedby,
-        updatedon,
+        
+        -- Wallet & Store Credit
         walletamount,
         walletname,
+        storecredit,
         
+        -- Loyalty
+        loyaltypoints,
+        loyalitypointamount,
+        
+        -- Agent/Commission
+        agentcode,
+        agentcommission,
+        
+        -- Transaction Details
+        transactionid,
+        authorizationid,
+        
+        -- Currency
+        currencycode,
+        currencyfactor,
+        
+        -- Calculation & Adjustments
+        recalculatedamount,
+        roundingdifference,
+        isrecalculated,
+        
+        -- Processing Flags
+        isheader,
+        orderchargesprocessed,
+        celebrityordersync,
+        readyforarchive,
+        
+        -- Error Handling
+        errormessage,
+        retrycounter,
+        
+        -- Audit Fields
+        insertedon,
+        insertedby,
+        updatedon,
+        updatedby,
+        
+        -- System/Metadata Fields
         _fivetran_deleted,
-        _fivetran_synced,
+        _fivetran_synced
 
     from source
 

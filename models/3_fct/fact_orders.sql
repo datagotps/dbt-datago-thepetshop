@@ -1,136 +1,137 @@
 SELECT
 
--- ORDER IDENTIFIERS (4 columns)
-source_no_,
-unified_order_id,
-document_no_,
-web_order_id,
+-- Order Identifiers
+source_no_,                        -- dim (customer ID list)
+unified_customer_id,               -- dim (key)
+unified_order_id,                  -- dim (key)
+document_no_,                      -- dim (ERP doc number)
+web_order_id,                      -- dim (web order ID)
+loyality_member_id,                -- dim (member ID or null)
 
--- ORDER CORE DATA - AGGREGATED METRICS (7 columns)
-order_date,
-order_value,
-refund_amount,
-total_order_amount,
-line_items_count,
-positive_line_items,
-document_type,
-transaction_type,
+-- Order Metrics
+order_date,                        -- dim (date)
+order_value,                       -- fact (AED amount for sales)
+refund_amount,                     -- fact (AED negative amount)
+total_order_amount,                -- fact (AED net amount)
+line_items_count,                  -- fact (count of lines)
+document_no_count,                 -- fact (count of docs)
+positive_line_items,               -- fact (count positive lines)
+document_type,                     -- dim: Sales Invoice, Sales Credit Memo, etc
+transaction_type,                  -- dim: Sale, Refund, Other
 
--- ORDER ATTRIBUTES (6 columns)
-sales_channel,
-store_location,
-platform,
-order_type,
-paymentgateway,
-paymentmethodcode,
+-- Channel & Location
+sales_channel,                     -- dim: Online, Shop, Affiliate, B2B, Service
+store_location,                    -- dim: Online, DIP, FZN, REM, UMSQ, WSL, CREEK, DSO, MRI, RAK
+store_location_sort,               -- dim: 1-99 (sort)
+platform,                          -- dim: website, Android, iOS, CRM
+order_type,                        -- dim: EXPRESS, NORMAL, EXCHANGE
+paymentgateway,                    -- dim: Cash, Card, Tabby, COD, etc
+paymentmethodcode,                 -- dim: PREPAID, COD
 
--- CUSTOMER DATA (3 columns)
-customer_name,
-raw_phone_no_,
-customer_identity_status,
+-- Customer Info
+customer_name,                     -- dim (text)
+std_phone_no_,                     -- dim (standardized phone)
+raw_phone_no_,                     -- dim (original phone)
+duplicate_flag,                    -- dim: Yes, No
+customer_identity_status,          -- dim: Verified, Unverified
 
--- TIME DIMENSIONS (5 columns)
-order_month,
-order_week,
-order_year,
-order_month_num,
-year_month,
+-- Time Dimensions
+order_month,                       -- dim (2025-01-01 format)
+order_week,                        -- dim (week date)
+order_year,                        -- fact (2025)
+order_month_num,                   -- fact (1-12)
+year_month,                        -- dim: 2025-01
 
--- HYPERLOCAL ANALYSIS (5 columns)
-hyperlocal_period,
-delivery_service_type,
-service_tier,
-hyperlocal_order_flag,
-days_since_hyperlocal_launch,
+-- Hyperlocal Analysis
+hyperlocal_period,                 -- dim: Pre-Launch, Post-Launch
+delivery_service_type,             -- dim: 60-Min Hyperlocal, 4-Hour Express, Standard, Exchange, Refund
+service_tier,                      -- dim: Express Service, Standard Service, Refund Transaction
+hyperlocal_order_flag,             -- dim: Hyperlocal Order, Non-Hyperlocal Order, Refund
+days_since_hyperlocal_launch,      -- fact (days from Jan 16)
 
--- CUSTOMER SEGMENTATION (4 columns)
-hyperlocal_customer_segment,
-hyperlocal_usage_flag,
-hyperlocal_customer_detailed_segment,
-hyperlocal_customer_detailed_segment_order,
+-- Customer Segmentation
+hyperlocal_customer_segment,       -- dim: Acquired Pre-Launch, Post-Launch
+hyperlocal_usage_flag,             -- dim: Used Hyperlocal, Never Used
+hyperlocal_customer_detailed_segment, -- dim: Post-HL Acq + HL User, Pre-HL Acq + HL User, etc
+hyperlocal_customer_detailed_segment_order, -- dim: 1-5 (sort)
 
--- ORDER CLASSIFICATIONS (5 columns)
-order_channel,
-payment_category,
-order_size_category,
-customer_tenure_days_at_order,
-customer_lifecycle_at_order,
+-- Order Classifications
+order_channel,                     -- dim: Online, Store, Unknown
+order_channel_detail,              -- dim: specific store/platform
+payment_category,                  -- dim: Cash/COD, Card Payment, BNPL, Loyalty/Points
+order_size_category,               -- dim: Large (500+), Medium (200-499), Small (100-199), Micro (<100)
+customer_tenure_days_at_order,     -- fact (days since first order)
+customer_lifecycle_at_order,       -- dim: New Customer Order, Returning Customer Order, Refund
 
--- RETENTION ANALYTICS - ORDER LEVEL (13 columns)
-customer_order_sequence,
-channel_order_sequence,
-previous_order_date,
-previous_channel_order_date,
-total_lifetime_orders,
-total_channel_orders,
-days_since_last_order,
-days_since_last_channel_order,
-recency_cohort,
-customer_engagement_status,
-customer_engagement_status_sort,
-new_vs_returning,
-is_test_customer,
+-- Retention Metrics
+customer_order_sequence,           -- fact (1st, 2nd, 3rd order...)
+channel_order_sequence,            -- fact (order # in channel)
+previous_order_date,               -- dim (date)
+previous_channel_order_date,       -- dim (date)
+total_lifetime_orders,             -- fact (total count)
+total_channel_orders,              -- fact (channel count)
+days_since_last_order,             -- fact (days)
+days_since_last_channel_order,     -- fact (days)
+recency_cohort,                    -- dim: New Customer, Recent Return, Month 1-6 Return, Dormant
+customer_engagement_status,        -- dim: New, Active, Recent, At Risk, Reactivated
+customer_engagement_status_sort,   -- dim: 1-8 (sort)
+new_vs_returning,                  -- dim: New, Returning
+is_test_customer,                  -- dim: TRUE, FALSE (200+ orders)
 
--- ACQUISITION METRICS (7 columns)
-acquisition_channel,
-acquisition_store,
-acquisition_platform,
-acquisition_payment_method,
-channels_used_count,
-stores_visited_count,
-channel_preference_type,
+-- Transaction Frequency
+transaction_frequency_segment,     -- dim: 1st Purchase, 2nd Purchase... 8+ Orders
+transaction_frequency_segment_sort, -- dim: 1-9 (sort)
 
--- COHORT ANALYSIS (13 columns)
-acquisition_quarter,
-acquisition_month,
-acquisition_year,
-acquisition_quarter_sort,
-acquisition_month_sort,
-weeks_since_acquisition,
-acquisition_week,
-is_acquisition_month,
-cohort_age_bucket,
-acquisition_month_date,
-customer_acquisition_date,
+-- Acquisition Info
+acquisition_channel,               -- dim: Online, Shop, Other
+acquisition_store,                 -- dim: DIP, FZN, REM, etc
+acquisition_platform,              -- dim: website, Android, iOS
+acquisition_payment_method,        -- dim: Cash, Card, Tabby, etc
+channels_used_count,               -- fact (count)
+stores_visited_count,              -- fact (count)
+channel_preference_type,           -- dim: Hybrid, Online, Shop
 
-transaction_frequency_segment,
-transaction_frequency_segment_sort,
+-- Cohort Analysis
+acquisition_quarter,               -- dim: Q1 2025, Q4 2024, etc
+acquisition_month,                 -- dim: Jan 2025, Dec 2024, etc
+acquisition_year,                  -- fact (2024, 2025)
+acquisition_quarter_sort,          -- fact (202501)
+acquisition_month_sort,            -- fact (202501)
+weeks_since_acquisition,           -- fact (weeks count)
+acquisition_week,                  -- dim: Week 03 2025
+is_acquisition_month,              -- dim: TRUE, FALSE
+cohort_age_bucket,                 -- dim: Day 0, Month 1-3, Month 4-6, Month 7-12, Month 13+
+acquisition_month_date,            -- dim (date)
+customer_acquisition_date,         -- dim (date)
+order_value_bucket,                -- dim: 0-50, 50-100, 100-200, 200-500, 500-1000, 1000+
+order_value_bucket_sort,           -- dim: 1-6 (sort)
 
-
-
-
-order_value_bucket,
-order_value_bucket_sort,
-
-order_channel_detail,
-
-store_location_sort,
-
-
-cohort_year_actual_name,
-cohort_quarter_actual_name,
-cohort_month_actual_name,
-
-cohort_year_number,
-
-
-
-cohort_year_label,
-cohort_quarter_label,
-cohort_month_label,
-
-cohort_month_number,
-cohort_quarter_number,
-
-cohort_year_actual_sort,
-cohort_quarter_actual_sort,
-cohort_month_actual_sort,
-
+-- Cohort Time Periods
+cohort_year_actual_name,           -- dim: 2024, 2025, etc
+cohort_quarter_actual_name,        -- dim: Q1 2025, Q2 2025, etc
+cohort_month_actual_name,          -- dim: Jan 2025, Feb 2025, etc
+cohort_year_label,                 -- dim: Year 0, Year 1, Year 2
+cohort_quarter_label,              -- dim: Q 0, Q 1, Q 2, etc
+cohort_month_label,                -- dim: Month 0, Month 1, Month 2, etc
+cohort_year_actual_sort,           -- fact (2024, 2025)
+cohort_quarter_actual_sort,        -- fact (202501, 202502)
+cohort_month_actual_sort,          -- fact (202501, 202502)
+cohort_year_number,                -- fact (0, 1, 2...)
+cohort_quarter_number,             -- fact (0, 1, 2, 3...)
+cohort_month_number,               -- fact (0, 1, 2, 3...)
 
 -- REPORT METADATA
 DATETIME_ADD(CURRENT_DATETIME(), INTERVAL 4 HOUR) AS report_last_updated_at, 
 
--- TOTAL: 65 columns
 
 
 FROM {{ ref('int_orders') }}
+
+where sales_channel in ('Online','Shop') 
+
+
+AND (
+    (order_date >= '2025-01-01' AND order_date < '2025-02-01')  -- Jan 2025
+    OR (order_date >= '2024-01-01' AND order_date < '2024-02-01')  -- Jan 2024
+    OR (order_date >= '2024-12-01' AND order_date < '2025-01-01')  -- Dec 2024
+)

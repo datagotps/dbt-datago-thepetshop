@@ -46,7 +46,7 @@ from  {{ ref('stg_ofs_inboundsalesheader') }} as a
 left join ofs_ordercount as c on a.weborderno = c.weborderno
 left join ofs_address as d on d.weborderno = a.weborderno
 --WHERE  a.weborderno= 'O3076992S'
-
+ 
 order by a.weborderno desc, a.order_date desc 
 
 

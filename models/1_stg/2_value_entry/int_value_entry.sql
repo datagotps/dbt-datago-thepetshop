@@ -1,143 +1,240 @@
-select
+-- =====================================================
+-- CTE: Deduplicate Inbound Sales Lines
+-- =====================================================
+WITH inbound_sales_line_dedup AS (
+    SELECT 
+        a.documentno,
+        a.item_no_,
+        count(*),
+        MAX(a.discount_amount) AS discount_amount,
+        MAX(b.couponcode) AS couponcode,
+        MAX(inserted_on) AS inserted_on,
+    FROM {{ ref('stg_erp_inbound_sales_line') }} as a
+    left join {{ ref('stg_ofs_inboundpaymentline') }} as b on a.item_id =b.itemid and b.isheader = 0 
+    GROUP BY 
+        a.documentno, 
+        a.item_no_
+) 
 
-ve.source_code,
+-- =====================================================
+-- Main Query: Sales Analysis with Categorizations
+-- =====================================================
+SELECT
+    -- Source Information
+    ve.document_no_,
+    ve.source_code,
+    ve.company_source,
+    
+    -- =====================================================
+    -- Sales Channel Categorization
+    -- =====================================================
+    CASE 
+        WHEN clc_global_dimension_2_code_name IN ('Online') THEN 'Online' 
+        WHEN clc_global_dimension_2_code_name IN ('POS Sale') THEN 'Shop'
+        WHEN clc_global_dimension_2_code_name IN ('Amazon', 'Amazon FBA', 'Amazon DFS', 'Swan','Instashop', 'El Grocer', 'Careem', 'Noon','Deliveroo', 'Talabat', 'BlazeApp' ) THEN 'Affiliate'
+        WHEN clc_global_dimension_2_code_name IN ('B2B Sales') THEN 'B2B'
+        WHEN clc_global_dimension_2_code_name IN ('P&M', 'Pet Relocation','Cleaning & Potty', 'PETRELOC', 'Grooming','Mobile Grooming', 'Shop Grooming' ) THEN 'Service'
+        ELSE 'Check My Logic'
+    END AS sales_channel,  
 
---dse1.name as store,
-dse2.name as global_dimension_2_code_name, --profitcenter
-dse2.code as global_dimension_2_code,
+    CASE 
+        WHEN clc_global_dimension_2_code_name IN ('Online') THEN 1 
+        WHEN clc_global_dimension_2_code_name IN ('POS Sale') THEN 2
+        WHEN clc_global_dimension_2_code_name IN ('Amazon', 'Amazon FBA', 'Amazon DFS', 'Swan','Instashop', 'El Grocer', 'Careem', 'Noon','Deliveroo', 'Talabat', 'BlazeApp' ) THEN 3
+        WHEN clc_global_dimension_2_code_name IN ('B2B Sales') THEN 4
+        WHEN clc_global_dimension_2_code_name IN ('P&M', 'Pet Relocation','Cleaning & Potty', 'PETRELOC', 'Grooming','Mobile Grooming', 'Shop Grooming' ) THEN 5
+        ELSE 6
+    END AS sales_channel_sort,  
 
-dse3.name as product_group,
-e.item_no_,
-e.item_name,
-e.item_category,
-e.item_subcategory,
-e.item_brand,
-e.division,
+    -- =====================================================
+    -- Entry Type Classifications
+    -- =====================================================
+    
+    -- Item Ledger Entry Type
+    CASE 
+        WHEN ve.item_ledger_entry_type = 0 THEN 'Purchase'
+        WHEN ve.item_ledger_entry_type = 1 THEN 'Sale'
+        WHEN ve.item_ledger_entry_type = 2 THEN 'Positive Adjmt.'
+        WHEN ve.item_ledger_entry_type = 3 THEN 'Negative Adjmt.'
+        WHEN ve.item_ledger_entry_type = 4 THEN 'Transfer'
+        ELSE 'Check My Logic'
+    END AS item_ledger_entry_type,
 
+    -- =====================================================
+    -- Item Information
+    -- =====================================================
+    it.item_no_,
+    it.item_name,
+    it.item_category,
+    it.item_subcategory,
+    it.item_brand,
+    it.division,
+    it.division_sort_order,
+    it.item_category_sort_order,
 
+    -- =====================================================
+    -- Document Classifications
+    -- =====================================================
+    
+    -- Document Type
+    CASE 
+        WHEN ve.document_type = 0 THEN '----'
+        WHEN ve.document_type = 1 THEN 'Sales Shipment'
+        WHEN ve.document_type = 2 THEN 'Sales Invoice'
+        WHEN ve.document_type = 3 THEN 'Sales Return Receipt'
+        WHEN ve.document_type = 4 THEN 'Sales Credit Memo'   --Refund
+        WHEN ve.document_type = 5 THEN 'Purchase Receipt'
+        WHEN ve.document_type = 6 THEN 'Purchase Invoice'
+        WHEN ve.document_type = 7 THEN 'Purchase Return Shipment'
+        WHEN ve.document_type = 8 THEN 'Purchase Credit Memo'
+        WHEN ve.document_type = 9 THEN 'Transfer Shipment'
+        WHEN ve.document_type = 10 THEN 'Transfer Receipt'
+        ELSE 'Check My Logic'
+    END AS document_type,
 
-dse4.name as resource,
-dse5.name as vehicle,
-dse6.name as costccenter,
-dse7.name as project,
+    -- Transaction Type
+    CASE 
+        -- Handle document_type = 0 with amount check
+        WHEN ve.document_type = 0 AND ve.sales_amount__actual_ >= 0 
+            THEN 'Sale'
+        WHEN ve.document_type = 0 AND ve.sales_amount__actual_ < 0 
+            THEN 'Refund'
+        -- Standard document type classifications
+        WHEN ve.document_type = 2 
+            THEN 'Sale'
+        WHEN ve.document_type = 4 
+            THEN 'Refund'
+        -- Everything else
+        ELSE 'Other'
+    END AS transaction_type,
 
-
+    -- =====================================================
+    -- Location Information
+    -- =====================================================
+    
+    -- Calculated Location Code
     CASE
-        --3rd Party
-        WHEN ve.source_no_ = 'BCN/2021/4059' OR dse2.name = 'Instashop' THEN 'Instashop'
-        WHEN ve.source_no_ = 'BCN/2021/4060' OR dse2.name = 'El Grocer' THEN 'El Grocer'
-        WHEN ve.source_no_ = 'BCN/2021/4408' OR dse2.name IN ('Noon', 'NOWNOW', 'Now Now') THEN 'Noon'
-        WHEN ve.source_no_ = 'BCN/2021/4063' OR dse2.name = 'Careem' THEN 'Careem' --
-        WHEN ve.source_no_ = 'BCN/2021/4064' OR dse2.name = 'Talabat' THEN 'Talabat' --
-        WHEN ve.source_no_ = 'BCN/2021/4067' OR dse2.name = 'Deliveroo' THEN 'Deliveroo'
-        WHEN ve.source_no_ = 'BCN/2021/4061' OR dse2.name = 'Swan Inc' THEN 'Swan'
-
-        WHEN ve.source_no_ = 'BCN/2021/4066' THEN 'Amazon DFS'
-        WHEN ve.source_no_ = 'BCN/2024/4064' OR dse2.name = 'Amazon FBA'  THEN 'Amazon FBA'
-        WHEN ve.source_no_ = 'BCN/2021/0691' OR dse2.name IN ('SOUQ', 'Souq/Amazone') THEN 'Amazon'
-                                    
-        ELSE dse2.name
-    END AS clc_global_dimension_2_code_name,
-
-       -- Revenue source categorization
-       case 
-            when dse2.name in ('Online')  then 'Online' 
-            when dse2.name in ('POS Sale') then 'Shop'
-            when dse2.name in ('Amazon', 'Amazon FBA','Amazon DFS', 'Swan' ,'Instashop','El Grocer','Careem','Noon','Deliveroo','Talabat') then 'Affiliate' -- Affiliate, MKP, 3rd Party
-            when dse2.name in ('B2B Sales') then 'B2B'
-            when dse2.name in ('Project & Maintenance','Pet Relocation','Cleaning & Potty','PETRELOC','Grooming','Mobile Grooming','Shop Grooming') then 'Service'
-            else 'Cheack My Logic'
-        end as sales_channel,  
-        
-       case 
-            when dse2.name in ('Online')  then 1
-            when dse2.name in ('POS Sale') then 2
-            when dse2.name in ('Amazon', 'Amazon FBA','Amazon DFS', 'Swan' ,'Instashop','El Grocer','Careem','Noon','Deliveroo','Talabat') then 3
-            when dse2.name in ('B2B Sales') then 4
-            when dse2.name in ('Project & Maintenance','Pet Relocation','Cleaning & Potty','PETRELOC','Grooming','Mobile Grooming','Shop Grooming') then 5
-            else 6
-        end as sales_channel_sort, 
-
-
-case 
-            when ve.item_ledger_entry_type = 0 then 'Purchase'
-            when ve.item_ledger_entry_type = 1 then 'Sale'
-            when ve.item_ledger_entry_type = 2 then 'Positive Adjmt.'
-            when ve.item_ledger_entry_type = 3 then 'Negative Adjmt.'
-            when ve.item_ledger_entry_type = 4 then 'Transfer'
-            else 'cheak my logic'
-        end as item_ledger_entry_type,
-
-
-        case 
-            when ve.document_type = 0 then '----'
-            when ve.document_type = 1 then 'Sales Shipment'
-            when ve.document_type = 2 then 'Sales Invoice'
-            when ve.document_type = 3 then 'Sales Return Receipt'
-            when ve.document_type = 4 then 'Sales Credit Memo'
-            when ve.document_type = 5 then 'Purchase Receipt'
-            when ve.document_type = 6 then 'Purchase Invoice'
-            when ve.document_type = 7 then 'Purchase Return Shipment'
-            when ve.document_type = 8 then 'Purchase Credit Memo'
-            when ve.document_type = 9 then 'Transfer Shipment'
-            when ve.document_type = 10 then 'Transter Receipt'
-            else 'cheak my logic'
-        end as document_type,
-
-        -- Transaction type classification
-        CASE 
-            --WHEN dse2.name  = 'POS Sale' THEN 'Sale'
-            WHEN ve.document_type = 0 THEN 'Sale'
-            WHEN ve.document_type = 2 THEN 'Sale'
-            WHEN ve.document_type = 4 THEN 'Refund'
-            ELSE 'Other'
-        END AS transaction_type,
-
-
-
-CASE
-        WHEN dse2.name IN ('Amazon DFS', 'Amazon') THEN 'DIP'
-        WHEN dse2.name = 'Pet Relocation' THEN 'PRL'
-        ELSE location_code
+        WHEN clc_global_dimension_2_code_name IN ('Amazon DFS', 'Amazon') 
+            THEN 'DIP'
+        WHEN clc_global_dimension_2_code_name = 'Pet Relocation' 
+            THEN 'PRL'
+        ELSE ve.location_code
     END AS clc_location_code,
 
-    location_code,
+    -- Original Location Code
+    ve.location_code,
+
+    -- Offline Order Channel
+    CASE 
+        WHEN clc_global_dimension_2_code_name IN ('POS Sale') 
+            THEN ve.location_code 
+    END AS offline_order_channel,
+
+    -- =====================================================
+    -- Additional Type Classifications
+    -- =====================================================
+    
+    -- Entry Type
+    CASE 
+        WHEN ve.entry_type = 0 THEN 'Direct Cost'  
+        WHEN ve.entry_type = 1 THEN 'Revaluation'
+        WHEN ve.entry_type = 2 THEN 'Rounding'
+        ELSE 'Check My Logic'
+    END AS entry_type,  
+
+    -- Source Type
+    CASE 
+        WHEN ve.source_type = 0 THEN '----'  
+        WHEN ve.source_type = 1 THEN 'Customer'
+        WHEN ve.source_type = 2 THEN 'Vendor'
+        WHEN ve.source_type = 37 THEN '37'
+        WHEN ve.source_type = 39 THEN '39'
+        WHEN ve.source_type = 5741 THEN '5741'
+        ELSE 'Check My Logic'
+    END AS source_type,     
 
 
-    case when dse2.name in ('POS Sale')  then location_code end as offline_order_channel,
-        
+
+    -- Type
+    CASE 
+        WHEN ve.type = 2 THEN '----'  
+        WHEN ve.type = 0 THEN 'Work Center'
+        ELSE 'Check My Logic'
+    END AS type,
+
+
+    
+    ve.source_no_,
+    ve.posting_date,
+    ve.invoiced_quantity,
+    ve.document_line_no_,
+    ve.dimension_code,
+    ve.sales_amount__actual_,
+    ve.cost_amount__actual_,
+
+    ve.gen__prod__posting_group,
+    ve.gen__bus__posting_group,
+    ve.source_posting_group,
+    ve.inventory_posting_group,
+    ve.global_dimension_1_code,
+    ve.global_dimension_2_code,
+    
+    ve.global_dimension_2_code_name,
+    ve.clc_global_dimension_2_code_name,
+    ve.user_id,
 
 
 
-
-        
-        
-        
-
-
-FROM {{ ref('stg_value_entry') }} as ve
---LEFT JOIN  {{ ref('int_dimension_set_entry') }}  as dse1 on ve.dimension_set_id = dse1.dimension_set_id and dse1.global_dimension_no_ = 1 -- <STORE>
-LEFT JOIN {{ ref('int_dimension_set_entry') }} as dse2 on ve.dimension_set_id = dse2.dimension_set_id and dse2.global_dimension_no_ = 2 -- <PROFITCENTER>
-LEFT JOIN {{ ref('int_dimension_set_entry') }} as dse3 on ve.dimension_set_id = dse3.dimension_set_id and dse3.global_dimension_no_ = 3 -- <PRODUCTGROUP>
-LEFT JOIN {{ ref('int_dimension_set_entry') }} as dse4 on ve.dimension_set_id = dse4.dimension_set_id and dse4.global_dimension_no_ = 4 -- <RESOURCE>
-LEFT JOIN {{ ref('int_dimension_set_entry') }} as dse5 on ve.dimension_set_id = dse5.dimension_set_id and dse5.global_dimension_no_ = 5 -- <VEHICLE>
-LEFT JOIN {{ ref('int_dimension_set_entry') }} as dse6 on ve.dimension_set_id = dse6.dimension_set_id and dse6.global_dimension_no_ = 6 -- <COSTCENTER>
-LEFT JOIN {{ ref('int_dimension_set_entry') }} as dse7 on ve.dimension_set_id = dse7.dimension_set_id and dse7.global_dimension_no_ = 7 -- <PROJECT>
-
-LEFT JOIN  {{ ref('stg_erp_inbound_sales_header') }}  as b on ve.document_no_ = b.documentno
-LEFT JOIN {{ ref('int_erp_customer') }} AS c ON ve.source_no_ = c.no_
-LEFT JOIN  {{ ref('int_items') }} as e on  e.item_no_ = ve.item_no_
+ish.web_order_id,
+ish.online_order_channel, --website, Android, iOS, CRM, Unmapped
+ish.order_type, --EXPRESS, NORMAL, EXCHANGE
+ish.paymentgateway, -- creditCard, cash, CreditCard, Cash On Delivery, Cash, Pay by Card, StoreCredit, Card on delivery, Cash on delivery, Tabby, Loyalty, PointsPay (Etihad, Etisalat etc.)
+ish.paymentmethodcode, -- PREPAID, COD, creditCard
 
 
+cu.name as customer_name,
+cu.raw_phone_no_,
+cu.std_phone_no_,
+cu.customer_identity_status,
+cu.duplicate_flag,
+cu.loyality_member_id,
 
---where dse2.dimension_code is not null
-
---global_dimension_no_ = 1 > dimension_code <STORE>
---global_dimension_no_ = 2 > dimension_code <PROFITCENTER>
---global_dimension_no_ = 3 > dimension_code <PRODUCT GROUP>
---global_dimension_no_ = 4 > dimension_code <RESOURCE>
---global_dimension_no_ = 5 > dimension_code <VEHICLE>
---global_dimension_no_ = 6 > dimension_code <COSTCENTER>
---global_dimension_no_ = 7 > dimension_code <PROJECT>
+ROUND(COALESCE(-1*isl.discount_amount,0) / (1 + 5 / 100), 2) as online_discount_amount,
 
 
+ve.discount_amount as offline_discount_amount,
+
+
+isl.couponcode as online_offer_no_,
+isl.inserted_on,
+ve2.offer_no_ as offline_offer_no_,
+ 
+
+FROM {{ ref('stg_value_entry') }} AS ve
+    LEFT JOIN {{ ref('int_inbound_sales_header') }} AS ish ON ve.document_no_ = ish.documentno and ve.company_source = 'Petshop'
+    LEFT JOIN {{ ref('int_erp_customer') }} AS cu ON ve.source_no_ = cu.no_ and ve.company_source = 'Petshop'
+    LEFT JOIN {{ ref('int_items') }} AS it ON it.item_no_ = ve.item_no_
+    LEFT JOIN inbound_sales_line_dedup AS isl ON ve.document_no_ = isl.documentno AND ve.item_no_ = isl.item_no_ and ve.company_source = 'Petshop'
+
+   LEFT JOIN {{ ref('stg_value_entry_2') }} AS ve2 on ve.entry_no_ = ve2.entry_no_ and ve.company_source = 'Petshop'
+
+-- LEFT JOIN {{ ref('int_dimension_set_entry') }} AS dse1 ON ve.dimension_set_id = dse1.dimension_set_id AND dse1.global_dimension_no_ = 1 -- <STORE>
+-- LEFT JOIN {{ ref('int_dimension_set_entry') }} AS dse2 ON ve.dimension_set_id = dse2.dimension_set_id AND dse2.global_dimension_no_ = 2 -- <PROFITCENTER>
+-- LEFT JOIN {{ ref('int_dimension_set_entry') }} AS dse3 ON ve.dimension_set_id = dse3.dimension_set_id AND dse3.global_dimension_no_ = 3 -- <PRODUCTGROUP>
+-- LEFT JOIN {{ ref('int_dimension_set_entry') }} AS dse4 ON ve.dimension_set_id = dse4.dimension_set_id AND dse4.global_dimension_no_ = 4 -- <RESOURCE>
+-- LEFT JOIN {{ ref('int_dimension_set_entry') }} AS dse5 ON ve.dimension_set_id = dse5.dimension_set_id AND dse5.global_dimension_no_ = 5 -- <VEHICLE>
+-- LEFT JOIN {{ ref('int_dimension_set_entry') }} AS dse6 ON ve.dimension_set_id = dse6.dimension_set_id AND dse6.global_dimension_no_ = 6 -- <COSTCENTER>
+-- LEFT JOIN {{ ref('int_dimension_set_entry') }} AS dse7 ON ve.dimension_set_id = dse7.dimension_set_id AND dse7.global_dimension_no_ = 7 -- <PROJECT>
+
+
+
+    -- =====================================================
+    -- Commented Dimension Fields (for future use)
+    -- =====================================================
+    -- dse1.name AS store,           -- Global Dimension 1
+    -- dse2.name AS profit_center,   -- Global Dimension 2
+    -- dse3.name AS product_group,   -- Global Dimension 3
+    -- dse4.name AS resource,        -- Global Dimension 4
+    -- dse5.name AS vehicle,         -- Global Dimension 5
+    -- dse6.name AS costcenter,      -- Global Dimension 6
+    -- dse7.name AS project,         -- Global Dimension 7

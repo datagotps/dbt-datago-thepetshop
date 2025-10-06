@@ -1,80 +1,74 @@
-
--- Just online orders, copme from OFS ssytem to ERP.
-
 with 
 
 source as (
 
-    select * 
-    from {{ source('sql_erp_prod_dbo', 'petshop_inbound_sales_header_c91094c2_db03_49d2_8cb9_95c179ecbf9d') }} as a
-    left join  {{ source(var("ofs_source"), "inboundsalesheader") }} as b on a.web_order_id = b.weborderno 
+    select * from {{ source('sql_erp_prod_dbo', 'petshop_inbound_sales_header_c91094c2_db03_49d2_8cb9_95c179ecbf9d') }}
+    where _fivetran_deleted is false
 
-    where a._fivetran_deleted is false
 
 ),
 
 renamed as (
 
     select
-
+        -- Document/Order Identifiers
         documentno,
         invoice_no_,
         web_order_id,
-       -- order_type, -- 0,1,2,4 
-       -- type, --1,2
-
+        ticketno,
+        docket_no,
+        
+        -- Customer Information
         customer_id,
         nav_customer_id,
+        
+        -- Order Classification
+        type,
+        --order_type,
+        order_category,
+        ticket_type,
+        businessoperationtype,
+        
+        -- Location & Delivery
+        packaging_location,
+        dsp_code,
         global_dimension_2_code,
-
         
-case 
- when type = 2 then  'Sales Return'
- when type = 1 then  'Sales'
- else 'Ask DataGo'
- end as type,
-
-case 
- when order_type = 2 then  'EXPRESS'
- when order_type = 1 then  'NORMAL'
-  when order_type = 4 then  'EXCHANGE'
-
- else 'Ask: anmar@8020datago.ai'
- end as order_type,
-        --EXPRESS, NORMAL, EXCHANGE
-        
-
-        order_delivered,
-
-        order_date,
-        shipped_date,
-       
-        --_fivetran_deleted,
-        --_fivetran_synced,
-        _systemid,
-        box_id,
+        -- Payment & Currency
+        payment_method_code,
         currency_code,
         currency_factor,
         
-        delivery_date,
-        docket_no,
-        dsp_code,
-        error_message,
-        
-        order_category,
-        order_created,
-        
-        packaging_location,
-        payment_method_code,
-        retry_count,
-        return_before_delivered,
+        -- Order Status & Flags
         shipped,
+        return_before_delivered,
+        synctoloyalitydetails,
+        
+        -- Dates & Timestamps
+        order_date,
+        order_created,
+        delivery_date,
+        order_delivered,
+        shipped_date,
+        timestamp,
+        
+        -- Shipping/GL Details
         shipped_gl,
         shipped_gl_doc_no_,
-        ticket_type,
-        ticketno,
-        timestamp,
-        synctoloyalitydetails,
+        
+        -- Package Tracking
+        box_id,
+        
+        -- Error Handling
+        error_message,
+        retry_count,
+        
+        -- System/Metadata Fields
+        _fivetran_deleted,
+        _fivetran_synced,
+        _systemid,
+
+
 
         CASE
         WHEN global_dimension_2_code = 'D' THEN 'Website'
@@ -86,29 +80,24 @@ case
         END AS online_order_channel,
 
 
+        CASE 
+             WHEN type = 2 THEN 'RETURN'
+             WHEN type = 1 THEN 'SALE'
+              ELSE 'OTHER'
+        END AS transaction_type,
 
 
---from ofs_inboundsalesheader
-        --ordersource, -- D, I, A, CRM, '', CRM Exchange, FOC
-        ordertype, -- NORMAL, EXPRESS, EXCHANGE
-        paymentgateway, -- creditCard, cash, CreditCard, Cash On Delivery, Cash, Pay by Card, StoreCredit, Card on delivery, Cash on delivery, Tabby, Loyalty, PointsPay (Etihad, Etisalat etc.)
-        paymentmethodcode, -- PREPAID, COD, creditCard
-        weborderno,
-        orderdatetime,
-        orderplatform,
-        referrer,
-
-
-
-
-
-
+    case 
+        when order_type = 2 then  'EXPRESS'
+        when order_type = 1 then  'NORMAL'
+        when order_type = 4 then  'EXCHANGE'
+        else 'OTHER'
+    end as order_type,
 
     from source
 
 )
 
 select * from renamed
---where web_order_id= 'O30102245S'
 
---DIP-DT01-135461, DIP-DT01-145717, INV00442971, INV00460667, INV00461422, INV00461423, INV00461426
+--where web_order_id = 'O30163245S'
