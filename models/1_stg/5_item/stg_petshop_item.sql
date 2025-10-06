@@ -377,6 +377,8 @@ select
             E.ps_classification AS PS_Classification_Code,
             A.blocked,
 
+            e.varient_item,
+
             
             
 
@@ -400,3 +402,5 @@ from source_1 as a
 left join source_2 as c on a.no_ =c.no_
 left join source_3 as e on a.no_ =e.no_
 left join tariff_number as f on a.tariff_no_ = f.no_
+
+--where a.no_ = '300104-1'

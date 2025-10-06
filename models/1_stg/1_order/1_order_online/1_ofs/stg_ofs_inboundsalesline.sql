@@ -9,51 +9,76 @@ source as (
 renamed as (
 
     select
+        -- Primary Identifiers
+        rowid,
         itemid,
         weborderno,
         websitelineno,
+        
+        -- Product Information
+        productid,
+        itemno,
+        olditemno,
+        sku,
+        description,
+        arabicdescription,
+        leafcategory,
+        
+        -- Bundle Information
+        bundleid,
+        bundleseqid,
+        bundleproductid,
+        bundledescription,
+        bundlequantity,
+        
+        -- Quantities
+        quantity,
+        
+        -- Vendor & Inventory
+        vendorid,
+        inventorytype,
+        itemtype,
+        
+        -- Promotions & Offers
         couponcode,
         campaignid,
-        productid,
-        description,
-        sku,
-        quantity,
-        bundleid,
-        bundlequantity,
-        expecteddispatchdate,
-        itemno,
-        vendorid,
+        offertype,
+        isgwp,
+        isfoc,
+        
+        -- Delivery & Location
         deliverytype,
+        picklocation,
+        packaginglocation,
+        dspcode,
+        
+        -- Delivery Dates
+        expecteddispatchdate,
         specialdeliverydate,
+        
+        -- Product Attributes/Flags
         isfragile,
         isprecious,
         issurface,
         iscustomized,
-        picklocation,
-        packaginglocation,
-        dspcode,
+        isdanger,
+        ispickable,
+        
+        -- Processing Status
         isprocessed,
         readyforarchive,
+        
+        -- Shopify Integration
+        shopifyfulfilmentorderid,
+        shopifyfulfilmentorderlineid,
+        
+        -- Audit Fields
         insertedon,
         insertedby,
         updatedon,
         updatedby,
-        leafcategory,
-        isfoc,
-        isdanger,
-        arabicdescription,
-        bundleseqid,
-        bundledescription,
-        rowid,
-        bundleproductid,
-        isgwp,
-        offertype,
-        inventorytype,
-        itemtype,
-        ispickable,
-        olditemno,
-        shopifyfulfilmentorderid,
-        shopifyfulfilmentorderlineid,
+        
+        -- System/Metadata Fields
         _fivetran_deleted,
         _fivetran_synced
 

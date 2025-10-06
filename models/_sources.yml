@@ -3,6 +3,7 @@ sources:
   - name:  sql_erp_prod_dbo
     database:  tps-data-386515
     tables:
+      - name: tps_budget_target
       - name: petshop_transfer_line_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_transfer_line_5ecfc871_5d82_43f1_9c54_59685e82318d
 
@@ -50,6 +51,9 @@ sources:
 
 
       - name: petshop_value_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
+      - name: petshop_value_entry_5ecfc871_5d82_43f1_9c54_59685e82318d
+      - name: petshop_discount_ledger_entry_5ecfc871_5d82_43f1_9c54_59685e82318d
+
       - name: petshop_dimension_value_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_dimension_set_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
 
@@ -63,7 +67,7 @@ sources:
       - name: petshop_inbound_sales_header_c91094c2_db03_49d2_8cb9_95c179ecbf9d
       - name: petshop_inbound_sales_line_c91094c2_db03_49d2_8cb9_95c179ecbf9d
 
-      - name: petshop_trans__sales_entry_5ecfc871_5d82_43f1_9c54_59685e82318d
+      
       - name: petshop_sales_price_437dbf0e_84ff_417a_965d_ed2bb9650972
 
       - name: petshop_sales_header_230a02db_21eb_4476_8cfe_fef4ff006531
@@ -76,7 +80,34 @@ sources:
 
       - name: petshop_tariff_number_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_staff_5ecfc871_5d82_43f1_9c54_59685e82318d
+
+
       - name: petshop_transaction_header_5ecfc871_5d82_43f1_9c54_59685e82318d
+      - name: petshop_trans__sales_entry_5ecfc871_5d82_43f1_9c54_59685e82318d
+
+## pethaus
+
+      # ERP Source Tables - Dimension Values
+      - name: pethaus_domestic_grooming_dimension_value_437dbf0e_84ff_417a_965d_ed2bb9650972
+      - name: pethaus_general_trading_dimension_value_437dbf0e_84ff_417a_965d_ed2bb9650972
+
+      # ERP Source Tables - Value Entry
+      - name: pethaus_domestic_grooming_value_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
+      - name: pethaus_general_trading_value_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
+
+      # ERP Source Tables - Staff
+      - name: pethaus_general_trading_staff_5ecfc871_5d82_43f1_9c54_59685e82318d
+      - name: pethaus_domestic_grooming_staff_5ecfc871_5d82_43f1_9c54_59685e82318d
+
+      # ERP Source Tables - Sales Entry
+      - name: pethaus_general_trading_trans__sales_entry_5ecfc871_5d82_43f1_9c54_59685e82318d
+      - name: pethaus_domestic_grooming_trans__sales_entry_5ecfc871_5d82_43f1_9c54_59685e82318d
+
+
+## The Petshop Cafe
+      - name: the_petshop_cafe_value_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
+      - name: the_petshop_cafe_dimension_value_437dbf0e_84ff_417a_965d_ed2bb9650972
+
       
   - name:  mysql_ofs
     database:  tps-data-386515

@@ -107,6 +107,7 @@ select
     -- Order details
     h.orderplatform,
     h.ordersource,
+    h.online_order_channel,
     h.customerid,
     g.location,
     c.ordertype,
@@ -132,12 +133,35 @@ select
     f.awbno,
     
     -- Fulfillment dates
-    h.order_date,
-    b.insertedon,
+    b.insertedon, -- to be removed later
+    h.order_date, -- to be removed later
+
+    h.order_date as shopify_order_datetime, -- Original Order Date
+
+    b.insertedon as ofs_order_datetime,
+    date(b.insertedon) as ofs_order_date,
     f.batchdatetime,
     f.pickeddatetime,
     m.packdatetime,
     f.deliverydate,
+    DATETIME_DIFF(b.insertedon, h.order_date, MINUTE) as order_sync_minutes,
+
+    CASE 
+    WHEN DATETIME_DIFF(b.insertedon, h.order_date, MINUTE) < 10 THEN '< 10 mins'
+    WHEN DATETIME_DIFF(b.insertedon, h.order_date, MINUTE) <= 60 THEN '10-60 mins'
+    WHEN DATETIME_DIFF(b.insertedon, h.order_date, HOUR) <= 10 THEN '1-10 hours'
+    WHEN DATETIME_DIFF(b.insertedon, h.order_date, HOUR) <= 24 THEN '10-24 hours'
+    ELSE '> 24 hours'
+    END as order_sync_category,
+
+    CASE 
+    WHEN DATETIME_DIFF(b.insertedon, h.order_date, MINUTE) < 10 THEN 1
+    WHEN DATETIME_DIFF(b.insertedon, h.order_date, MINUTE) <= 60 THEN 2
+    WHEN DATETIME_DIFF(b.insertedon, h.order_date, HOUR) <= 10 THEN 3
+    WHEN DATETIME_DIFF(b.insertedon, h.order_date, HOUR) <= 24 THEN 4
+    ELSE 5
+END as order_sync_category_sort,
+
     
     -- Revenue calculations and classifications
     case 
@@ -150,7 +174,8 @@ select
     k.rec_rev_in_period,
     k.rec_rev_deferred,
     k.revenue_classification,
-    
+    k.nav_customer_id,
+
     case 
         when k.item_id is not null then 'Posted' 
         else 'Not Posted' 
@@ -208,7 +233,6 @@ left join boxstatus as m on m.boxid = f.boxid
 left join {{ ref('stg_petshop_pick_detail') }} as p on p.itemid = a.itemid
 left join {{ ref('stg_petshop_pna_details') }} as q on q.item_id = a.itemid
 
---where ordersource not in ('Website','CRM','IOS') --and a.weborderno =  
 
- --ordersource - iOS - O1155312
+where b.insertedon is not null
 

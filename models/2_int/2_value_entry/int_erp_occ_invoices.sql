@@ -6,13 +6,13 @@ cte_inbound_sales_header AS (
         web_order_id,
         max(order_date) as order_date,
         max(order_type) as order_type,
-        max(type) as type,
+        --max(type) as type,
         STRING_AGG(invoice_no_, ', ') AS combined_invoice_no,
         COUNT(invoice_no_) AS invoice_no_count,
 
     FROM 
          {{ ref('stg_erp_inbound_sales_header') }}
-         where type = 'Sales'
+         where transaction_type = 'SALE'
     GROUP BY 
         web_order_id
 
@@ -63,7 +63,7 @@ select
 a.web_order_id,
 --a.order_date,
 a.order_type ,
-a.type,
+--a.type,
 a.combined_invoice_no,
 a.invoice_no_count,
 

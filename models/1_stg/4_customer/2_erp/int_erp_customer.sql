@@ -88,6 +88,6 @@ select
 
 from {{ ref("2_stg_erp_customer_deduped") }} as a
 left join {{ ref("int_ofs_customer") }} as b on a.web_customer_no_ = b.customerid
---where std_phone_no_ != '000000000000'
+--where std_phone_no_ = '971589003045'
 --order by 5 desc
 --where loyality_member_id =  'd20b11c7-efea-4ce9-a6c5-e1ca05147a06'

@@ -1,115 +1,83 @@
 {{ config(
     materialized='table',
-    description='TRUE Order-level analysis for Hyperlocal service performance with enhanced retention analytics - Revenue impact, AOV trends, behavioral changes, and customer journey tracking'
+    description='TRUE Order-level analysis for Hyperlocal service performance with enhanced retention analytics - Sourced from int_order_lines'
 ) }}
 
--- Force dependency on dim_date to ensure it's always refreshed
-{% set dummy_ref = ref('dim_date') %}
 
-WITH base_transactions AS (
+-- =====================================================
+-- STEP 1: Aggregate line items to ORDER level from int_order_lines
+-- =====================================================
+with order_aggregation AS (
     SELECT 
-        a.source_no_,
-        a.document_no_,
-        a.posting_date,
-        a.sales_amount__actual_,
-        a.sales_channel, -- Online or Shop
-        a.offline_order_channel, --store location
-        a.document_type, -- Sales Invoice or Sales Credit Memo
+        -- Primary grouping keys (only these two)
+        ol.unified_order_id,
+        ol.posting_date AS order_date,
 
-        b.web_order_id,
-        b.online_order_channel, --website, Android, iOS, CRM, Unmapped
-        b.order_type, --EXPRESS, NORMAL, EXCHANGE
-        b.paymentgateway,
-        b.paymentmethodcode,
-
-        c.name,
-        c.raw_phone_no_,
-        c.customer_identity_status
-    FROM {{ ref('stg_erp_value_entry') }} AS a
-    LEFT JOIN {{ ref('stg_erp_inbound_sales_header') }} AS b 
-        ON a.document_no_ = b.documentno
-    LEFT JOIN {{ ref('int_erp_customer') }} AS c 
-        ON a.source_no_ = c.no_
-    WHERE 
-        a.source_code NOT IN ('INVTADMT', 'INVTADJMT')
-        AND a.item_ledger_entry_type = 'Sale' 
-        AND a.sales_channel IN ('Shop','Online')
-),
-
--- STEP 1: Aggregate line items to ORDER level first
-order_aggregation AS (
-    SELECT 
-        -- Order identification (GROUP BY these)
-        source_no_,
-        CASE 
-            WHEN sales_channel = 'Online' THEN web_order_id 
-            ELSE document_no_ 
-        END AS unified_order_id,
-        document_no_,
-        web_order_id,
-        sales_channel,
-        offline_order_channel,
-        online_order_channel,
-        order_type,
-        paymentgateway,
-        paymentmethodcode,
-        name,
-        raw_phone_no_,
-        customer_identity_status,
+        -- Order identifiers (using MAX as they should be consistent per order)
+        --MAX(ol.source_no_) AS source_no_,
+        STRING_AGG(DISTINCT ol.source_no_, ', ') AS source_no_,
+        MAX(ol.document_no_) AS document_no_,
+        MAX (ol.company_source) as company_source,
+        MAX(ol.web_order_id) AS web_order_id,
+        MAX(ol.unified_refund_id) AS unified_refund_id,
+        MAX(ol.unified_customer_id) AS unified_customer_id,
         
-        -- Order-level aggregations
-        DATE(MIN(posting_date)) AS order_date,  -- Earliest line item date for the order
+        -- Channel information (should be consistent per order)
+        MAX(ol.sales_channel) AS sales_channel,
+        MAX(ol.offline_order_channel) AS offline_order_channel,
+        MAX(ol.online_order_channel) AS online_order_channel,
+        MAX(ol.order_type) AS order_type,
+        MAX(ol.loyality_member_id) AS loyality_member_id,
         
-        -- Revenue metrics - aggregate across line items
+        -- Payment information (should be consistent per order)
+        MAX(ol.paymentgateway) AS paymentgateway,
+        MAX(ol.paymentmethodcode) AS paymentmethodcode,
+        
+        -- Customer information (should be consistent per order)
+        MAX(ol.customer_name) AS customer_name,
+        MAX(ol.std_phone_no_) AS std_phone_no_,
+        MAX(ol.raw_phone_no_) AS raw_phone_no_,
+        MAX(ol.customer_identity_status) AS customer_identity_status,
+        MAX(ol.duplicate_flag) AS duplicate_flag,
+        
+        
+        -- Revenue metrics - using transaction_type from int_order_lines
         SUM(CASE 
-            WHEN sales_channel = 'Shop' THEN sales_amount__actual_
-            WHEN document_type = 'Sales Invoice' THEN sales_amount__actual_
+            WHEN ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_
             ELSE 0
         END) AS order_value,
         
         SUM(CASE 
-            WHEN document_type = 'Sales Credit Memo' THEN sales_amount__actual_
+            WHEN ol.transaction_type = 'Refund' THEN ol.sales_amount__actual_
             ELSE 0
         END) AS refund_amount,
         
-        SUM(sales_amount__actual_) AS total_order_amount,  -- Total across all line items
+        SUM(ol.sales_amount__actual_) AS total_order_amount,
         
-        -- Order characteristics (take first non-null value)
-        MAX(document_type) AS document_type,  -- Assuming consistent per order
+        -- Order characteristics
+        MAX(ol.document_type) AS document_type,
+        MAX(ol.transaction_type) AS transaction_type,
         
         -- Order metrics
         COUNT(*) AS line_items_count,
-        COUNT(DISTINCT CASE WHEN sales_amount__actual_ > 0 THEN 1 END) AS positive_line_items,
+        COUNT(DISTINCT document_no_) AS document_no_count,
+        COUNT(DISTINCT CASE WHEN ol.sales_amount__actual_ > 0 THEN 1 END) AS positive_line_items
         
-        -- Transaction type classification
-        CASE 
-            WHEN sales_channel = 'Shop' THEN 'Sale'
-            WHEN MAX(document_type) = 'Sales Invoice' THEN 'Sale'
-            WHEN MAX(document_type) = 'Sales Credit Memo' THEN 'Refund'
-            ELSE 'Other'
-        END AS transaction_type
-        
-    FROM base_transactions
+    FROM {{ ref('int_order_lines') }} AS ol
+    WHERE ol.unified_order_id IS NOT NULL
     GROUP BY 
-        source_no_,
-        CASE WHEN sales_channel = 'Online' THEN web_order_id ELSE document_no_ END,
-        document_no_,
-        web_order_id,
-        sales_channel,
-        offline_order_channel,
-        online_order_channel,
-        order_type,
-        paymentgateway,
-        paymentmethodcode,
-        name,
-        raw_phone_no_,
-        customer_identity_status
+        ol.unified_order_id, ol.posting_date
+
+       -- ol.unified_customer_id
 ),
 
--- Get customer acquisition info for segmentation
+-- =====================================================
+-- Customer Acquisition Info for Segmentation
+-- Using unified_customer_id for proper customer tracking
+-- =====================================================
 customer_acquisition AS (
     SELECT 
-        source_no_,
+        unified_customer_id,
         MIN(order_date) AS customer_acquisition_date,
         DATE_TRUNC(MIN(order_date), MONTH) AS acquisition_month_date,
         
@@ -119,26 +87,32 @@ customer_acquisition AS (
             ELSE 'Unknown'
         END AS hyperlocal_customer_segment
     FROM order_aggregation
-    GROUP BY source_no_
+    GROUP BY unified_customer_id
 ),
 
--- Get customer Hyperlocal usage for detailed segmentation
+-- =====================================================
+-- Customer Hyperlocal Usage for Detailed Segmentation
+-- Using unified_customer_id for proper customer tracking
+-- =====================================================
 customer_hyperlocal_usage AS (
     SELECT 
-        source_no_,
+        unified_customer_id,
         CASE 
             WHEN COUNT(CASE WHEN order_type = 'EXPRESS' AND order_date >= '2025-01-16' THEN 1 END) > 0 
             THEN 'Used Hyperlocal'
             ELSE 'Never Used Hyperlocal'
         END AS hyperlocal_usage_flag
     FROM order_aggregation
-    GROUP BY source_no_
+    GROUP BY unified_customer_id
 ),
 
--- Create detailed customer segments
+-- =====================================================
+-- Create Detailed Customer Segments
+-- Using unified_customer_id for proper customer tracking
+-- =====================================================
 customer_segments_lookup AS (
     SELECT 
-        ca.source_no_,
+        ca.unified_customer_id,
         ca.customer_acquisition_date,
         ca.acquisition_month_date,
         ca.hyperlocal_customer_segment,
@@ -168,10 +142,12 @@ customer_segments_lookup AS (
             ELSE 5
         END AS hyperlocal_customer_detailed_segment_order
     FROM customer_acquisition ca
-    LEFT JOIN customer_hyperlocal_usage chu ON ca.source_no_ = chu.source_no_
+    LEFT JOIN customer_hyperlocal_usage chu ON ca.unified_customer_id = chu.unified_customer_id
 ),
 
--- STEP 2: Enrich orders with business logic
+-- =====================================================
+-- STEP 2: Enrich Orders with Business Logic
+-- =====================================================
 order_enriched AS (
     SELECT 
         oa.*,
@@ -197,35 +173,27 @@ order_enriched AS (
         
         -- Service type classification
         CASE 
-            WHEN oa.sales_channel = 'Shop' AND oa.order_type = 'EXPRESS' AND oa.order_date >= '2025-01-16' THEN '60-Min Hyperlocal'
-            WHEN oa.sales_channel = 'Shop' AND oa.order_type = 'EXPRESS' AND oa.order_date < '2025-01-16' THEN '4-Hour Express'
-            WHEN oa.sales_channel = 'Shop' AND oa.order_type = 'NORMAL' THEN 'Standard Delivery'
-            WHEN oa.sales_channel = 'Shop' AND oa.order_type = 'EXCHANGE' THEN 'Exchange Order'
-            WHEN oa.document_type = 'Sales Invoice' AND oa.order_type = 'EXPRESS' AND oa.order_date >= '2025-01-16' THEN '60-Min Hyperlocal'
-            WHEN oa.document_type = 'Sales Invoice' AND oa.order_type = 'EXPRESS' AND oa.order_date < '2025-01-16' THEN '4-Hour Express'
-            WHEN oa.document_type = 'Sales Invoice' AND oa.order_type = 'NORMAL' THEN 'Standard Delivery'
-            WHEN oa.document_type = 'Sales Invoice' AND oa.order_type = 'EXCHANGE' THEN 'Exchange Order'
-            WHEN oa.document_type = 'Sales Credit Memo' THEN 'Refund Transaction'
+            WHEN oa.order_type = 'EXPRESS' AND oa.order_date >= '2025-01-16' AND oa.transaction_type = 'Sale' THEN '60-Min Hyperlocal'
+            WHEN oa.order_type = 'EXPRESS' AND oa.order_date < '2025-01-16' AND oa.transaction_type = 'Sale' THEN '4-Hour Express'
+            WHEN oa.order_type = 'NORMAL' AND oa.transaction_type = 'Sale' THEN 'Standard Delivery'
+            WHEN oa.order_type = 'EXCHANGE' AND oa.transaction_type = 'Sale' THEN 'Exchange Order'
+            WHEN oa.transaction_type = 'Refund' THEN 'Refund Transaction'
             ELSE 'Other'
         END AS delivery_service_type,
         
         -- Service tier
         CASE 
-            WHEN oa.sales_channel = 'Shop' AND oa.order_type = 'EXPRESS' THEN 'Express Service'
-            WHEN oa.sales_channel = 'Shop' THEN 'Standard Service'
-            WHEN oa.document_type = 'Sales Invoice' AND oa.order_type = 'EXPRESS' THEN 'Express Service'
-            WHEN oa.document_type = 'Sales Invoice' THEN 'Standard Service'
-            WHEN oa.document_type = 'Sales Credit Memo' THEN 'Refund Transaction'
+            WHEN oa.order_type = 'EXPRESS' AND oa.transaction_type = 'Sale' THEN 'Express Service'
+            WHEN oa.transaction_type = 'Sale' THEN 'Standard Service'
+            WHEN oa.transaction_type = 'Refund' THEN 'Refund Transaction'
             ELSE 'Other'
         END AS service_tier,
         
         -- Hyperlocal order flag
         CASE 
-            WHEN oa.sales_channel = 'Shop' AND oa.order_type = 'EXPRESS' AND oa.order_date >= '2025-01-16' THEN 'Hyperlocal Order'
-            WHEN oa.sales_channel = 'Shop' THEN 'Non-Hyperlocal Order'
-            WHEN oa.document_type = 'Sales Invoice' AND oa.order_type = 'EXPRESS' AND oa.order_date >= '2025-01-16' THEN 'Hyperlocal Order'
-            WHEN oa.document_type = 'Sales Invoice' THEN 'Non-Hyperlocal Order'
-            WHEN oa.document_type = 'Sales Credit Memo' THEN 'Refund Transaction'
+            WHEN oa.order_type = 'EXPRESS' AND oa.order_date >= '2025-01-16' AND oa.transaction_type = 'Sale' THEN 'Hyperlocal Order'
+            WHEN oa.transaction_type = 'Sale' THEN 'Non-Hyperlocal Order'
+            WHEN oa.transaction_type = 'Refund' THEN 'Refund Transaction'
             ELSE 'Other'
         END AS hyperlocal_order_flag,
         
@@ -238,10 +206,8 @@ order_enriched AS (
             ELSE 'Unknown'
         END AS order_channel,
 
-        -- NEW: Detailed order channel combining main channel with specific sub-channel
+        -- Detailed order channel
         COALESCE(oa.offline_order_channel, oa.online_order_channel, 'Unknown') AS order_channel_detail,
-
-
         
         -- Payment classification
         CASE 
@@ -252,7 +218,7 @@ order_enriched AS (
             ELSE 'Other Payment'
         END AS payment_category,
         
-        -- Order size classification (using aggregated order_value)
+        -- Order size classification
         CASE 
             WHEN oa.order_value >= 500 THEN 'Large Order (500+ AED)'
             WHEN oa.order_value >= 200 THEN 'Medium Order (200-499 AED)'
@@ -262,7 +228,7 @@ order_enriched AS (
             ELSE 'Unknown Size'
         END AS order_size_category,
 
-                CASE 
+        CASE 
             WHEN oa.order_value < 50 THEN '0–50'
             WHEN oa.order_value < 100 THEN '50–100'
             WHEN oa.order_value < 200 THEN '100–200'
@@ -271,7 +237,6 @@ order_enriched AS (
             ELSE '1000+'
         END AS order_value_bucket,
         
-        -- Order value bucket sort key for proper ordering in visualizations
         CASE 
             WHEN oa.order_value < 50 THEN 1
             WHEN oa.order_value < 100 THEN 2
@@ -280,7 +245,6 @@ order_enriched AS (
             WHEN oa.order_value < 1000 THEN 5
             ELSE 6
         END AS order_value_bucket_sort,
-
         
         -- Customer tenure
         DATE_DIFF(oa.order_date, csl.customer_acquisition_date, DAY) AS customer_tenure_days_at_order,
@@ -294,50 +258,55 @@ order_enriched AS (
         END AS customer_lifecycle_at_order
         
     FROM order_aggregation oa
-    LEFT JOIN customer_segments_lookup csl ON oa.source_no_ = csl.source_no_
+    LEFT JOIN customer_segments_lookup csl ON oa.unified_customer_id = csl.unified_customer_id
 ),
 
--- STEP 3: Calculate order sequences (already at order level)
+-- =====================================================
+-- STEP 3: Calculate Order Sequences (already at order level)
+-- Using unified_customer_id for proper customer tracking
+-- =====================================================
 order_sequence AS (
     SELECT 
         *,
-        -- Customer order sequence
+        -- Customer order sequence (using unified_customer_id)
         ROW_NUMBER() OVER (
-            PARTITION BY source_no_ 
+            PARTITION BY unified_customer_id 
             ORDER BY order_date, unified_order_id
-        ) as customer_order_sequence,
+        ) AS customer_order_sequence,
         
-        -- Channel order sequence
+        -- Channel order sequence (using unified_customer_id)
         ROW_NUMBER() OVER (
-            PARTITION BY source_no_, sales_channel 
+            PARTITION BY unified_customer_id, sales_channel 
             ORDER BY order_date, unified_order_id
-        ) as channel_order_sequence,
+        ) AS channel_order_sequence,
         
-        -- Previous order dates
+        -- Previous order dates (using unified_customer_id)
         LAG(order_date) OVER (
-            PARTITION BY source_no_ 
+            PARTITION BY unified_customer_id 
             ORDER BY order_date, unified_order_id
-        ) as previous_order_date,
+        ) AS previous_order_date,
         
         LAG(order_date) OVER (
-            PARTITION BY source_no_, sales_channel 
+            PARTITION BY unified_customer_id, sales_channel 
             ORDER BY order_date, unified_order_id
-        ) as previous_channel_order_date,
+        ) AS previous_channel_order_date,
         
-        -- Lifetime totals
-        COUNT(*) OVER (PARTITION BY source_no_) as total_lifetime_orders,
-        COUNT(*) OVER (PARTITION BY source_no_, sales_channel) as total_channel_orders
+        -- Lifetime totals (using unified_customer_id)
+        COUNT(*) OVER (PARTITION BY unified_customer_id) AS total_lifetime_orders,
+        COUNT(*) OVER (PARTITION BY unified_customer_id, sales_channel) AS total_channel_orders
         
     FROM order_enriched
 ),
 
--- STEP 4: Calculate retention metrics
+-- =====================================================
+-- STEP 4: Calculate Retention Metrics
+-- =====================================================
 retention_metrics AS (
     SELECT 
         *,
         -- Days since previous order
-        DATE_DIFF(order_date, previous_order_date, DAY) as days_since_last_order,
-        DATE_DIFF(order_date, previous_channel_order_date, DAY) as days_since_last_channel_order,
+        DATE_DIFF(order_date, previous_order_date, DAY) AS days_since_last_order,
+        DATE_DIFF(order_date, previous_channel_order_date, DAY) AS days_since_last_channel_order,
         
         -- Recency cohort
         CASE 
@@ -351,7 +320,7 @@ retention_metrics AS (
             WHEN DATE_DIFF(order_date, previous_order_date, DAY) BETWEEN 181 AND 210 THEN 'Month 6 Return'
             WHEN DATE_DIFF(order_date, previous_order_date, DAY) > 210 THEN 'Dormant Return (>6M)'
             ELSE 'Unknown'
-        END as recency_cohort,
+        END AS recency_cohort,
         
         -- Customer engagement status
         CASE 
@@ -363,7 +332,7 @@ retention_metrics AS (
             WHEN DATE_DIFF(order_date, previous_order_date, DAY) <= 365 THEN 'Reactivated (Inactive)'
             WHEN DATE_DIFF(order_date, previous_order_date, DAY) > 365 THEN 'Reactivated (Lost)'
             ELSE 'Check Logic'
-        END as customer_engagement_status,
+        END AS customer_engagement_status,
 
         CASE 
             WHEN customer_order_sequence = 1 THEN 1
@@ -374,15 +343,15 @@ retention_metrics AS (
             WHEN DATE_DIFF(order_date, previous_order_date, DAY) <= 365 THEN 6
             WHEN DATE_DIFF(order_date, previous_order_date, DAY) > 365 THEN 7
             ELSE 8
-        END as customer_engagement_status_sort,
+        END AS customer_engagement_status_sort,
 
         -- Simple new/returning
         CASE 
             WHEN customer_order_sequence = 1 THEN 'New'
             ELSE 'Returning'
-        END as new_vs_returning,
+        END AS new_vs_returning,
 
-        -- NEW: Transaction frequency analysis at order level
+        -- Transaction frequency analysis
         CASE 
             WHEN customer_order_sequence = 1 THEN '1st Purchase'
             WHEN customer_order_sequence = 2 THEN '2nd Purchase' 
@@ -393,7 +362,7 @@ retention_metrics AS (
             WHEN customer_order_sequence = 7 THEN '7th Purchase'
             WHEN customer_order_sequence > 7 THEN 'Repeat Buyer (8+ Orders)'
             ELSE 'Unknown'
-        END as transaction_frequency_segment,
+        END AS transaction_frequency_segment,
 
         -- Transaction frequency sorting
         CASE 
@@ -406,31 +375,34 @@ retention_metrics AS (
             WHEN customer_order_sequence = 7 THEN 7
             WHEN customer_order_sequence > 7 THEN 8
             ELSE 9
-        END as transaction_frequency_segment_sort,
+        END AS transaction_frequency_segment_sort,
 
         -- Test customer detection
         CASE 
             WHEN total_lifetime_orders >= 200 THEN TRUE
             ELSE FALSE
-        END as is_test_customer
+        END AS is_test_customer
         
     FROM order_sequence
 ),
 
--- STEP 5: Customer acquisition enrichment
+-- =====================================================
+-- STEP 5: Customer Acquisition Enrichment
+-- Using unified_customer_id for proper customer tracking
+-- =====================================================
 customer_acquisition_enriched AS (
     SELECT 
-        source_no_,
+        unified_customer_id,
         -- First order details
-        MIN(CASE WHEN customer_order_sequence = 1 THEN sales_channel END) as acquisition_channel,
-        MIN(CASE WHEN customer_order_sequence = 1 THEN offline_order_channel END) as acquisition_store,
-        MIN(CASE WHEN customer_order_sequence = 1 THEN online_order_channel END) as acquisition_platform,
-        MIN(CASE WHEN customer_order_sequence = 1 THEN paymentgateway END) as acquisition_payment_method,
-        MIN(CASE WHEN customer_order_sequence = 1 THEN order_date END) as acquisition_date,
+        MIN(CASE WHEN customer_order_sequence = 1 THEN sales_channel END) AS acquisition_channel,
+        MIN(CASE WHEN customer_order_sequence = 1 THEN offline_order_channel END) AS acquisition_store,
+        MIN(CASE WHEN customer_order_sequence = 1 THEN online_order_channel END) AS acquisition_platform,
+        MIN(CASE WHEN customer_order_sequence = 1 THEN paymentgateway END) AS acquisition_payment_method,
+        MIN(CASE WHEN customer_order_sequence = 1 THEN order_date END) AS acquisition_date,
         
         -- Channel usage patterns
-        COUNT(DISTINCT sales_channel) as channels_used_count,
-        COUNT(DISTINCT CASE WHEN sales_channel = 'Shop' THEN offline_order_channel END) as stores_visited_count,
+        COUNT(DISTINCT sales_channel) AS channels_used_count,
+        COUNT(DISTINCT CASE WHEN sales_channel = 'Shop' THEN offline_order_channel END) AS stores_visited_count,
         
         -- Channel preference
         CASE 
@@ -438,13 +410,15 @@ customer_acquisition_enriched AS (
             WHEN MAX(sales_channel) = 'Online' THEN 'Online'
             WHEN MAX(sales_channel) = 'Shop' THEN 'Shop'
             ELSE 'Other'
-        END as channel_preference_type
+        END AS channel_preference_type
         
     FROM retention_metrics
-    GROUP BY source_no_
+    GROUP BY unified_customer_id
 ),
 
--- STEP 6: Final enhanced dataset
+-- =====================================================
+-- STEP 6: Final Enhanced Dataset with All Cohort Fields
+-- =====================================================
 final_enhanced AS (
     SELECT 
         rm.*,
@@ -457,16 +431,13 @@ final_enhanced AS (
         cae.channel_preference_type,
         
         -- Cohort analysis dimensions
-        CONCAT('Q', EXTRACT(QUARTER FROM rm.customer_acquisition_date), ' ', EXTRACT(YEAR FROM rm.customer_acquisition_date)) as acquisition_quarter,
-        FORMAT_DATE('%b %Y', rm.customer_acquisition_date) as acquisition_month,
-        EXTRACT(YEAR FROM rm.customer_acquisition_date) as acquisition_year,
-
+        CONCAT('Q', EXTRACT(QUARTER FROM rm.customer_acquisition_date), ' ', EXTRACT(YEAR FROM rm.customer_acquisition_date)) AS acquisition_quarter,
+        FORMAT_DATE('%b %Y', rm.customer_acquisition_date) AS acquisition_month,
+        EXTRACT(YEAR FROM rm.customer_acquisition_date) AS acquisition_year,
 
         -- =============================================
         -- MONTHLY COHORT FIELDS
         -- =============================================
-
-        -- MONTHLY: Actual calendar month names (Jan 2021, Feb 2021, etc.)
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN 'Unknown'
             ELSE FORMAT_DATE('%b %Y', 
@@ -479,9 +450,8 @@ final_enhanced AS (
                     ) MONTH
                 )
             )
-        END as cohort_month_actual_name,
+        END AS cohort_month_actual_name,
 
-        -- MONTHLY: Sort key for actual month names (YYYYMM format: 202101, 202102, etc.)
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN 999999
             ELSE CAST(FORMAT_DATE('%Y%m', 
@@ -494,9 +464,8 @@ final_enhanced AS (
                     ) MONTH
                 )
             ) AS INT64)
-        END as cohort_month_actual_sort,
+        END AS cohort_month_actual_sort,
 
-        -- MONTHLY: Relative position labels (Month 0, Month 1, Month 2, etc.)
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN 'Unknown'
             ELSE CONCAT('Month ', 
@@ -506,9 +475,8 @@ final_enhanced AS (
                     MONTH
                 )
             )
-        END as cohort_month_label,
+        END AS cohort_month_label,
 
-        -- MONTHLY: Numeric position only (0, 1, 2, 3, etc.)
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN NULL
             ELSE DATE_DIFF(
@@ -516,13 +484,11 @@ final_enhanced AS (
                 DATE_TRUNC(rm.customer_acquisition_date, MONTH),
                 MONTH
             )
-        END as cohort_month_number,
+        END AS cohort_month_number,
 
         -- =============================================
         -- QUARTERLY COHORT FIELDS
         -- =============================================
-
-        -- QUARTERLY: Actual calendar quarter names (Q1 2021, Q2 2021, etc.)
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN 'Unknown'
             ELSE CONCAT(
@@ -543,9 +509,8 @@ final_enhanced AS (
                     ) QUARTER
                 ))
             )
-        END as cohort_quarter_actual_name,
+        END AS cohort_quarter_actual_name,
 
-        -- QUARTERLY: Sort key for actual quarter names (YYYYQ format: 20211, 20212, etc.)
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN 99999
             ELSE CAST(CONCAT(
@@ -564,73 +529,65 @@ final_enhanced AS (
                     ) QUARTER
                 ))
             ) AS INT64)
-        END as cohort_quarter_actual_sort,
+        END AS cohort_quarter_actual_sort,
 
-        -- QUARTERLY: Relative position labels (Q 0, Q 1, Q 2, etc.)
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN 'Unknown'
             ELSE CONCAT('Q ', 
                 (EXTRACT(YEAR FROM rm.order_date) - EXTRACT(YEAR FROM rm.customer_acquisition_date)) * 4 + 
                 (EXTRACT(QUARTER FROM rm.order_date) - EXTRACT(QUARTER FROM rm.customer_acquisition_date))
             )
-        END as cohort_quarter_label,
+        END AS cohort_quarter_label,
 
-        -- QUARTERLY: Numeric position only (0, 1, 2, 3, etc.)
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN NULL
             ELSE (EXTRACT(YEAR FROM rm.order_date) - EXTRACT(YEAR FROM rm.customer_acquisition_date)) * 4 + 
                 (EXTRACT(QUARTER FROM rm.order_date) - EXTRACT(QUARTER FROM rm.customer_acquisition_date))
-        END as cohort_quarter_number,
+        END AS cohort_quarter_number,
 
         -- =============================================
         -- YEARLY COHORT FIELDS
         -- =============================================
-
-        -- YEARLY: Actual calendar year (2021, 2022, 2023, etc.)
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN 'Unknown'
             ELSE CAST(
                 EXTRACT(YEAR FROM rm.customer_acquisition_date) + 
                 (EXTRACT(YEAR FROM rm.order_date) - EXTRACT(YEAR FROM rm.customer_acquisition_date))
             AS STRING)
-        END as cohort_year_actual_name,
+        END AS cohort_year_actual_name,
 
-        -- YEARLY: Sort key for actual year (YYYY format: 2021, 2022, etc.)
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN 9999
             ELSE EXTRACT(YEAR FROM rm.customer_acquisition_date) + 
                 (EXTRACT(YEAR FROM rm.order_date) - EXTRACT(YEAR FROM rm.customer_acquisition_date))
-        END as cohort_year_actual_sort,
+        END AS cohort_year_actual_sort,
 
-        -- YEARLY: Relative position labels (Year 0, Year 1, Year 2, etc.)
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN 'Unknown'
             ELSE CONCAT('Year ', EXTRACT(YEAR FROM rm.order_date) - EXTRACT(YEAR FROM rm.customer_acquisition_date))
-        END as cohort_year_label,
+        END AS cohort_year_label,
 
-        -- YEARLY: Numeric position only (0, 1, 2, 3, etc.)
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN NULL
             ELSE EXTRACT(YEAR FROM rm.order_date) - EXTRACT(YEAR FROM rm.customer_acquisition_date)
-        END as cohort_year_number,
+        END AS cohort_year_number,
 
-
-
+        -- Additional time-based fields
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN NULL
             ELSE DATE_DIFF(rm.order_date, rm.customer_acquisition_date, WEEK)
-        END as weeks_since_acquisition,
+        END AS weeks_since_acquisition,
         
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN 'Unknown'
             ELSE FORMAT_DATE('Week %V %Y', rm.customer_acquisition_date)
-        END as acquisition_week,
+        END AS acquisition_week,
         
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN FALSE
             WHEN DATE_TRUNC(rm.order_date, MONTH) = DATE_TRUNC(rm.customer_acquisition_date, MONTH) THEN TRUE
             ELSE FALSE
-        END as is_acquisition_month,
+        END AS is_acquisition_month,
         
         CASE 
             WHEN rm.customer_acquisition_date IS NULL THEN 'Unknown'
@@ -641,54 +598,60 @@ final_enhanced AS (
             WHEN DATE_DIFF(rm.order_date, rm.customer_acquisition_date, DAY) <= 180 THEN 'Month 4-6'
             WHEN DATE_DIFF(rm.order_date, rm.customer_acquisition_date, DAY) <= 365 THEN 'Month 7-12'
             ELSE 'Month 13+'
-        END as cohort_age_bucket,
+        END AS cohort_age_bucket,
 
         -- Sort keys for Power BI
-        CAST(FORMAT_DATE('%Y%Q', rm.customer_acquisition_date) AS INT64) as acquisition_quarter_sort,
-        CAST(FORMAT_DATE('%Y%m', rm.customer_acquisition_date) AS INT64) as acquisition_month_sort
+        CAST(FORMAT_DATE('%Y%Q', rm.customer_acquisition_date) AS INT64) AS acquisition_quarter_sort,
+        CAST(FORMAT_DATE('%Y%m', rm.customer_acquisition_date) AS INT64) AS acquisition_month_sort
 
     FROM retention_metrics rm
-    LEFT JOIN customer_acquisition_enriched cae ON rm.source_no_ = cae.source_no_
+    LEFT JOIN customer_acquisition_enriched cae ON rm.unified_customer_id = cae.unified_customer_id
 )
 
--- Final SELECT - TRUE ORDER LEVEL
+-- =====================================================
+-- Final SELECT - TRUE ORDER LEVEL (Same output as original)
+-- =====================================================
 SELECT 
     -- Order identifiers
     source_no_,
+    unified_customer_id,
     unified_order_id,
     document_no_,
+    company_source,
     web_order_id,
+    loyality_member_id,
     
     -- Order core data (aggregated from line items)
     order_date,
-    order_value,                        -- SUM of line item amounts
-    refund_amount,                      -- SUM of refund amounts
-    total_order_amount,                 -- SUM of all line amounts
-    line_items_count,                   -- COUNT of line items in order
-    positive_line_items,                -- COUNT of positive amount lines
+    order_value,
+    refund_amount,
+    total_order_amount,
+    line_items_count,
+    document_no_count,
+    positive_line_items,
     document_type,
     transaction_type,
     
     -- Order attributes
     sales_channel,
     CASE 
-    WHEN sales_channel = 'Online' THEN 'Online'
-    ELSE COALESCE(offline_order_channel, 'Unknown')
+        WHEN sales_channel = 'Online' THEN 'Online'
+        ELSE COALESCE(offline_order_channel, 'Unknown')
     END AS store_location,
 
     CASE 
-    WHEN sales_channel = 'Online' THEN 1
-    WHEN COALESCE(offline_order_channel, 'Unknown') = 'DIP' THEN 2
-    WHEN COALESCE(offline_order_channel, 'Unknown') = 'FZN' THEN 3
-    WHEN COALESCE(offline_order_channel, 'Unknown') = 'REM' THEN 4
-    WHEN COALESCE(offline_order_channel, 'Unknown') = 'UMSQ' THEN 5
-    WHEN COALESCE(offline_order_channel, 'Unknown') = 'WSL' THEN 6
-    WHEN COALESCE(offline_order_channel, 'Unknown') = 'CREEK' THEN 7
-    WHEN COALESCE(offline_order_channel, 'Unknown') = 'DSO' THEN 8
-    WHEN COALESCE(offline_order_channel, 'Unknown') = 'MRI' THEN 9
-    WHEN COALESCE(offline_order_channel, 'Unknown') = 'RAK' THEN 10
-    ELSE 99
-END AS store_location_sort,
+        WHEN sales_channel = 'Online' THEN 1
+        WHEN COALESCE(offline_order_channel, 'Unknown') = 'DIP' THEN 2
+        WHEN COALESCE(offline_order_channel, 'Unknown') = 'FZN' THEN 3
+        WHEN COALESCE(offline_order_channel, 'Unknown') = 'REM' THEN 4
+        WHEN COALESCE(offline_order_channel, 'Unknown') = 'UMSQ' THEN 5
+        WHEN COALESCE(offline_order_channel, 'Unknown') = 'WSL' THEN 6
+        WHEN COALESCE(offline_order_channel, 'Unknown') = 'CREEK' THEN 7
+        WHEN COALESCE(offline_order_channel, 'Unknown') = 'DSO' THEN 8
+        WHEN COALESCE(offline_order_channel, 'Unknown') = 'MRI' THEN 9
+        WHEN COALESCE(offline_order_channel, 'Unknown') = 'RAK' THEN 10
+        ELSE 99
+    END AS store_location_sort,
 
     online_order_channel AS platform,
     order_type,
@@ -696,8 +659,10 @@ END AS store_location_sort,
     paymentmethodcode,
     
     -- Customer data
-    name AS customer_name,
+    customer_name,
+    std_phone_no_,
     raw_phone_no_,
+    duplicate_flag,
     customer_identity_status,
     
     -- Time dimensions
@@ -743,10 +708,9 @@ END AS store_location_sort,
     new_vs_returning,
     is_test_customer,
 
-    -- NEW: Transaction frequency analysis fields
-    transaction_frequency_segment,           -- '1st Purchase', '2nd Purchase', etc.
-    transaction_frequency_segment_sort,      -- Numeric sort order
-
+    -- Transaction frequency analysis fields
+    transaction_frequency_segment,
+    transaction_frequency_segment_sort,
     
     -- Acquisition metrics
     acquisition_channel,
@@ -763,36 +727,25 @@ END AS store_location_sort,
     acquisition_year,
     acquisition_quarter_sort,
     acquisition_month_sort,
-    
-    
     weeks_since_acquisition,
     acquisition_week,
     is_acquisition_month,
     cohort_age_bucket,
     acquisition_month_date,
     customer_acquisition_date,
-
-    
-    
-    
-    
-
     order_value_bucket,
     order_value_bucket_sort,
 
+    -- Cohort Fields Monthly, Quarterly and Yearly
+    -- Actual calendar Time Period names
+    cohort_year_actual_name,
+    cohort_quarter_actual_name,
+    cohort_month_actual_name,
 
---Cohort Fields Monthly, Quarterly and Yearly
-
-    --Actual calendar Time Period names
-    cohort_year_actual_name,  --(2021, 2022, 2023, etc.)
-    cohort_quarter_actual_name, --(Q1 2021, Q2 2021, etc.)
-    cohort_month_actual_name, --(Jan 2021, Feb 2021, etc.)
-
-    --Relative position labels
-    cohort_year_label, --(Year 0, Year 1, Year 2, etc.)
-    cohort_quarter_label, --(Q 0, Q 1, Q 2, etc.)
-    cohort_month_label, --(Month 0, Month 1, Month 2, etc.)
-
+    -- Relative position labels
+    cohort_year_label,
+    cohort_quarter_label,
+    cohort_month_label,
 
     cohort_year_actual_sort,
     cohort_quarter_actual_sort,
@@ -800,10 +753,11 @@ END AS store_location_sort,
     
     cohort_year_number,
     cohort_quarter_number,
-    cohort_month_number,
-
-
-
+    cohort_month_number
 
 FROM final_enhanced
+
+--where unified_customer_id = 'BCN/2025/000126'
+
 ORDER BY order_date DESC, source_no_, unified_order_id
+
