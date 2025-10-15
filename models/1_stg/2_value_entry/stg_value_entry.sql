@@ -641,6 +641,3 @@ renamed as (
 )
 
 select * from renamed
-
-
---where document_no_ = 'ALQ-ALQ01-147'

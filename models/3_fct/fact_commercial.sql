@@ -108,14 +108,7 @@ WHERE document_no_ NOT IN ('PSI/2021/01307', 'PSI/2023/00937')
        OR clc_global_dimension_2_code_name NOT IN ('Mobile Grooming','Shop Grooming'))
 
 
-and document_no_ = 'DIP-DT08-35221'
---and document_no_ = 'DIP-DT03-19274'
---and posting_date >= '2025-09-01' AND posting_date < '2025-10-01'
 
---and company_source = 'Pet Haus'
-
-
---and sales_channel_detail = 'Project & Maintenance'
 /*
 AND (
     (posting_date >= '2025-01-01' AND posting_date < '2025-02-01')  -- Jan 2025
