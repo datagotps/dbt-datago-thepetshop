@@ -5,7 +5,8 @@ source_domestic as (
     a.*,
     d.dimension_code,
     d.name as global_dimension_2_code_name,
-    d.name as clc_global_dimension_2_code_name,
+    --d.name as clc_global_dimension_2_code_name,
+    case when d.name IN ('Now Now') THEN 'Noon' else d.name end as clc_global_dimension_2_code_name,
 
     from {{ source('sql_erp_prod_dbo', 'pethaus_domestic_grooming_value_entry_437dbf0e_84ff_417a_965d_ed2bb9650972') }} as a
     left join {{ source('sql_erp_prod_dbo', 'pethaus_domestic_grooming_dimension_value_437dbf0e_84ff_417a_965d_ed2bb9650972') }} as d on a.global_dimension_2_code = d.code and d.global_dimension_no_ = 2
@@ -17,7 +18,8 @@ source_general as (
     a.*,
     d.dimension_code,
     d.name as global_dimension_2_code_name,
-    d.name as clc_global_dimension_2_code_name,
+   -- d.name as clc_global_dimension_2_code_name,
+    case when d.name IN ('Now Now') THEN 'Noon' else d.name end as clc_global_dimension_2_code_name,
 
     
     from {{ source('sql_erp_prod_dbo', 'pethaus_general_trading_value_entry_437dbf0e_84ff_417a_965d_ed2bb9650972') }} as a

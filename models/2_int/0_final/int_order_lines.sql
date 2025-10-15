@@ -17,6 +17,7 @@ SELECT
     ve.invoiced_quantity,
 
     ve.company_source,
+    ve.item_ledger_entry_no_,
 
     
     
@@ -192,6 +193,7 @@ SELECT
     ve.item_no_,
     ve.item_name,
     ve.item_category,
+    ve.item_type,
     ve.item_subcategory,
     ve.item_brand,
     ve.division,
@@ -267,3 +269,4 @@ WHERE 1=1
     AND ve.document_type NOT IN ('Sales Shipment', 'Sales Return Receipt')
     AND ve.dimension_code = 'PROFITCENTER'
     
+--and company_source =  'Pet Shop Services' 

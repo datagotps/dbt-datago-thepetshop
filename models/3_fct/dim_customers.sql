@@ -128,8 +128,10 @@ FROM {{ ref('int_customers') }} as a
 
 where customer_acquisition_channel in ('Online','Shop') 
 
+/*
 AND (
     (customer_acquisition_date >= '2025-01-01' AND customer_acquisition_date < '2025-02-01')  -- Jan 2025
     OR (customer_acquisition_date >= '2024-01-01' AND customer_acquisition_date < '2024-02-01')  -- Jan 2024
     OR (customer_acquisition_date >= '2024-12-01' AND customer_acquisition_date < '2025-01-01')  -- Dec 2024
 )
+*/

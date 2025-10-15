@@ -178,7 +178,7 @@ renamed as (
 
 select * from renamed
 
---where CONCAT(store_no_, '-', pos_terminal_no_, '-', transaction_no_) = 'UMSQ-UM02-18718'
+--where CONCAT(store_no_, '-', pos_terminal_no_, '-', transaction_no_) = 'DIP-DT01-132998'
 
 --where receipt_no_ = '000000CK02000008408'
 --where transaction_no_ = 8575

@@ -676,30 +676,30 @@ customer_segments AS (
             ELSE 7
         END AS purchase_frequency_type_order,
         
-        -- Customer pattern type
+        -- Customer pattern type (with division by zero protection)
         CASE 
             WHEN cop.avg_days_between_orders IS NULL OR cop.stddev_days_between_orders IS NULL THEN 'No Pattern'
-            WHEN cop.avg_days_between_orders = 0 THEN 'No Pattern'
+            WHEN cop.avg_days_between_orders = 0 OR cop.avg_days_between_orders IS NULL THEN 'No Pattern'
             WHEN cop.stddev_days_between_orders = 0 THEN 'Perfect Consistency'
-            WHEN cop.stddev_days_between_orders / cop.avg_days_between_orders <= 0.1 THEN 'Highly Consistent'
-            WHEN cop.stddev_days_between_orders / cop.avg_days_between_orders <= 0.3 THEN 'Consistent'
-            WHEN cop.stddev_days_between_orders / cop.avg_days_between_orders <= 0.5 THEN 'Moderately Consistent'
-            WHEN cop.stddev_days_between_orders / cop.avg_days_between_orders <= 1.0 THEN 'Variable'
+            WHEN cop.stddev_days_between_orders / NULLIF(cop.avg_days_between_orders, 0) <= 0.1 THEN 'Highly Consistent'
+            WHEN cop.stddev_days_between_orders / NULLIF(cop.avg_days_between_orders, 0) <= 0.3 THEN 'Consistent'
+            WHEN cop.stddev_days_between_orders / NULLIF(cop.avg_days_between_orders, 0) <= 0.5 THEN 'Moderately Consistent'
+            WHEN cop.stddev_days_between_orders / NULLIF(cop.avg_days_between_orders, 0) <= 1.0 THEN 'Variable'
             ELSE 'Highly Variable'
         END AS customer_pattern_type,
         
         CASE 
             WHEN cop.avg_days_between_orders IS NULL OR cop.stddev_days_between_orders IS NULL THEN 0
-            WHEN cop.avg_days_between_orders = 0 THEN 0
+            WHEN cop.avg_days_between_orders = 0 OR cop.avg_days_between_orders IS NULL THEN 0
             WHEN cop.stddev_days_between_orders = 0 THEN 1
-            WHEN cop.stddev_days_between_orders / cop.avg_days_between_orders <= 0.1 THEN 2
-            WHEN cop.stddev_days_between_orders / cop.avg_days_between_orders <= 0.3 THEN 3
-            WHEN cop.stddev_days_between_orders / cop.avg_days_between_orders <= 0.5 THEN 4
-            WHEN cop.stddev_days_between_orders / cop.avg_days_between_orders <= 1.0 THEN 5
+            WHEN cop.stddev_days_between_orders / NULLIF(cop.avg_days_between_orders, 0) <= 0.1 THEN 2
+            WHEN cop.stddev_days_between_orders / NULLIF(cop.avg_days_between_orders, 0) <= 0.3 THEN 3
+            WHEN cop.stddev_days_between_orders / NULLIF(cop.avg_days_between_orders, 0) <= 0.5 THEN 4
+            WHEN cop.stddev_days_between_orders / NULLIF(cop.avg_days_between_orders, 0) <= 1.0 THEN 5
             ELSE 6
         END AS customer_pattern_type_order,
         
-        -- Churn risk score
+        -- Churn risk score (with division by zero protection)
         CASE 
             WHEN cs.total_order_count <= 1 THEN 
                 CASE 
@@ -709,17 +709,17 @@ customer_segments AS (
                     WHEN cs.recency_days <= 180 THEN 70
                     ELSE 90
                 END
-            WHEN cop.avg_days_between_orders IS NOT NULL THEN
+            WHEN cop.avg_days_between_orders IS NOT NULL AND cop.avg_days_between_orders > 0 THEN
                 CASE 
                     WHEN cs.recency_days > cop.avg_days_between_orders * 3 THEN 
                         LEAST(90 + (cs.recency_days - cop.avg_days_between_orders * 3) / 10, 100)
                     WHEN cs.recency_days > cop.avg_days_between_orders * 2 THEN 
-                        70 + ((cs.recency_days - cop.avg_days_between_orders * 2) / cop.avg_days_between_orders) * 20
+                        70 + ((cs.recency_days - cop.avg_days_between_orders * 2) / NULLIF(cop.avg_days_between_orders, 0)) * 20
                     WHEN cs.recency_days > cop.avg_days_between_orders * 1.5 THEN 
-                        50 + ((cs.recency_days - cop.avg_days_between_orders * 1.5) / cop.avg_days_between_orders) * 20
+                        50 + ((cs.recency_days - cop.avg_days_between_orders * 1.5) / NULLIF(cop.avg_days_between_orders, 0)) * 20
                     WHEN cs.recency_days > cop.avg_days_between_orders THEN 
-                        30 + ((cs.recency_days - cop.avg_days_between_orders) / cop.avg_days_between_orders) * 20
-                    ELSE GREATEST(10, (cs.recency_days / cop.avg_days_between_orders) * 30)
+                        30 + ((cs.recency_days - cop.avg_days_between_orders) / NULLIF(cop.avg_days_between_orders, 0)) * 20
+                    ELSE GREATEST(10, (cs.recency_days / NULLIF(cop.avg_days_between_orders, 0)) * 30)
                 END
             ELSE 
                 CASE 
@@ -757,14 +757,17 @@ customer_segments AS (
         
         -- Is overdue
         CASE 
-            WHEN cop.avg_days_between_orders IS NOT NULL AND cs.recency_days > cop.avg_days_between_orders * 1.2 
+            WHEN cop.avg_days_between_orders IS NOT NULL AND cop.avg_days_between_orders > 0 
+                 AND cs.recency_days > cop.avg_days_between_orders * 1.2 
             THEN 'Yes'
             ELSE 'No'
         END AS is_overdue,
         
-        -- Overdue confidence
+        -- Overdue confidence (with division by zero protection)
         CASE 
-            WHEN cop.avg_days_between_orders IS NOT NULL AND cop.stddev_days_between_orders IS NOT NULL 
+            WHEN cop.avg_days_between_orders IS NOT NULL 
+                 AND cop.stddev_days_between_orders IS NOT NULL 
+                 AND cop.avg_days_between_orders > 0
                  AND cop.stddev_days_between_orders > 0 THEN
                 CASE 
                     WHEN cs.recency_days > (cop.avg_days_between_orders + 3 * cop.stddev_days_between_orders) 
@@ -784,7 +787,7 @@ customer_segments AS (
         CASE 
             WHEN cs.total_order_count = 1 THEN 'Single Order - Monitor'
             WHEN cs.recency_days > 365 THEN 'Dormant - Reactivation Needed'
-            WHEN cop.avg_days_between_orders IS NOT NULL THEN
+            WHEN cop.avg_days_between_orders IS NOT NULL AND cop.avg_days_between_orders > 0 THEN
                 CASE 
                     WHEN cs.recency_days > cop.avg_days_between_orders * 3 THEN 'Severely Overdue'
                     WHEN cs.recency_days > cop.avg_days_between_orders * 2 THEN 'Overdue - Action Required'
