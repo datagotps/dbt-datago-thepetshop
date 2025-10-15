@@ -5,6 +5,7 @@ source_no_,                        -- dim (customer ID)
 document_no_,                      -- dim (ERP document number)
 posting_date,                      -- dim (date)
 invoiced_quantity,                 -- fact (quantity)
+item_ledger_entry_no_,
 
 -- Sales Channel Information
 company_source,                    --Petshop,pethaus
@@ -79,6 +80,7 @@ item_no_,                          -- dim (item code)
 item_name,                         -- dim (item description)
 item_category,                     -- dim (category name)
 item_subcategory,                  -- dim (subcategory name)
+item_type,
 item_brand,                        -- dim (brand name)
 division,                          -- dim (division name)
 division_sort_order,
@@ -101,12 +103,18 @@ DATETIME_ADD(CURRENT_DATETIME(), INTERVAL 4 HOUR) AS report_last_updated_at,
 
 FROM {{ ref('int_commercial') }}
 
---where clc_global_dimension_2_code_name NOT IN ('Mobile Grooming','Shop Grooming') ) 
-where document_no_ NOT IN ('PSI/2021/01307', 'PSI/2023/00937')
+WHERE document_no_ NOT IN ('PSI/2021/01307', 'PSI/2023/00937')
+  AND (company_source != 'Pet Shop' 
+       OR clc_global_dimension_2_code_name NOT IN ('Mobile Grooming','Shop Grooming'))
 
+
+and document_no_ = 'DIP-DT08-35221'
+--and document_no_ = 'DIP-DT03-19274'
 --and posting_date >= '2025-09-01' AND posting_date < '2025-10-01'
 
---and company_source = 'pethaus'
+--and company_source = 'Pet Haus'
+
+
 --and sales_channel_detail = 'Project & Maintenance'
 /*
 AND (

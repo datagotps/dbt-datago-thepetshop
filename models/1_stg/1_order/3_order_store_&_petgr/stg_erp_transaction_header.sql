@@ -127,6 +127,7 @@ renamed as (
 )
 
 select * from renamed
+--where CONCAT(store_no_, '-', pos_terminal_no_, '-', transaction_no_) = 'DIP-DT01-132998'
 
 --where CONCAT(store_no_, '-', pos_terminal_no_, '-', transaction_no_) = 'CRK-CK01-489'
 --where no__of_items >1

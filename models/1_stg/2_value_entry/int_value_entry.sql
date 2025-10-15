@@ -24,14 +24,16 @@ SELECT
     ve.document_no_,
     ve.source_code,
     ve.company_source,
+    ve.item_ledger_entry_no_,
     
     -- =====================================================
     -- Sales Channel Categorization
     -- =====================================================
     CASE 
+        
         WHEN clc_global_dimension_2_code_name IN ('Online') THEN 'Online' 
         WHEN clc_global_dimension_2_code_name IN ('POS Sale') THEN 'Shop'
-        WHEN clc_global_dimension_2_code_name IN ('Amazon', 'Amazon FBA', 'Amazon DFS', 'Swan','Instashop', 'El Grocer', 'Careem', 'Noon','Deliveroo', 'Talabat', 'BlazeApp' ) THEN 'Affiliate'
+        WHEN clc_global_dimension_2_code_name IN ('Now Now','Amazon', 'Amazon FBA', 'Amazon DFS', 'Swan','Instashop', 'El Grocer', 'Careem', 'Noon','Deliveroo', 'Talabat', 'BlazeApp' ) THEN 'Affiliate'
         WHEN clc_global_dimension_2_code_name IN ('B2B Sales') THEN 'B2B'
         WHEN clc_global_dimension_2_code_name IN ('P&M', 'Pet Relocation','Cleaning & Potty', 'PETRELOC', 'Grooming','Mobile Grooming', 'Shop Grooming' ) THEN 'Service'
         ELSE 'Check My Logic'
@@ -66,6 +68,7 @@ SELECT
     it.item_no_,
     it.item_name,
     it.item_category,
+    it.item_type,
     it.item_subcategory,
     it.item_brand,
     it.division,
@@ -211,12 +214,12 @@ ve2.offer_no_ as offline_offer_no_,
  
 
 FROM {{ ref('stg_value_entry') }} AS ve
-    LEFT JOIN {{ ref('int_inbound_sales_header') }} AS ish ON ve.document_no_ = ish.documentno and ve.company_source = 'Petshop'
-    LEFT JOIN {{ ref('int_erp_customer') }} AS cu ON ve.source_no_ = cu.no_ and ve.company_source = 'Petshop'
+    LEFT JOIN {{ ref('int_inbound_sales_header') }} AS ish ON ve.document_no_ = ish.documentno and ve.company_source = 'Pet Shop'
+    LEFT JOIN {{ ref('int_erp_customer') }} AS cu ON ve.source_no_ = cu.no_ and ve.company_source = 'Pet Shop'
     LEFT JOIN {{ ref('int_items') }} AS it ON it.item_no_ = ve.item_no_
-    LEFT JOIN inbound_sales_line_dedup AS isl ON ve.document_no_ = isl.documentno AND ve.item_no_ = isl.item_no_ and ve.company_source = 'Petshop'
+    LEFT JOIN inbound_sales_line_dedup AS isl ON ve.document_no_ = isl.documentno AND ve.item_no_ = isl.item_no_ and ve.company_source = 'Pet Shop'
 
-   LEFT JOIN {{ ref('stg_value_entry_2') }} AS ve2 on ve.entry_no_ = ve2.entry_no_ and ve.company_source = 'Petshop'
+   LEFT JOIN {{ ref('stg_value_entry_2') }} AS ve2 on ve.entry_no_ = ve2.entry_no_ and ve.company_source = 'Pet Shop'
 
 -- LEFT JOIN {{ ref('int_dimension_set_entry') }} AS dse1 ON ve.dimension_set_id = dse1.dimension_set_id AND dse1.global_dimension_no_ = 1 -- <STORE>
 -- LEFT JOIN {{ ref('int_dimension_set_entry') }} AS dse2 ON ve.dimension_set_id = dse2.dimension_set_id AND dse2.global_dimension_no_ = 2 -- <PROFITCENTER>
@@ -238,3 +241,5 @@ FROM {{ ref('stg_value_entry') }} AS ve
     -- dse5.name AS vehicle,         -- Global Dimension 5
     -- dse6.name AS costcenter,      -- Global Dimension 6
     -- dse7.name AS project,         -- Global Dimension 7
+
+--where document_no_ = 'ALQ-ALQ01-147'

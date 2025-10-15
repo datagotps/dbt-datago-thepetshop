@@ -100,6 +100,7 @@ SELECT DISTINCT
     it.item_category_sort_order,
     it.item_subcategory,
     it.item_brand,
+    it.item_type,
     it.inventory_posting_group,
     it.varient_item,
     

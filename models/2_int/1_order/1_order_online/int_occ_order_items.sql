@@ -204,7 +204,7 @@ END as order_sync_category_sort,
     end as pna_flag,
     
     case 
-        when q.item_id is not null and i.statusname = 'CLOSE' then 'resolved_pna' 
+        when q.item_id is not null and i.statusname in ('CLOSE','ReturnClose')  then 'resolved_pna' 
         when q.item_id is not null and i.statusname != 'CLOSE' then 'permanent_pna'
         when q.item_id is null then 'no_pna'
         else 'ask anmar' 
@@ -236,3 +236,4 @@ left join {{ ref('stg_petshop_pna_details') }} as q on q.item_id = a.itemid
 
 where b.insertedon is not null
 
+--AND a.itemid  = 3866448
