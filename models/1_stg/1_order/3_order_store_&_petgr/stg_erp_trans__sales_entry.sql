@@ -178,24 +178,4 @@ renamed as (
 
 select * from renamed
 
---where CONCAT(store_no_, '-', pos_terminal_no_, '-', transaction_no_) = 'DIP-DT01-132998'
-
---where receipt_no_ = '000000CK02000008408'
---where transaction_no_ = 8575
-
---WHERE retail_product_code IN ('31114')
-
---WHERE retail_product_code NOT IN ('31024','31010','31011','31012','31113','31114')
-
-
---when retail_product_code = '31024' then 'Add-on'
---when retail_product_code = '31010' then 'Bird Groom' NOOOOO Data
-
---when retail_product_code = '31012' then 'Dog Groom' --GRM-GR01-4354
---when retail_product_code = '31011' then 'Cat Groom' --GRM-GR01-4781
-
---when retail_product_code = '31113' then 'Mobile Cat' --MOBILE-GR05-3217
---when retail_product_code = '31114' then 'Mobile Dog' --MOBILE-GR05-3217
-
-
-
+--where CONCAT(store_no_, '-', pos_terminal_no_, '-', transaction_no_) = 'WSL-WT02-11195'

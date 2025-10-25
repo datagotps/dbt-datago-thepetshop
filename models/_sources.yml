@@ -45,6 +45,7 @@ sources:
       - name: petshop_value_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_value_entry_5ecfc871_5d82_43f1_9c54_59685e82318d
       - name: petshop_discount_ledger_entry_5ecfc871_5d82_43f1_9c54_59685e82318d
+      - name: petshop_periodic_discount_5ecfc871_5d82_43f1_9c54_59685e82318d
 
       - name: petshop_dimension_value_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_dimension_set_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
@@ -138,3 +139,24 @@ sources:
     tables:
       - name: Dan_DD_Customer
       - name: DD_Customer
+
+  - name: public
+    database: tps-data-386515
+    tables:
+      - name: ActivityLevel
+      - name: Allergies
+      - name: DietaryPreference
+      - name: HealthCondition
+      - name: PersonalityTrait
+      - name: PetAllergies
+      - name: PetDietaryPreferences
+      - name: PetDocument
+      - name: PetDocumentGroup
+      - name: PetHealthConditions
+      - name: PetImage
+      - name: PetPersonalityTraits
+      - name: PetSubType
+      - name: PetType
+      - name: PetVaccination
+      - name: Pets
+      - name: users

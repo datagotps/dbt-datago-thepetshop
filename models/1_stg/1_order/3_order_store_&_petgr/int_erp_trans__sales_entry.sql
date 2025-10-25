@@ -13,4 +13,4 @@ FROM {{ ref('stg_erp_trans__sales_entry') }} as a
 
 WHERE retail_product_code  IN ('31024','31010','31011','31012','31113','31114')
 
---and document_no_ = 'DIP-DT01-132998'
+--and document_no_ = 'WSL-WT02-11195'

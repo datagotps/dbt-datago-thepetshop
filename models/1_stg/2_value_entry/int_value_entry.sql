@@ -210,8 +210,10 @@ ve.discount_amount as offline_discount_amount,
 
 isl.couponcode as online_offer_no_,
 isl.inserted_on,
-ve2.offer_no_ as offline_offer_no_,
- 
+
+
+dic.offer_no_ as offline_offer_no_,
+dic.offline_offer_name,
 
 FROM {{ ref('stg_value_entry') }} AS ve
     LEFT JOIN {{ ref('int_inbound_sales_header') }} AS ish ON ve.document_no_ = ish.documentno and ve.company_source = 'Pet Shop'
@@ -219,7 +221,14 @@ FROM {{ ref('stg_value_entry') }} AS ve
     LEFT JOIN {{ ref('int_items') }} AS it ON it.item_no_ = ve.item_no_
     LEFT JOIN inbound_sales_line_dedup AS isl ON ve.document_no_ = isl.documentno AND ve.item_no_ = isl.item_no_ and ve.company_source = 'Pet Shop'
 
-   LEFT JOIN {{ ref('stg_value_entry_2') }} AS ve2 on ve.entry_no_ = ve2.entry_no_ and ve.company_source = 'Pet Shop'
+  -- LEFT JOIN {{ ref('stg_value_entry_2') }} AS ve2 on ve.entry_no_ = ve2.entry_no_ and ve.company_source = 'Pet Shop'
+
+   left join {{ ref('int_discount_ledger_entry') }} AS dic on ve.item_ledger_entry_no_ = dic.item_ledger_entry_no_
+
+--where ve.entry_no_ = 22954217
+
+--where document_no_ = 'DIP-DT08-48383'
+
 
 -- LEFT JOIN {{ ref('int_dimension_set_entry') }} AS dse1 ON ve.dimension_set_id = dse1.dimension_set_id AND dse1.global_dimension_no_ = 1 -- <STORE>
 -- LEFT JOIN {{ ref('int_dimension_set_entry') }} AS dse2 ON ve.dimension_set_id = dse2.dimension_set_id AND dse2.global_dimension_no_ = 2 -- <PROFITCENTER>

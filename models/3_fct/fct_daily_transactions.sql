@@ -130,6 +130,12 @@ END AS period_sort_order,
 
 FROM combined_transactions
 
+where (transaction_date BETWEEN '2025-01-01' AND '2025-09-30'
+       OR transaction_date BETWEEN '2024-12-01' AND '2024-12-31'
+       OR transaction_date BETWEEN '2024-01-01' AND '2024-01-31'
+      )
+
+
 
 /*
 where (

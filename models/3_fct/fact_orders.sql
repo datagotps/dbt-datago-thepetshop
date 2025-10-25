@@ -129,6 +129,14 @@ FROM {{ ref('int_orders') }}
 
 where sales_channel in ('Online','Shop') 
 
+
+and (order_date BETWEEN '2025-01-01' AND '2025-09-30'
+       OR order_date BETWEEN '2024-12-01' AND '2024-12-31'
+       OR order_date BETWEEN '2024-01-01' AND '2024-01-31'
+      )
+
+
+
 /*
 AND (
     (order_date >= '2025-01-01' AND order_date < '2025-02-01')  -- Jan 2025
