@@ -2,18 +2,28 @@ with
 
 source as (
 
-    select * from {{ source('sql_erp_prod_dbo', 'petshop_value_entry_5ecfc871_5d82_43f1_9c54_59685e82318d') }}
+    select 
+    a.*,
+    b.description as offline_offer_name,
+
+    from {{ source('sql_erp_prod_dbo', 'petshop_value_entry_5ecfc871_5d82_43f1_9c54_59685e82318d') }} as a 
+    left join  {{ ref('stg_periodic_discount') }}  as b on a.offer_no_ = b.no_
 
 ),
 
 renamed as (
 
     select
+
+        offline_offer_name,
+        offer_no_,
+
+
         item_category,
         retail_product_code,
         division,
         promotion_no_,
-        offer_no_,
+        
         batch_no_,
         vendor_no_,
         inv__adjust__group,
@@ -51,4 +61,6 @@ renamed as (
 )
 
 select * from renamed
+
+--where entry_no_ = 22954217
 

@@ -641,3 +641,5 @@ renamed as (
 )
 
 select * from renamed
+
+--where entry_no_ = 4460827

@@ -64,6 +64,7 @@ SELECT
     
     ve.online_offer_no_,
     ve.offline_offer_no_,
+    ve.offline_offer_name,
 
     
     -- =====================================================

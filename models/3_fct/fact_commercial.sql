@@ -25,6 +25,7 @@ offline_discount_amount,           -- fact (AED for offline)
 online_discount_amount,            -- fact (AED for online)
 online_offer_no_,                  -- dim (online promo code)
 offline_offer_no_,                 -- dim (offline promo code)
+offline_offer_name,
 
 -- Financial Amounts
 sales_amount_gross,                -- fact (AED before discount)
@@ -107,7 +108,14 @@ WHERE document_no_ NOT IN ('PSI/2021/01307', 'PSI/2023/00937')
   AND (company_source != 'Pet Shop' 
        OR clc_global_dimension_2_code_name NOT IN ('Mobile Grooming','Shop Grooming'))
 
+--and document_no_ = 'DIP-DT08-48383'
+/*
+and (posting_date BETWEEN '2025-01-01' AND '2025-09-30'
+       OR posting_date BETWEEN '2024-12-01' AND '2024-12-31'
+       OR posting_date BETWEEN '2024-01-01' AND '2024-01-31'
+      )
 
+*/
 
 /*
 AND (
