@@ -64,9 +64,13 @@ DATETIME_ADD(CURRENT_DATETIME(), INTERVAL 4 HOUR) AS report_last_updated_at,
 
 from {{ ref('int_purchase_line') }}
 
+/*
 WHERE 
 (order_date BETWEEN '2024-04-01' AND '2024-04-30'
    OR order_date BETWEEN '2025-03-01' AND '2025-03-31'
    OR order_date BETWEEN '2025-04-01' AND '2025-04-30'
 )
+
+*/
 --and document_type != 'Order' 
+
