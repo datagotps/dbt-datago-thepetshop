@@ -105,6 +105,7 @@ DATETIME_ADD(CURRENT_DATETIME(), INTERVAL 4 HOUR) AS report_last_updated_at,
 
 null as test_1,
 null as test_2,
+null as test_3,
 
 
 FROM {{ ref('int_commercial') }}
