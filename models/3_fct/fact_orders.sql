@@ -128,6 +128,7 @@ DATETIME_ADD(CURRENT_DATETIME(), INTERVAL 4 HOUR) AS report_last_updated_at,
 FROM {{ ref('int_orders') }}
 
 where sales_channel in ('Online','Shop') 
+and document_no_ != 'INV00528612' --Future Order Date (Dec 9, 2025)
 
 /*
 and (order_date BETWEEN '2025-01-01' AND '2025-09-30'

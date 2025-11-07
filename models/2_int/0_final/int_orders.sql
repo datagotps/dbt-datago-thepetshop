@@ -756,8 +756,7 @@ SELECT
     cohort_month_number
 
 FROM final_enhanced
-
---where unified_customer_id = 'BCN/2025/000126'
+--where unified_customer_id = 'CUST-PRE-0419'
 
 ORDER BY order_date DESC, source_no_, unified_order_id
 

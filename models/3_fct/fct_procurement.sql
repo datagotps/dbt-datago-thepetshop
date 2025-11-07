@@ -64,6 +64,9 @@ DATETIME_ADD(CURRENT_DATETIME(), INTERVAL 4 HOUR) AS report_last_updated_at,
 
 from {{ ref('int_purchase_line') }}
 
+
+
+--where document_no_ = 'TPS/2025/002646' and document_type = 'Order'
 /*
 WHERE 
 (order_date BETWEEN '2024-04-01' AND '2024-04-30'
@@ -72,5 +75,5 @@ WHERE
 )
 
 */
---and document_type != 'Order' 
+--where  document_no_ = 'TPS/2025/002673' -- and item_no = '100935-1'
 

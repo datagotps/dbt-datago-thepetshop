@@ -130,6 +130,12 @@ END AS period_sort_order,
 
 FROM combined_transactions
 
+WHERE 
+transaction_date BETWEEN DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 2 MONTH), MONTH)
+AND LAST_DAY(CURRENT_DATE(), MONTH)
+
+
+
 /*
 where (transaction_date BETWEEN '2025-01-01' AND '2025-09-30'
        OR transaction_date BETWEEN '2024-12-01' AND '2024-12-31'
@@ -137,11 +143,3 @@ where (transaction_date BETWEEN '2025-01-01' AND '2025-09-30'
       )
 */
 
-
-/*
-where (
-    (transaction_date >= '2025-01-01' AND transaction_date < '2025-02-01')  -- Jan 2025
-    OR (transaction_date >= '2024-01-01' AND transaction_date < '2024-02-01')  -- Jan 2024
-    OR (transaction_date >= '2024-12-01' AND transaction_date < '2025-01-01')  -- Dec 2024
-)
-*/

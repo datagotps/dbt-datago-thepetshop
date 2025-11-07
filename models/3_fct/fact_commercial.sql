@@ -108,6 +108,13 @@ WHERE document_no_ NOT IN ('PSI/2021/01307', 'PSI/2023/00937')
   AND (company_source != 'Pet Shop' 
        OR clc_global_dimension_2_code_name NOT IN ('Mobile Grooming','Shop Grooming'))
 
+
+and document_no_ != 'INV00528612' --Future Order Date (Dec 9, 2025)
+
+
+
+
+
 --and document_no_ = 'DIP-DT08-48383'
 /*
 and (posting_date BETWEEN '2025-01-01' AND '2025-09-30'
