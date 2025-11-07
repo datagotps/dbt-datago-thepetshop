@@ -107,6 +107,8 @@ null as test_1,
 null as test_2,
 null as test_3,
 
+null as test_4,
+
 
 FROM {{ ref('int_commercial') }}
 
