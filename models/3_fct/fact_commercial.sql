@@ -102,6 +102,10 @@ is_y_2,                            -- fact: 0, 1 (2 years ago full)
 
 DATETIME_ADD(CURRENT_DATETIME(), INTERVAL 4 HOUR) AS report_last_updated_at, 
 
+
+null as test_1,
+
+
 FROM {{ ref('int_commercial') }}
 
 WHERE document_no_ NOT IN ('PSI/2021/01307', 'PSI/2023/00937')
