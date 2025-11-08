@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Pet Shop Commercial Analytics - Power BI Dashboard Mockup</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <div class="top-nav">
+        <div class="nav-left">
+            <h1>🐾 The Pet Shop Commercial Analytics</h1>
+        </div>
+        <div class="nav-right">
+            <button class="nav-btn" onclick="toggleFilters()">🔍 Filters</button>
+            <button class="nav-btn" onclick="refreshData()">🔄 Refresh</button>
+            <button class="nav-btn">📊 Export</button>
+            <div class="last-updated">Last updated: <span id="lastUpdate"></span></div>
+        </div>
+    </div>
+
+    <!-- Page Navigation Tabs -->
+    <div class="page-tabs">
+        <button class="tab-btn active" onclick="showPage('executive')">🏠 Executive Summary</button>
+        <button class="tab-btn" onclick="showPage('sales')">💰 Sales Performance</button>
+        <button class="tab-btn" onclick="showPage('customers')">👥 Customer Analytics</button>
+        <button class="tab-btn" onclick="showPage('products')">📦 Product Performance</button>
+        <button class="tab-btn" onclick="showPage('location')">🏪 Location & Channel</button>
+        <button class="tab-btn" onclick="showPage('payment')">💳 Payment & Transactions</button>
+        <button class="tab-btn" onclick="showPage('discount')">🎁 Discount Analysis</button>
+        <button class="tab-btn" onclick="showPage('trends')">📅 Time Trends</button>
+    </div>
+
+    <!-- Filters Panel (Collapsible) -->
+    <div id="filtersPanel" class="filters-panel">
+        <div class="filters-header">
+            <h3>🔍 Filters</h3>
+            <button onclick="clearFilters()" class="clear-btn">Clear All</button>
+        </div>
+        <div class="filter-group">
+            <label>📅 Date Range</label>
+            <input type="date" id="startDate" value="2024-01-01">
+            <input type="date" id="endDate" value="2024-12-31">
+        </div>
+        <div class="filter-group">
+            <label>🏢 Company Source</label>
+            <select id="companyFilter" onchange="applyFilters()">
+                <option value="all">All</option>
+                <option value="petshop">Petshop</option>
+                <option value="pethaus">Pethaus</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>🛒 Sales Channel</label>
+            <select id="channelFilter" onchange="applyFilters()">
+                <option value="all">All</option>
+                <option value="online">Online</option>
+                <option value="shop">Shop</option>
+                <option value="affiliate">Affiliate</option>
+                <option value="b2b">B2B</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>📍 Location City</label>
+            <select id="cityFilter" onchange="applyFilters()">
+                <option value="all">All</option>
+                <option value="dubai">Dubai</option>
+                <option value="abudhabi">Abu Dhabi</option>
+                <option value="rak">Ras Al Khaimah</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>🔄 Transaction Type</label>
+            <select id="transactionFilter" onchange="applyFilters()">
+                <option value="all">All</option>
+                <option value="sale">Sale</option>
+                <option value="refund">Refund</option>
+            </select>
+        </div>
+        <button onclick="applyFilters()" class="apply-btn">Apply Filters</button>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+
+        <!-- Page 1: Executive Summary -->
+        <div id="executivePage" class="page-content active">
+            <h2 class="page-title">Executive Summary</h2>
+
+            <!-- KPI Cards Row -->
+            <div class="kpi-row">
+                <div class="kpi-card">
+                    <div class="kpi-label">Total Net Sales</div>
+                    <div class="kpi-value" id="totalSales">AED 25.5M</div>
+                    <div class="kpi-change positive">↑ 15.3% YoY</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Gross Profit</div>
+                    <div class="kpi-value" id="grossProfit">AED 8.2M</div>
+                    <div class="kpi-change positive">↑ 12.1% YoY</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Total Orders</div>
+                    <div class="kpi-value" id="totalOrders">45,234</div>
+                    <div class="kpi-change positive">↑ 18.5% YoY</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Total Customers</div>
+                    <div class="kpi-value" id="totalCustomers">12,456</div>
+                    <div class="kpi-change positive">↑ 8.2% YoY</div>
+                </div>
+            </div>
+
+            <!-- Gauges Row -->
+            <div class="gauge-row">
+                <div class="chart-container">
+                    <h3 class="chart-title">Sales Target Achievement</h3>
+                    <canvas id="salesGauge"></canvas>
+                    <div class="gauge-value">95% of Target</div>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">Profit Target Achievement</h3>
+                    <canvas id="profitGauge"></canvas>
+                    <div class="gauge-value">102% of Target</div>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">Loyalty Penetration Rate</h3>
+                    <canvas id="loyaltyGauge"></canvas>
+                    <div class="gauge-value">68% of Customers</div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="charts-row">
+                <div class="chart-container large">
+                    <h3 class="chart-title">Sales Trend - Last 12 Months</h3>
+                    <canvas id="salesTrendChart"></canvas>
+                </div>
+                <div class="chart-container medium">
+                    <h3 class="chart-title">Sales by Channel</h3>
+                    <canvas id="channelMixChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Top Performers Row -->
+            <div class="charts-row">
+                <div class="chart-container">
+                    <h3 class="chart-title">Top 5 Products</h3>
+                    <canvas id="topProductsChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">Top 5 Locations</h3>
+                    <canvas id="topLocationsChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">Top 5 Categories</h3>
+                    <canvas id="topCategoriesChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page 2: Sales Performance -->
+        <div id="salesPage" class="page-content">
+            <h2 class="page-title">Sales Performance Deep Dive</h2>
+
+            <!-- Sales KPIs -->
+            <div class="kpi-row">
+                <div class="kpi-card">
+                    <div class="kpi-label">Gross Sales</div>
+                    <div class="kpi-value">AED 28.2M</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Net Sales</div>
+                    <div class="kpi-value">AED 25.5M</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Gross Profit</div>
+                    <div class="kpi-value">AED 8.2M</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Profit Margin</div>
+                    <div class="kpi-value">32.2%</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Avg Order Value</div>
+                    <div class="kpi-value">AED 564</div>
+                </div>
+            </div>
+
+            <!-- Sales Waterfall -->
+            <div class="charts-row">
+                <div class="chart-container full-width">
+                    <h3 class="chart-title">Sales Waterfall Analysis</h3>
+                    <canvas id="waterfallChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Time Comparisons -->
+            <div class="charts-row">
+                <div class="chart-container">
+                    <h3 class="chart-title">MTD vs LMTD</h3>
+                    <canvas id="mtdComparisonChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">YTD vs LYTD</h3>
+                    <canvas id="ytdComparisonChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Detailed Trend -->
+            <div class="charts-row">
+                <div class="chart-container full-width">
+                    <h3 class="chart-title">Daily Sales Trend - Last 90 Days</h3>
+                    <canvas id="dailySalesChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Sales Matrix -->
+            <div class="table-container">
+                <h3 class="chart-title">Sales by Company & Channel Matrix</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Company</th>
+                            <th>Channel</th>
+                            <th>Net Sales</th>
+                            <th>Orders</th>
+                            <th>AOV</th>
+                            <th>Profit %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Petshop</td>
+                            <td>Online</td>
+                            <td>AED 12.5M</td>
+                            <td>22,145</td>
+                            <td>AED 565</td>
+                            <td class="positive">34.2%</td>
+                        </tr>
+                        <tr>
+                            <td>Petshop</td>
+                            <td>Shop</td>
+                            <td>AED 8.3M</td>
+                            <td>15,234</td>
+                            <td>AED 545</td>
+                            <td class="positive">31.5%</td>
+                        </tr>
+                        <tr>
+                            <td>Pethaus</td>
+                            <td>Online</td>
+                            <td>AED 3.2M</td>
+                            <td>5,678</td>
+                            <td>AED 563</td>
+                            <td class="positive">33.8%</td>
+                        </tr>
+                        <tr>
+                            <td>Petshop</td>
+                            <td>B2B</td>
+                            <td>AED 1.5M</td>
+                            <td>2,177</td>
+                            <td>AED 689</td>
+                            <td class="positive">28.3%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Page 3: Customer Analytics -->
+        <div id="customersPage" class="page-content">
+            <h2 class="page-title">Customer Analytics</h2>
+
+            <!-- Customer KPIs -->
+            <div class="kpi-row">
+                <div class="kpi-card">
+                    <div class="kpi-label">Total Customers</div>
+                    <div class="kpi-value">12,456</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">New Customers</div>
+                    <div class="kpi-value">3,245</div>
+                    <div class="kpi-sub">26% of Total</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Repeat Customers</div>
+                    <div class="kpi-value">9,211</div>
+                    <div class="kpi-sub">74% of Total</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Loyalty Members</div>
+                    <div class="kpi-value">8,470</div>
+                    <div class="kpi-sub">68% Penetration</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Customer LTV</div>
+                    <div class="kpi-value">AED 2,048</div>
+                </div>
+            </div>
+
+            <!-- Customer Segmentation -->
+            <div class="charts-row">
+                <div class="chart-container">
+                    <h3 class="chart-title">Customer Segmentation</h3>
+                    <canvas id="customerSegmentChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">New vs Repeat Trend</h3>
+                    <canvas id="customerAcquisitionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Customer Behavior -->
+            <div class="charts-row">
+                <div class="chart-container full-width">
+                    <h3 class="chart-title">Average Orders per Customer by Segment</h3>
+                    <canvas id="customerBehaviorChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Top Customers Table -->
+            <div class="table-container">
+                <h3 class="chart-title">Top 20 Customers by Sales</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Customer Name</th>
+                            <th>Phone</th>
+                            <th>Total Sales</th>
+                            <th>Orders</th>
+                            <th>AOV</th>
+                            <th>Last Purchase</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>Ahmed Al Maktoum</td>
+                            <td>+971 50 XXX 1234</td>
+                            <td>AED 45,230</td>
+                            <td>67</td>
+                            <td>AED 675</td>
+                            <td>2024-11-05</td>
+                            <td><span class="badge verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>Sarah Johnson</td>
+                            <td>+971 55 XXX 5678</td>
+                            <td>AED 38,920</td>
+                            <td>52</td>
+                            <td>AED 749</td>
+                            <td>2024-11-07</td>
+                            <td><span class="badge verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>Mohammed Hassan</td>
+                            <td>+971 50 XXX 9012</td>
+                            <td>AED 32,150</td>
+                            <td>45</td>
+                            <td>AED 714</td>
+                            <td>2024-11-06</td>
+                            <td><span class="badge verified">Verified</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Page 4: Product Performance -->
+        <div id="productsPage" class="page-content">
+            <h2 class="page-title">Product Performance</h2>
+
+            <!-- Product KPIs -->
+            <div class="kpi-row">
+                <div class="kpi-card">
+                    <div class="kpi-label">Active SKUs</div>
+                    <div class="kpi-value">1,245</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Categories</div>
+                    <div class="kpi-value">24</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Brands</div>
+                    <div class="kpi-value">156</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Avg Price/Unit</div>
+                    <div class="kpi-value">AED 125</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Units Sold</div>
+                    <div class="kpi-value">204,567</div>
+                </div>
+            </div>
+
+            <!-- Product Performance Scatter -->
+            <div class="charts-row">
+                <div class="chart-container full-width">
+                    <h3 class="chart-title">Product Performance Matrix - Quantity vs Profit Margin</h3>
+                    <canvas id="productScatterChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Category & Brand Analysis -->
+            <div class="charts-row">
+                <div class="chart-container">
+                    <h3 class="chart-title">Top 10 Categories by Sales</h3>
+                    <canvas id="categoryChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">Sales by Division</h3>
+                    <canvas id="divisionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- ABC Analysis -->
+            <div class="charts-row">
+                <div class="chart-container full-width">
+                    <h3 class="chart-title">ABC Analysis - Product Contribution (Pareto Chart)</h3>
+                    <canvas id="paretoChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page 5: Location & Channel -->
+        <div id="locationPage" class="page-content">
+            <h2 class="page-title">Location & Channel Analysis</h2>
+
+            <!-- Location Performance -->
+            <div class="charts-row">
+                <div class="chart-container">
+                    <h3 class="chart-title">Top 10 Locations by Sales</h3>
+                    <canvas id="locationChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">Sales by City</h3>
+                    <canvas id="cityChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Channel Analysis -->
+            <div class="charts-row">
+                <div class="chart-container full-width">
+                    <h3 class="chart-title">Sales Channel Breakdown Over Time</h3>
+                    <canvas id="channelTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Online vs Offline -->
+            <div class="charts-row">
+                <div class="chart-container">
+                    <h3 class="chart-title">Online Channel Breakdown</h3>
+                    <canvas id="onlineChannelChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">Offline Store Performance</h3>
+                    <canvas id="offlineStoreChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page 6: Payment & Transactions -->
+        <div id="paymentPage" class="page-content">
+            <h2 class="page-title">Payment & Transaction Analysis</h2>
+
+            <!-- Transaction KPIs -->
+            <div class="kpi-row">
+                <div class="kpi-card">
+                    <div class="kpi-label">Total Transactions</div>
+                    <div class="kpi-value">45,234</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Sales Amount</div>
+                    <div class="kpi-value">AED 26.8M</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Refunds</div>
+                    <div class="kpi-value negative">-AED 1.3M</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Refund Rate</div>
+                    <div class="kpi-value">4.8%</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Net Sales</div>
+                    <div class="kpi-value">AED 25.5M</div>
+                </div>
+            </div>
+
+            <!-- Payment Analysis -->
+            <div class="charts-row">
+                <div class="chart-container">
+                    <h3 class="chart-title">Payment Gateway Mix</h3>
+                    <canvas id="paymentGatewayChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">Payment Method Trend</h3>
+                    <canvas id="paymentMethodTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- COD Analysis -->
+            <div class="charts-row">
+                <div class="chart-container full-width">
+                    <h3 class="chart-title">COD Rate by Channel & Location</h3>
+                    <canvas id="codHeatmapChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Transaction Type -->
+            <div class="charts-row">
+                <div class="chart-container">
+                    <h3 class="chart-title">Transaction Type Mix</h3>
+                    <canvas id="transactionTypeChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">Monthly Refund Rate Trend</h3>
+                    <canvas id="refundTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page 7: Discount Analysis -->
+        <div id="discountPage" class="page-content">
+            <h2 class="page-title">Discount & Promotion Analysis</h2>
+
+            <!-- Discount KPIs -->
+            <div class="kpi-row">
+                <div class="kpi-card">
+                    <div class="kpi-label">Total Discount</div>
+                    <div class="kpi-value">AED 2.7M</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Discount Rate</div>
+                    <div class="kpi-value">9.6%</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Discounted Orders</div>
+                    <div class="kpi-value">18,234</div>
+                    <div class="kpi-sub">40.3% of Total</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Avg Discount</div>
+                    <div class="kpi-value">AED 148</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Online vs Offline</div>
+                    <div class="kpi-value">65% : 35%</div>
+                </div>
+            </div>
+
+            <!-- Discount Trends -->
+            <div class="charts-row">
+                <div class="chart-container full-width">
+                    <h3 class="chart-title">Discount Rate Trend - Online vs Offline</h3>
+                    <canvas id="discountTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Discount Impact -->
+            <div class="charts-row">
+                <div class="chart-container">
+                    <h3 class="chart-title">Sales by Discount Status</h3>
+                    <canvas id="discountStatusChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">Discount Effectiveness</h3>
+                    <canvas id="discountEffectivenessChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Top Offers -->
+            <div class="charts-row">
+                <div class="chart-container">
+                    <h3 class="chart-title">Top 10 Online Offers</h3>
+                    <canvas id="onlineOffersChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">Top 10 Offline Offers</h3>
+                    <canvas id="offlineOffersChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page 8: Time Trends -->
+        <div id="trendsPage" class="page-content">
+            <h2 class="page-title">Time Trends & Forecasting</h2>
+
+            <!-- Period Comparison -->
+            <div class="kpi-row">
+                <div class="kpi-card">
+                    <div class="kpi-label">MTD</div>
+                    <div class="kpi-value">AED 2.1M</div>
+                    <div class="kpi-change positive">↑ 10.5%</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">YTD</div>
+                    <div class="kpi-value">AED 25.5M</div>
+                    <div class="kpi-change positive">↑ 15.4%</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Last Month</div>
+                    <div class="kpi-value">AED 1.9M</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Last Year</div>
+                    <div class="kpi-value">AED 22.1M</div>
+                </div>
+            </div>
+
+            <!-- Main Trend -->
+            <div class="charts-row">
+                <div class="chart-container full-width">
+                    <h3 class="chart-title">Sales Trend - Last 24 Months</h3>
+                    <canvas id="longTermTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Seasonal Analysis -->
+            <div class="charts-row">
+                <div class="chart-container">
+                    <h3 class="chart-title">Sales by Month (All Years)</h3>
+                    <canvas id="seasonalityChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">Sales by Day of Week</h3>
+                    <canvas id="dayOfWeekChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Moving Averages -->
+            <div class="charts-row">
+                <div class="chart-container full-width">
+                    <h3 class="chart-title">Daily Sales with Moving Averages</h3>
+                    <canvas id="movingAverageChart"></canvas>
+                </div>
+            </div>
+
+            <!-- YoY Comparison Table -->
+            <div class="table-container">
+                <h3 class="chart-title">Year-over-Year Comparison</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>2023</th>
+                            <th>2024</th>
+                            <th>2025</th>
+                            <th>Growth % (24 vs 23)</th>
+                            <th>Growth % (25 vs 24)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>January</td>
+                            <td>AED 1.8M</td>
+                            <td>AED 2.1M</td>
+                            <td>AED 2.4M</td>
+                            <td class="positive">+16.7%</td>
+                            <td class="positive">+14.3%</td>
+                        </tr>
+                        <tr>
+                            <td>February</td>
+                            <td>AED 1.7M</td>
+                            <td>AED 2.0M</td>
+                            <td>AED 2.3M</td>
+                            <td class="positive">+17.6%</td>
+                            <td class="positive">+15.0%</td>
+                        </tr>
+                        <tr>
+                            <td>March</td>
+                            <td>AED 1.9M</td>
+                            <td>AED 2.2M</td>
+                            <td>-</td>
+                            <td class="positive">+15.8%</td>
+                            <td>-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="footer-left">
+            💾 Data Source: fact_commercial (BigQuery) | 🔄 Auto-refresh: Daily 6:00 AM
+        </div>
+        <div class="footer-right">
+            📊 Powered by Power BI | Built with ❤️ for The Pet Shop
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading data...</div>
+    </div>
+
+    <script src="charts.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
