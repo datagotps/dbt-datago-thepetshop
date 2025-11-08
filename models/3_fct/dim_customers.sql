@@ -86,6 +86,13 @@ customer_channel_distribution,     -- dim: Hybrid, Online, Shop
 acquisition_cohort,                -- dim: MTD, Jan 25, Year 24, Year 23, etc
 acquisition_cohort_rank,           -- dim: 100-1000 (sort)
 
+-- Offer/Discount Behavior
+orders_with_discount_count,        -- fact (count of orders with discounts)
+total_discount_amount,             -- fact (total AED saved via discounts)
+distinct_offers_used,              -- fact (count of unique offers used)
+offer_seeker_segment,              -- dim: Offer Seeker, Occasional Offer User, Non-Offer User
+offer_seeker_segment_order,        -- dim: 1-3 (sort)
+
 -- Multiple Source Tracking
 all_source_nos,                    -- dim: source1 | source2 | ...
 duplicate_customer_count,          -- fact (count of sources)

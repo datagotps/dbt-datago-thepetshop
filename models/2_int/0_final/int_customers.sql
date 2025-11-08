@@ -216,6 +216,41 @@ customer_acquisition_details AS (
 ),
 
 -- =====================================================
+-- STEP 3B: Customer Offer/Discount Usage
+-- =====================================================
+customer_offer_usage AS (
+    SELECT 
+        ol.unified_customer_id,
+        
+        -- Count orders with discounts/offers
+        COUNT(DISTINCT CASE 
+            WHEN ol.has_discount = 1 
+            THEN ol.unified_order_id 
+        END) AS orders_with_discount_count,
+        
+        -- Total discount amount
+        SUM(CASE 
+            WHEN ol.transaction_type = 'Sale' 
+            THEN ABS(COALESCE(ol.discount_amount, 0))
+            ELSE 0
+        END) AS total_discount_amount,
+        
+        -- Count distinct offers used
+        COUNT(DISTINCT CASE 
+            WHEN ol.online_offer_no_ IS NOT NULL AND ol.online_offer_no_ != '' 
+            THEN ol.online_offer_no_
+        END) + COUNT(DISTINCT CASE 
+            WHEN ol.offline_offer_no_ IS NOT NULL AND ol.offline_offer_no_ != '' 
+            THEN ol.offline_offer_no_
+        END) AS distinct_offers_used
+        
+    FROM {{ ref('int_order_lines') }} ol
+    WHERE ol.unified_customer_id IS NOT NULL
+        AND ol.transaction_type = 'Sale'
+    GROUP BY ol.unified_customer_id
+),
+
+-- =====================================================
 -- STEP 4: Join base metrics with lists and acquisition
 -- =====================================================
 customer_combined AS (
@@ -260,10 +295,17 @@ customer_combined AS (
         cad.customer_acquisition_channel,
         cad.first_acquisition_paymentgateway,
         cad.first_acquisition_order_type,
-        cad.customer_acquisition_channel_detail
+        cad.customer_acquisition_channel_detail,
+        
+        -- Offer/Discount metrics
+        COALESCE(cou.orders_with_discount_count, 0) AS orders_with_discount_count,
+        COALESCE(cou.total_discount_amount, 0) AS total_discount_amount,
+        COALESCE(cou.distinct_offers_used, 0) AS distinct_offers_used
+        
     FROM customer_base_metrics cbm
     LEFT JOIN customer_order_lists col ON cbm.unified_customer_id = col.unified_customer_id
     LEFT JOIN customer_acquisition_details cad ON cbm.unified_customer_id = cad.unified_customer_id
+    LEFT JOIN customer_offer_usage cou ON cbm.unified_customer_id = cou.unified_customer_id
 ),
 
 -- =====================================================
@@ -468,7 +510,20 @@ customer_calculated_metrics AS (
             WHEN EXTRACT(YEAR FROM customer_acquisition_date) = EXTRACT(YEAR FROM CURRENT_DATE()) - 5 THEN 400
             WHEN EXTRACT(YEAR FROM customer_acquisition_date) <= EXTRACT(YEAR FROM CURRENT_DATE()) - 6 THEN 100
             ELSE 1
-        END AS acquisition_cohort_rank
+        END AS acquisition_cohort_rank,
+        
+        -- Offer Seeker Segment
+        CASE 
+            WHEN orders_with_discount_count >= 3 THEN 'Offer Seeker'
+            WHEN orders_with_discount_count BETWEEN 1 AND 2 THEN 'Occasional Offer User'
+            ELSE 'Non-Offer User'
+        END AS offer_seeker_segment,
+        
+        CASE 
+            WHEN orders_with_discount_count >= 3 THEN 1
+            WHEN orders_with_discount_count BETWEEN 1 AND 2 THEN 2
+            ELSE 3
+        END AS offer_seeker_segment_order
         
     FROM customer_combined
 ),
@@ -594,6 +649,13 @@ customer_segments AS (
         cs.customer_channel_distribution,
         cs.acquisition_cohort,
         cs.acquisition_cohort_rank,
+        
+        -- Offer/Discount metrics
+        cs.orders_with_discount_count,
+        cs.total_discount_amount,
+        cs.distinct_offers_used,
+        cs.offer_seeker_segment,
+        cs.offer_seeker_segment_order,
         
         -- Multiple source tracking
         cs.all_source_nos,

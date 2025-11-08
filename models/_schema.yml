@@ -2,8 +2,9 @@ models:
   - name: 1_stg_erp_customer
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - web_customer_no_
-            - no_
+          arguments:
+            combination_of_columns:
+              - web_customer_no_
+              - no_
           config:
             severity: warn  # Don't fail the pipeline, just warn
