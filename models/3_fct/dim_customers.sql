@@ -117,10 +117,6 @@ primary_pet_type,                  -- dim: Dog, Cat, Fish, Bird, Small Pet, Rept
 pet_owner_profile,                 -- dim: Dog Owner, Cat Owner, Multi-Pet Owner, etc
 multi_pet_detail,                  -- dim: Dog + Cat Owner, Dog + Cat + Others, Multi-Pet Owner (3+)
 
--- New Pet Parent Identification
-is_new_pet_parent,                 -- dim: 1 = purchased kitten/puppy items in last 90 days, 0 = no
-last_kitten_puppy_purchase_date,   -- dim (date): most recent kitten/puppy item purchase
-new_pet_parent_segment,            -- dim: New Pet Parent, Not New Pet Parent
 
 -- Multiple Source Tracking
 all_source_nos,                    -- dim: source1 | source2 | ...
