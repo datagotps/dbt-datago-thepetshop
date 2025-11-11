@@ -64,16 +64,13 @@ DATETIME_ADD(CURRENT_DATETIME(), INTERVAL 4 HOUR) AS report_last_updated_at,
 
 from {{ ref('int_purchase_line') }}
 
-
+where 1=1
+{{ dev_date_filter('order_date', [
+    {'start': '2024-04-01', 'end': '2024-04-30'},
+    {'start': '2025-03-01', 'end': '2025-03-31'},
+    {'start': '2025-04-01', 'end': '2025-04-30'}
+]) }}
 
 --where document_no_ = 'TPS/2025/002646' and document_type = 'Order'
-/*
-WHERE 
-(order_date BETWEEN '2024-04-01' AND '2024-04-30'
-   OR order_date BETWEEN '2025-03-01' AND '2025-03-31'
-   OR order_date BETWEEN '2025-04-01' AND '2025-04-30'
-)
-
-*/
 --where  document_no_ = 'TPS/2025/002673' -- and item_no = '100935-1'
 

@@ -6,15 +6,24 @@ This folder contains technical documentation for major features and enhancements
 
 ## 📚 Available Documentation
 
+### Development Tools
+
+1. **[Development Mode Filtering](./dev_mode_filtering/)**
+   - Toggle data filtering for faster development cycles
+   - Filter models by date ranges during development
+   - **Use Case**: Speed up development, reduce compute costs
+   - **Date Added**: November 2025
+   - **Quick Start**: `dbt run --vars 'dev_mode: true'`
+
 ### Customer Segmentation Features
 
-1. **[Offer Seeker Segmentation](./offer_seeker_segmentation.md)**
+2. **[Offer Seeker Segmentation](./offer_seeker_segmentation.md)**
    - Identifies customers who frequently use discounts and offers
    - Segments: Offer Seeker, Occasional Offer User, Non-Offer User
    - **Use Case**: Targeted promotional campaigns and discount optimization
    - **Date Added**: November 2025
 
-2. **[Pet Ownership Categorization](./pet_ownership_categorization.md)**
+3. **[Pet Ownership Categorization](./pet_ownership_categorization.md)**
    - Categorizes customers by pet type ownership (Dog, Cat, Fish, Bird, Small Pet, Reptile)
    - Identifies multi-pet owners for cross-sell opportunities
    - **Use Case**: Pet-specific marketing campaigns and product recommendations
@@ -23,6 +32,20 @@ This folder contains technical documentation for major features and enhancements
 ---
 
 ## 🎯 Quick Reference
+
+### Development Mode Filtering
+**Quick Commands**:
+```bash
+# Development (filtered data)
+dbt run --vars 'dev_mode: true'
+
+# Production (full data)
+dbt run
+```
+
+**Documentation**: See [dev_mode_filtering/](./dev_mode_filtering/) folder
+
+---
 
 ### Offer Seeker Segmentation
 **Key Fields**:
@@ -165,10 +188,11 @@ For questions or support:
 
 | Date | Feature | Documentation |
 |------|---------|---------------|
+| Nov 11, 2025 | Development Mode Filtering | [Link](./dev_mode_filtering/) |
 | Nov 2025 | Offer Seeker Segmentation | [Link](./offer_seeker_segmentation.md) |
 | Nov 2025 | Pet Ownership Categorization | [Link](./pet_ownership_categorization.md) |
 
 ---
 
-**Last Updated**: November 9, 2025  
-**Version**: 1.0
+**Last Updated**: November 11, 2025  
+**Version**: 1.1

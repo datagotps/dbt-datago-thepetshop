@@ -22,6 +22,16 @@ vars:
   erp_source: "sql_erp_prod_dbo"
   ofs_source: "mysql_ofs"
   h_ofs_source: "h_mysql_ofs"
+  
+  # Development mode: set to true to filter data for faster development
+  dev_mode: false
+  
+  # Default date ranges for development filtering
+  # Override with: dbt run --vars '{"dev_date_ranges": [{"start": "2025-01-01", "end": "2025-03-31"}]}'
+  dev_date_ranges:
+    - {start: '2025-01-01', end: '2025-09-30'}
+    - {start: '2024-12-01', end: '2024-12-31'}
+    - {start: '2024-01-01', end: '2024-01-31'}
 
 
 models:

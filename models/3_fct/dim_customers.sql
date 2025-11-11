@@ -117,6 +117,11 @@ primary_pet_type,                  -- dim: Dog, Cat, Fish, Bird, Small Pet, Rept
 pet_owner_profile,                 -- dim: Dog Owner, Cat Owner, Multi-Pet Owner, etc
 multi_pet_detail,                  -- dim: Dog + Cat Owner, Dog + Cat + Others, Multi-Pet Owner (3+)
 
+-- New Pet Parent Identification
+is_new_pet_parent,                 -- dim: 1 = purchased kitten/puppy items in last 90 days, 0 = no
+last_kitten_puppy_purchase_date,   -- dim (date): most recent kitten/puppy item purchase
+new_pet_parent_segment,            -- dim: New Pet Parent, Not New Pet Parent
+
 -- Multiple Source Tracking
 all_source_nos,                    -- dim: source1 | source2 | ...
 duplicate_customer_count,          -- fact (count of sources)
@@ -159,10 +164,4 @@ FROM {{ ref('int_customers') }} as a
 
 where customer_acquisition_channel in ('Online','Shop') 
 
-/*
-AND (
-    (customer_acquisition_date >= '2025-01-01' AND customer_acquisition_date < '2025-02-01')  -- Jan 2025
-    OR (customer_acquisition_date >= '2024-01-01' AND customer_acquisition_date < '2024-02-01')  -- Jan 2024
-    OR (customer_acquisition_date >= '2024-12-01' AND customer_acquisition_date < '2025-01-01')  -- Dec 2024
-)
-*/
+{{ dev_date_filter('customer_acquisition_date') }}

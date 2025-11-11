@@ -130,18 +130,4 @@ FROM {{ ref('int_orders') }}
 where sales_channel in ('Online','Shop') 
 and document_no_ != 'INV00528612' --Future Order Date (Dec 9, 2025)
 
-/*
-and (order_date BETWEEN '2025-01-01' AND '2025-09-30'
-       OR order_date BETWEEN '2024-12-01' AND '2024-12-31'
-       OR order_date BETWEEN '2024-01-01' AND '2024-01-31'
-      )
-
-*/
-
-/*
-AND (
-    (order_date >= '2025-01-01' AND order_date < '2025-02-01')  -- Jan 2025
-    OR (order_date >= '2024-01-01' AND order_date < '2024-02-01')  -- Jan 2024
-    OR (order_date >= '2024-12-01' AND order_date < '2025-01-01')  -- Dec 2024
-)
-*/
+{{ dev_date_filter('order_date') }}

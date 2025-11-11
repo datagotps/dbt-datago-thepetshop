@@ -134,12 +134,5 @@ WHERE
 transaction_date BETWEEN DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 2 MONTH), MONTH)
 AND LAST_DAY(CURRENT_DATE(), MONTH)
 
-
-
-/*
-where (transaction_date BETWEEN '2025-01-01' AND '2025-09-30'
-       OR transaction_date BETWEEN '2024-12-01' AND '2024-12-31'
-       OR transaction_date BETWEEN '2024-01-01' AND '2024-01-31'
-      )
-*/
+{{ dev_date_filter('transaction_date') }}
 
