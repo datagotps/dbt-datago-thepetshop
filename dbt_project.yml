@@ -1,4 +1,7 @@
 
+# dbt run --select dim_items dim_customers fact_orders fact_commercial fct_daily_transactions fct_procurement --vars 'dev_mode: true'
+
+
 name: 'thepetshop'
 version: '1.0.0'
 config-version: 2
@@ -51,3 +54,7 @@ models:
       +enabled: true
       +materialized: table
       +schema: fct
+
+
+
+
