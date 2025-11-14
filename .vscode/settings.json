@@ -1,0 +1,8 @@
+{
+  "dbt.dbtProjectPath": "/Users/anmarabbas/Claude MCP/dbt-datago-thepetshop",
+  "dbt.profilesDir": "/Users/anmarabbas/.dbt",
+  "dbt.target": "dev",
+  "files.associations": {
+    "*.sql": "jinja-sql"
+  }
+}
