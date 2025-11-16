@@ -86,6 +86,38 @@ customer_channel_distribution,     -- dim: Hybrid, Online, Shop
 acquisition_cohort,                -- dim: MTD, Jan 25, Year 24, Year 23, etc
 acquisition_cohort_rank,           -- dim: 100-1000 (sort)
 
+-- Offer/Discount Behavior
+orders_with_discount_count,        -- fact (count of orders with discounts)
+total_discount_amount,             -- fact (total AED saved via discounts)
+distinct_offers_used,              -- fact (count of unique offers used)
+offer_seeker_segment,              -- dim: Offer Seeker, Occasional Offer User, Non-Offer User
+offer_seeker_segment_order,        -- dim: 1-3 (sort)
+
+-- Pet Ownership Analysis
+--dog_revenue,                       -- fact (AED spent on dog products)
+--cat_revenue,                       -- fact (AED spent on cat products)
+--fish_revenue,                      -- fact (AED spent on fish products)
+--bird_revenue,                      -- fact (AED spent on bird products)
+--small_pet_revenue,                 -- fact (AED spent on small pet products)
+--reptile_revenue,                   -- fact (AED spent on reptile products)
+--dog_orders,                        -- fact (count of orders with dog products)
+--cat_orders,                        -- fact (count of orders with cat products)
+--fish_orders,                       -- fact (count of orders with fish products)
+--bird_orders,                       -- fact (count of orders with bird products)
+--small_pet_orders,                  -- fact (count of orders with small pet products)
+--reptile_orders,                    -- fact (count of orders with reptile products)
+is_dog_owner,                      -- dim: 1 = has purchased dog products, 0 = no
+is_cat_owner,                      -- dim: 1 = has purchased cat products, 0 = no
+is_fish_owner,                     -- dim: 1 = has purchased fish products, 0 = no
+is_bird_owner,                     -- dim: 1 = has purchased bird products, 0 = no
+is_small_pet_owner,                -- dim: 1 = has purchased small pet products, 0 = no
+is_reptile_owner,                  -- dim: 1 = has purchased reptile products, 0 = no
+pet_types_count,                   -- fact (count of different pet types owned)
+primary_pet_type,                  -- dim: Dog, Cat, Fish, Bird, Small Pet, Reptile, No Pet Products
+pet_owner_profile,                 -- dim: Dog Owner, Cat Owner, Multi-Pet Owner, etc
+multi_pet_detail,                  -- dim: Dog + Cat Owner, Dog + Cat + Others, Multi-Pet Owner (3+)
+
+
 -- Multiple Source Tracking
 all_source_nos,                    -- dim: source1 | source2 | ...
 duplicate_customer_count,          -- fact (count of sources)
@@ -128,10 +160,4 @@ FROM {{ ref('int_customers') }} as a
 
 where customer_acquisition_channel in ('Online','Shop') 
 
-/*
-AND (
-    (customer_acquisition_date >= '2025-01-01' AND customer_acquisition_date < '2025-02-01')  -- Jan 2025
-    OR (customer_acquisition_date >= '2024-01-01' AND customer_acquisition_date < '2024-02-01')  -- Jan 2024
-    OR (customer_acquisition_date >= '2024-12-01' AND customer_acquisition_date < '2025-01-01')  -- Dec 2024
-)
-*/
+{{ dev_date_filter('customer_acquisition_date') }}

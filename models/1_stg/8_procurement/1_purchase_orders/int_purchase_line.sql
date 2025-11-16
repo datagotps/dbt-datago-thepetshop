@@ -83,6 +83,7 @@ select
     -- DOCUMENT INFO
     b.status as po_header_status,
     b.document_date,
+    b.buy_from_vendor_name,
 
 
 from {{ ref('stg_petshop_purchase_line') }} as a

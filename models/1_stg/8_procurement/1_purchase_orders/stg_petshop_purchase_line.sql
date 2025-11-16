@@ -568,5 +568,4 @@ joined as (
 
 select * from joined
 
--- Example filter
--- where document_no_ = 'TPS/2025/000812'
+--where  document_no_ = 'TPS/2025/001411'  

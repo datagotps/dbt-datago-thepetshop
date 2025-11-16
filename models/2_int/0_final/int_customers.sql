@@ -216,6 +216,79 @@ customer_acquisition_details AS (
 ),
 
 -- =====================================================
+-- STEP 3B: Customer Offer/Discount Usage
+-- =====================================================
+customer_offer_usage AS (
+    SELECT 
+        ol.unified_customer_id,
+        
+        -- Count orders with discounts/offers
+        COUNT(DISTINCT CASE 
+            WHEN ol.has_discount = 1 
+            THEN ol.unified_order_id 
+        END) AS orders_with_discount_count,
+        
+        -- Total discount amount
+        SUM(CASE 
+            WHEN ol.transaction_type = 'Sale' 
+            THEN ABS(COALESCE(ol.discount_amount, 0))
+            ELSE 0
+        END) AS total_discount_amount,
+        
+        -- Count distinct offers used
+        COUNT(DISTINCT CASE 
+            WHEN ol.online_offer_no_ IS NOT NULL AND ol.online_offer_no_ != '' 
+            THEN ol.online_offer_no_
+        END) + COUNT(DISTINCT CASE 
+            WHEN ol.offline_offer_no_ IS NOT NULL AND ol.offline_offer_no_ != '' 
+            THEN ol.offline_offer_no_
+        END) AS distinct_offers_used
+        
+    FROM {{ ref('int_order_lines') }} ol
+    WHERE ol.unified_customer_id IS NOT NULL
+        AND ol.transaction_type = 'Sale'
+    GROUP BY ol.unified_customer_id
+),
+
+-- =====================================================
+-- STEP 3C: Customer Pet Ownership Analysis
+-- =====================================================
+customer_pet_ownership AS (
+    SELECT 
+        ol.unified_customer_id,
+        
+        -- Revenue by pet division
+        SUM(CASE WHEN ol.division = 'DOG' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS dog_revenue,
+        SUM(CASE WHEN ol.division = 'CAT' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS cat_revenue,
+        SUM(CASE WHEN ol.division = 'FISH' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS fish_revenue,
+        SUM(CASE WHEN ol.division = 'BIRD' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS bird_revenue,
+        SUM(CASE WHEN ol.division = 'SMALL PET' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS small_pet_revenue,
+        SUM(CASE WHEN ol.division = 'REPTILE' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS reptile_revenue,
+        
+        -- Order counts by pet division
+        COUNT(DISTINCT CASE WHEN ol.division = 'DOG' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS dog_orders,
+        COUNT(DISTINCT CASE WHEN ol.division = 'CAT' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS cat_orders,
+        COUNT(DISTINCT CASE WHEN ol.division = 'FISH' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS fish_orders,
+        COUNT(DISTINCT CASE WHEN ol.division = 'BIRD' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS bird_orders,
+        COUNT(DISTINCT CASE WHEN ol.division = 'SMALL PET' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS small_pet_orders,
+        COUNT(DISTINCT CASE WHEN ol.division = 'REPTILE' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS reptile_orders,
+        
+        -- Pet ownership flags (has purchased at least once)
+        CASE WHEN SUM(CASE WHEN ol.division = 'DOG' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_dog_owner,
+        CASE WHEN SUM(CASE WHEN ol.division = 'CAT' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_cat_owner,
+        CASE WHEN SUM(CASE WHEN ol.division = 'FISH' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_fish_owner,
+        CASE WHEN SUM(CASE WHEN ol.division = 'BIRD' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_bird_owner,
+        CASE WHEN SUM(CASE WHEN ol.division = 'SMALL PET' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_small_pet_owner,
+        CASE WHEN SUM(CASE WHEN ol.division = 'REPTILE' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_reptile_owner
+        
+    FROM {{ ref('int_order_lines') }} ol
+    WHERE ol.unified_customer_id IS NOT NULL
+        AND ol.transaction_type = 'Sale'
+        AND ol.division IN ('DOG', 'CAT', 'FISH', 'BIRD', 'SMALL PET', 'REPTILE')
+    GROUP BY ol.unified_customer_id
+),
+
+-- =====================================================
 -- STEP 4: Join base metrics with lists and acquisition
 -- =====================================================
 customer_combined AS (
@@ -260,10 +333,38 @@ customer_combined AS (
         cad.customer_acquisition_channel,
         cad.first_acquisition_paymentgateway,
         cad.first_acquisition_order_type,
-        cad.customer_acquisition_channel_detail
+        cad.customer_acquisition_channel_detail,
+        
+        -- Offer/Discount metrics
+        COALESCE(cou.orders_with_discount_count, 0) AS orders_with_discount_count,
+        COALESCE(cou.total_discount_amount, 0) AS total_discount_amount,
+        COALESCE(cou.distinct_offers_used, 0) AS distinct_offers_used,
+        
+        -- Pet Ownership metrics
+        COALESCE(cpo.dog_revenue, 0) AS dog_revenue,
+        COALESCE(cpo.cat_revenue, 0) AS cat_revenue,
+        COALESCE(cpo.fish_revenue, 0) AS fish_revenue,
+        COALESCE(cpo.bird_revenue, 0) AS bird_revenue,
+        COALESCE(cpo.small_pet_revenue, 0) AS small_pet_revenue,
+        COALESCE(cpo.reptile_revenue, 0) AS reptile_revenue,
+        COALESCE(cpo.dog_orders, 0) AS dog_orders,
+        COALESCE(cpo.cat_orders, 0) AS cat_orders,
+        COALESCE(cpo.fish_orders, 0) AS fish_orders,
+        COALESCE(cpo.bird_orders, 0) AS bird_orders,
+        COALESCE(cpo.small_pet_orders, 0) AS small_pet_orders,
+        COALESCE(cpo.reptile_orders, 0) AS reptile_orders,
+        COALESCE(cpo.is_dog_owner, 0) AS is_dog_owner,
+        COALESCE(cpo.is_cat_owner, 0) AS is_cat_owner,
+        COALESCE(cpo.is_fish_owner, 0) AS is_fish_owner,
+        COALESCE(cpo.is_bird_owner, 0) AS is_bird_owner,
+        COALESCE(cpo.is_small_pet_owner, 0) AS is_small_pet_owner,
+        COALESCE(cpo.is_reptile_owner, 0) AS is_reptile_owner
+        
     FROM customer_base_metrics cbm
     LEFT JOIN customer_order_lists col ON cbm.unified_customer_id = col.unified_customer_id
     LEFT JOIN customer_acquisition_details cad ON cbm.unified_customer_id = cad.unified_customer_id
+    LEFT JOIN customer_offer_usage cou ON cbm.unified_customer_id = cou.unified_customer_id
+    LEFT JOIN customer_pet_ownership cpo ON cbm.unified_customer_id = cpo.unified_customer_id
 ),
 
 -- =====================================================
@@ -468,7 +569,76 @@ customer_calculated_metrics AS (
             WHEN EXTRACT(YEAR FROM customer_acquisition_date) = EXTRACT(YEAR FROM CURRENT_DATE()) - 5 THEN 400
             WHEN EXTRACT(YEAR FROM customer_acquisition_date) <= EXTRACT(YEAR FROM CURRENT_DATE()) - 6 THEN 100
             ELSE 1
-        END AS acquisition_cohort_rank
+        END AS acquisition_cohort_rank,
+        
+        -- Offer Seeker Segment
+        CASE 
+            WHEN orders_with_discount_count >= 3 THEN 'Offer Seeker'
+            WHEN orders_with_discount_count BETWEEN 1 AND 2 THEN 'Occasional Offer User'
+            ELSE 'Non-Offer User'
+        END AS offer_seeker_segment,
+        
+        CASE 
+            WHEN orders_with_discount_count >= 3 THEN 1
+            WHEN orders_with_discount_count BETWEEN 1 AND 2 THEN 2
+            ELSE 3
+        END AS offer_seeker_segment_order,
+        
+        -- Pet Ownership Categorization
+        -- Count how many pet types the customer owns
+        (is_dog_owner + is_cat_owner + is_fish_owner + is_bird_owner + is_small_pet_owner + is_reptile_owner) AS pet_types_count,
+        
+        -- Primary pet type (based on highest revenue)
+        CASE 
+            WHEN dog_revenue >= cat_revenue AND dog_revenue >= fish_revenue AND dog_revenue >= bird_revenue 
+                AND dog_revenue >= small_pet_revenue AND dog_revenue >= reptile_revenue AND dog_revenue > 0 
+            THEN 'Dog'
+            WHEN cat_revenue >= dog_revenue AND cat_revenue >= fish_revenue AND cat_revenue >= bird_revenue 
+                AND cat_revenue >= small_pet_revenue AND cat_revenue >= reptile_revenue AND cat_revenue > 0 
+            THEN 'Cat'
+            WHEN fish_revenue >= dog_revenue AND fish_revenue >= cat_revenue AND fish_revenue >= bird_revenue 
+                AND fish_revenue >= small_pet_revenue AND fish_revenue >= reptile_revenue AND fish_revenue > 0 
+            THEN 'Fish'
+            WHEN bird_revenue >= dog_revenue AND bird_revenue >= cat_revenue AND bird_revenue >= fish_revenue 
+                AND bird_revenue >= small_pet_revenue AND bird_revenue >= reptile_revenue AND bird_revenue > 0 
+            THEN 'Bird'
+            WHEN small_pet_revenue >= dog_revenue AND small_pet_revenue >= cat_revenue AND small_pet_revenue >= fish_revenue 
+                AND small_pet_revenue >= bird_revenue AND small_pet_revenue >= reptile_revenue AND small_pet_revenue > 0 
+            THEN 'Small Pet'
+            WHEN reptile_revenue >= dog_revenue AND reptile_revenue >= cat_revenue AND reptile_revenue >= fish_revenue 
+                AND reptile_revenue >= bird_revenue AND reptile_revenue >= small_pet_revenue AND reptile_revenue > 0 
+            THEN 'Reptile'
+            ELSE 'No Pet Products'
+        END AS primary_pet_type,
+        
+        -- Customer pet owner profile
+        CASE 
+            WHEN (is_dog_owner + is_cat_owner + is_fish_owner + is_bird_owner + is_small_pet_owner + is_reptile_owner) = 0 
+            THEN 'No Pet Products'
+            WHEN (is_dog_owner + is_cat_owner + is_fish_owner + is_bird_owner + is_small_pet_owner + is_reptile_owner) = 1 
+            THEN CASE 
+                WHEN is_dog_owner = 1 THEN 'Dog Owner'
+                WHEN is_cat_owner = 1 THEN 'Cat Owner'
+                WHEN is_fish_owner = 1 THEN 'Fish Owner'
+                WHEN is_bird_owner = 1 THEN 'Bird Owner'
+                WHEN is_small_pet_owner = 1 THEN 'Small Pet Owner'
+                WHEN is_reptile_owner = 1 THEN 'Reptile Owner'
+            END
+            WHEN (is_dog_owner + is_cat_owner + is_fish_owner + is_bird_owner + is_small_pet_owner + is_reptile_owner) >= 2 
+            THEN 'Multi-Pet Owner'
+            ELSE 'Unknown'
+        END AS pet_owner_profile,
+        
+        -- Detailed multi-pet profile (for multi-pet owners)
+        CASE 
+            WHEN is_dog_owner = 1 AND is_cat_owner = 1 AND (is_fish_owner + is_bird_owner + is_small_pet_owner + is_reptile_owner) = 0 
+            THEN 'Dog + Cat Owner'
+            WHEN is_dog_owner = 1 AND is_cat_owner = 1 AND (is_fish_owner + is_bird_owner + is_small_pet_owner + is_reptile_owner) > 0 
+            THEN 'Dog + Cat + Others'
+            WHEN (is_dog_owner + is_cat_owner + is_fish_owner + is_bird_owner + is_small_pet_owner + is_reptile_owner) >= 3 
+            THEN 'Multi-Pet Owner (3+)'
+            ELSE NULL
+        END AS multi_pet_detail
         
     FROM customer_combined
 ),
@@ -594,6 +764,37 @@ customer_segments AS (
         cs.customer_channel_distribution,
         cs.acquisition_cohort,
         cs.acquisition_cohort_rank,
+        
+        -- Offer/Discount metrics
+        cs.orders_with_discount_count,
+        cs.total_discount_amount,
+        cs.distinct_offers_used,
+        cs.offer_seeker_segment,
+        cs.offer_seeker_segment_order,
+        
+        -- Pet Ownership metrics
+        cs.dog_revenue,
+        cs.cat_revenue,
+        cs.fish_revenue,
+        cs.bird_revenue,
+        cs.small_pet_revenue,
+        cs.reptile_revenue,
+        cs.dog_orders,
+        cs.cat_orders,
+        cs.fish_orders,
+        cs.bird_orders,
+        cs.small_pet_orders,
+        cs.reptile_orders,
+        cs.is_dog_owner,
+        cs.is_cat_owner,
+        cs.is_fish_owner,
+        cs.is_bird_owner,
+        cs.is_small_pet_owner,
+        cs.is_reptile_owner,
+        cs.pet_types_count,
+        cs.primary_pet_type,
+        cs.pet_owner_profile,
+        cs.multi_pet_detail,
         
         -- Multiple source tracking
         cs.all_source_nos,

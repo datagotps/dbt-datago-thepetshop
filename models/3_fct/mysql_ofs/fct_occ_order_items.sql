@@ -173,12 +173,5 @@ END AS fulfillment_stage_sort,
 
 
 from source 
-
---where weborderno = 'O30180649S'
-/*
-WHERE (
-    (ofs_order_date >= '2025-01-01' AND ofs_order_date < '2025-02-01')  -- Jan 2025
-    OR (ofs_order_date >= '2024-01-01' AND ofs_order_date < '2024-02-01')  -- Jan 2024
-    OR (ofs_order_date >= '2024-12-01' AND ofs_order_date < '2025-01-01')  -- Dec 2024
-)
-*/
+where 1=1
+{{ dev_date_filter('ofs_order_date') }}
