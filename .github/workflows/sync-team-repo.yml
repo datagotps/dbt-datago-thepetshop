@@ -13,6 +13,8 @@ on:
 jobs:
   sync-to-team-repo:
     runs-on: ubuntu-latest
+      env:
+          TEAM_REPO_TOKEN: ${{ secrets.TEAM_REPO_TOKEN }}
 
     steps:
       - name: Checkout main repo
@@ -37,8 +39,6 @@ jobs:
           cp models/3_fct/fact_commercial.sql sync/models/3_fct/
 
       - name: Clone team repo
-        env:
-          TEAM_REPO_TOKEN: ${{ secrets.TEAM_REPO_TOKEN }}
         run: |
           git clone https://${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git team-repo
 
