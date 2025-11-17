@@ -43,8 +43,6 @@ jobs:
           git clone https://${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git team-repo
 
       - name: Sync files to team repo
-        env:
-          TEAM_REPO_TOKEN: ${{ secrets.TEAM_REPO_TOKEN }}
         run: |
           rsync -av --delete sync/ team-repo/
           cd team-repo
