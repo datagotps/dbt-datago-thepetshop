@@ -13,44 +13,51 @@ on:
 jobs:
   sync-to-team-repo:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout main repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Setup Git
         run: |
           git config --global user.name 'DataGo Bot'
           git config --global user.email 'anmar@8020datago.ai'
-      
+
       - name: Create sync directory structure
         run: |
           mkdir -p sync/models/2_int/5_item
           mkdir -p sync/models/3_fct
-      
+
       - name: Copy selected files
         run: |
           cp models/2_int/5_item/int_items.sql sync/models/2_int/5_item/
           cp models/2_int/5_item/int_items_2.sql sync/models/2_int/5_item/
           cp models/3_fct/fact_commercial.sql sync/models/3_fct/
-      
+
       - name: Clone team repo
         env:
           TEAM_REPO_TOKEN: ${{ secrets.TEAM_REPO_TOKEN }}
         run: |
           git clone https://${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git team-repo
-      
+
       - name: Sync files to team repo
-          env:
-      TEAM_REPO_TOKEN: ${{ secrets.TEAM_REPO_TOKEN }}
+        env:
+          TEAM_REPO_TOKEN: ${{ secrets.TEAM_REPO_TOKEN }}
         run: |
           rsync -av --delete sync/ team-repo/
           cd team-repo
           git add .
-          git diff-index --quiet HEAD || git commit -m "Sync from main repo: $(date '+%Y-%m-%d %H:%M:%S')"
-          git push https://${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git HEAD:main      
+
+          # Commit only if there are changes
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "Sync from main repo: $(date '+%Y-%m-%d %H:%M:%S')"
+            git push https://${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git HEAD:main
+          else
+            echo "No changes to commit."
+          fi
+
       - name: Cleanup
         if: always()
         run: |
