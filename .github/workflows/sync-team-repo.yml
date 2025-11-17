@@ -8,6 +8,7 @@ on:
       - 'models/2_int/5_item/int_items.sql'
       - 'models/2_int/5_item/int_items_2.sql'
       - 'models/3_fct/fact_commercial.sql'
+      - 'models/3_fct/dim_items.sql'
   workflow_dispatch:
 
 jobs:
@@ -37,6 +38,7 @@ jobs:
           cp models/2_int/5_item/int_items.sql sync/models/2_int/5_item/ || exit 1
           cp models/2_int/5_item/int_items_2.sql sync/models/2_int/5_item/ || exit 1
           cp models/3_fct/fact_commercial.sql sync/models/3_fct/ || exit 1
+          cp models/3_fct/dim_items.sql sync/models/3_fct/ || exit 1
           echo "✓ All files copied successfully"
       
       - name: Verify secret is loaded
