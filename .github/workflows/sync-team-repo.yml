@@ -34,26 +34,45 @@ jobs:
 
       - name: Copy selected files
         run: |
-          cp models/2_int/5_item/int_items.sql sync/models/2_int/5_item/
-          cp models/2_int/5_item/int_items_2.sql sync/models/2_int/5_item/
-          cp models/3_fct/fact_commercial.sql sync/models/3_fct/
+          cp models/2_int/5_item/int_items.sql sync/models/2_int/5_item/ || exit 1
+          cp models/2_int/5_item/int_items_2.sql sync/models/2_int/5_item/ || exit 1
+          cp models/3_fct/fact_commercial.sql sync/models/3_fct/ || exit 1
+          echo "✓ All files copied successfully"
+          ls -la sync/models/2_int/5_item/
+          ls -la sync/models/3_fct/
 
       - name: Clone team repo
         run: |
-          git clone https://${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git team-repo
+          git clone https://${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git team-repo || exit 1
+          echo "✓ Team repo cloned successfully"
 
       - name: Sync files to team repo
         run: |
-          rsync -av --delete sync/ team-repo/
+          rsync -av --delete sync/ team-repo/ || exit 1
           cd team-repo
+          
+          # Show what will be committed
+          echo "Files to be synced:"
+          git status --short
+          
           git add .
 
           # Commit only if there are changes
           if ! git diff-index --quiet HEAD; then
-            git commit -m "Sync from main repo: $(date '+%Y-%m-%d %H:%M:%S')"
-            git push https://${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git HEAD:main
+            COMMIT_MSG="Sync from main repo (dev_anmar branch)
+            
+            Synced files:
+            - models/2_int/5_item/int_items.sql
+            - models/2_int/5_item/int_items_2.sql
+            - models/3_fct/fact_commercial.sql
+            
+            Sync time: $(date '+%Y-%m-%d %H:%M:%S')"
+            
+            git commit -m "$COMMIT_MSG" || exit 1
+            git push https://${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git HEAD:main || exit 1
+            echo "✓ Files synced and pushed successfully"
           else
-            echo "No changes to commit."
+            echo "No changes to commit - files are already up to date."
           fi
 
       - name: Cleanup
