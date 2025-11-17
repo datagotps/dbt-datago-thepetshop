@@ -3,7 +3,7 @@ name: Sync Selected Files to Team Repo
 on:
   push:
     branches:
-      - main
+      - dev_anmar
     paths:
       - 'models/2_int/5_item/int_items.sql'
       - 'models/2_int/5_item/int_items_2.sql'
