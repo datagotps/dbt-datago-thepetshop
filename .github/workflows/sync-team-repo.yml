@@ -43,7 +43,8 @@ jobs:
 
       - name: Clone team repo
         run: |
-          git clone https://${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git team-repo || exit 1
+          # Use token for authentication
+          git clone https://x-access-token:${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git team-repo || exit 1
           echo "✓ Team repo cloned successfully"
 
       - name: Sync files to team repo
@@ -69,7 +70,7 @@ jobs:
             Sync time: $(date '+%Y-%m-%d %H:%M:%S')"
             
             git commit -m "$COMMIT_MSG" || exit 1
-            git push https://${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git HEAD:main || exit 1
+            git push https://x-access-token:${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git HEAD:main || exit 1
             echo "✓ Files synced and pushed successfully"
           else
             echo "No changes to commit - files are already up to date."
