@@ -72,6 +72,6 @@ dim_last_updated_at                -- dim (dimension last update timestamp)
 FROM {{ ref('int_items_2') }}
 
 where varient_item = 0
--- Test: Workflow with dim_items.sql included
+-- Test: With updated classic token
 
 
