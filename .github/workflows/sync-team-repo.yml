@@ -43,13 +43,14 @@ jobs:
           git clone https://${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git team-repo
       
       - name: Sync files to team repo
+          env:
+      TEAM_REPO_TOKEN: ${{ secrets.TEAM_REPO_TOKEN }}
         run: |
           rsync -av --delete sync/ team-repo/
           cd team-repo
           git add .
           git diff-index --quiet HEAD || git commit -m "Sync from main repo: $(date '+%Y-%m-%d %H:%M:%S')"
-          git push
-      
+          git push https://${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git HEAD:main      
       - name: Cleanup
         if: always()
         run: |
