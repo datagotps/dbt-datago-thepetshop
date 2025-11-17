@@ -39,6 +39,19 @@ jobs:
           cp models/3_fct/fact_commercial.sql sync/models/3_fct/ || exit 1
           echo "✓ All files copied successfully"
       
+      - name: Verify secret is loaded
+        run: |
+          if [ -z "$TEAM_REPO_TOKEN" ]; then
+            echo "❌ ERROR: TEAM_REPO_TOKEN is NOT set or is empty!"
+            echo "Please check:"
+            echo "1. Secret exists at: https://github.com/datagotps/dbt-datago-thepetshop/settings/secrets/actions"
+            echo "2. Secret name is EXACTLY: TEAM_REPO_TOKEN (case-sensitive)"
+            echo "3. Secret value is not empty"
+            exit 1
+          else
+            echo "✓ TEAM_REPO_TOKEN is set (length: ${#TEAM_REPO_TOKEN} characters)"
+          fi
+      
       - name: Clone team repo
         run: |
           # Use x-access-token prefix for proper authentication
