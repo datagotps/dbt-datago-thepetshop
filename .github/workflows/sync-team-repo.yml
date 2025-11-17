@@ -43,6 +43,13 @@ jobs:
 
       - name: Clone team repo
         run: |
+          # Verify token is set (but don't print it)
+          if [ -z "${TEAM_REPO_TOKEN}" ]; then
+            echo "❌ ERROR: TEAM_REPO_TOKEN secret is not set!"
+            exit 1
+          fi
+          echo "✓ Token is set (length: ${#TEAM_REPO_TOKEN} characters)"
+          
           # Use token for authentication
           git clone https://x-access-token:${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git team-repo || exit 1
           echo "✓ Team repo cloned successfully"
@@ -54,6 +61,9 @@ jobs:
           
           # Configure remote URL with token
           git remote set-url origin https://x-access-token:${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git
+          
+          # Verify remote is set correctly (without showing token)
+          echo "Remote URL configured: $(git remote get-url origin | sed 's/:[^@]*@/:***@/')"
           
           # Show what will be committed
           echo "Files to be synced:"
@@ -73,7 +83,16 @@ jobs:
             Sync time: $(date '+%Y-%m-%d %H:%M:%S')"
             
             git commit -m "$COMMIT_MSG" || exit 1
-            git push origin main || exit 1
+            
+            # Try to push with detailed error output
+            echo "Attempting to push to origin main..."
+            git push origin main 2>&1 || {
+              echo "❌ Push failed. Checking git config..."
+              git config --list | grep -E "(user|remote)" || true
+              echo "Current branch: $(git branch --show-current)"
+              echo "Remote branches: $(git branch -r)"
+              exit 1
+            }
             echo "✓ Files synced and pushed successfully"
           else
             echo "No changes to commit - files are already up to date."
