@@ -15,89 +15,55 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TEAM_REPO_TOKEN: ${{ secrets.TEAM_REPO_TOKEN }}
-
+    
     steps:
       - name: Checkout main repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
+      
       - name: Setup Git
         run: |
           git config --global user.name 'DataGo Bot'
           git config --global user.email 'anmar@8020datago.ai'
-
+      
       - name: Create sync directory structure
         run: |
           mkdir -p sync/models/2_int/5_item
           mkdir -p sync/models/3_fct
-
+      
       - name: Copy selected files
         run: |
           cp models/2_int/5_item/int_items.sql sync/models/2_int/5_item/ || exit 1
           cp models/2_int/5_item/int_items_2.sql sync/models/2_int/5_item/ || exit 1
           cp models/3_fct/fact_commercial.sql sync/models/3_fct/ || exit 1
           echo "✓ All files copied successfully"
-          ls -la sync/models/2_int/5_item/
-          ls -la sync/models/3_fct/
-
+      
       - name: Clone team repo
         run: |
-          # Verify token is set (but don't print it)
-          if [ -z "${TEAM_REPO_TOKEN}" ]; then
-            echo "❌ ERROR: TEAM_REPO_TOKEN secret is not set!"
-            exit 1
-          fi
-          echo "✓ Token is set (length: ${#TEAM_REPO_TOKEN} characters)"
-          
-          # Use token for authentication
+          # Use x-access-token prefix for proper authentication
           git clone https://x-access-token:${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git team-repo || exit 1
           echo "✓ Team repo cloned successfully"
-
+      
       - name: Sync files to team repo
         run: |
           rsync -av --delete sync/ team-repo/ || exit 1
           cd team-repo
           
-          # Configure remote URL with token
+          # Configure remote URL with token for push
           git remote set-url origin https://x-access-token:${TEAM_REPO_TOKEN}@github.com/datagotps/dbt-datago-thepetshop-team.git
           
-          # Verify remote is set correctly (without showing token)
-          echo "Remote URL configured: $(git remote get-url origin | sed 's/:[^@]*@/:***@/')"
-          
-          # Show what will be committed
-          echo "Files to be synced:"
-          git status --short
-          
           git add .
-
+          
           # Commit only if there are changes
           if ! git diff-index --quiet HEAD; then
-            COMMIT_MSG="Sync from main repo (dev_anmar branch)
-            
-            Synced files:
-            - models/2_int/5_item/int_items.sql
-            - models/2_int/5_item/int_items_2.sql
-            - models/3_fct/fact_commercial.sql
-            
-            Sync time: $(date '+%Y-%m-%d %H:%M:%S')"
-            
-            git commit -m "$COMMIT_MSG" || exit 1
-            
-            # Try to push with detailed error output
-            echo "Attempting to push to origin main..."
-            git push origin main 2>&1 || {
-              echo "❌ Push failed. Checking git config..."
-              git config --list | grep -E "(user|remote)" || true
-              echo "Current branch: $(git branch --show-current)"
-              echo "Remote branches: $(git branch -r)"
-              exit 1
-            }
+            git commit -m "Sync from main repo: $(date '+%Y-%m-%d %H:%M:%S')" || exit 1
+            git push origin main || exit 1
             echo "✓ Files synced and pushed successfully"
           else
             echo "No changes to commit - files are already up to date."
           fi
-
+      
       - name: Cleanup
         if: always()
         run: |
