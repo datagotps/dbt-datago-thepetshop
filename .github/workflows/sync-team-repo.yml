@@ -58,7 +58,8 @@ jobs:
           # Commit only if there are changes
           if ! git diff-index --quiet HEAD; then
             git commit -m "Sync from main repo: $(date '+%Y-%m-%d %H:%M:%S')" || exit 1
-            git push origin main || exit 1
+            # Push current branch to main branch on remote
+            git push origin HEAD:main || exit 1
             echo "✓ Files synced and pushed successfully"
           else
             echo "No changes to commit - files are already up to date."
