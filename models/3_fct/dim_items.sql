@@ -66,10 +66,12 @@ cross_sell_potential_score,        -- fact: 0-100 (cross-sell opportunity score)
 
 -- Metadata
 dim_created_date,                  -- dim (dimension creation date)
-dim_last_updated_at,               -- dim (dimension last update timestamp)
+dim_last_updated_at                -- dim (dimension last update timestamp)
 
 
 FROM {{ ref('int_items_2') }}
 
 where varient_item = 0
---where item_id = '204350-1'
+-- Test: Workflow with dim_items.sql included
+
+
