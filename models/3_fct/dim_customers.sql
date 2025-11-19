@@ -93,6 +93,14 @@ distinct_offers_used,              -- fact (count of unique offers used)
 offer_seeker_segment,              -- dim: Offer Seeker, Occasional Offer User, Non-Offer User
 offer_seeker_segment_order,        -- dim: 1-3 (sort)
 
+-- Discount Affinity Analysis
+discount_usage_rate_pct,           -- fact (percentage of orders with discounts)
+discount_dependency_pct,           -- fact (percentage of spend from discounts)
+discount_affinity_score,           -- fact (0-100 composite affinity score)
+discount_affinity_percentile,      -- fact (0-1 percentile ranking)
+discount_affinity_segment,         -- dim: High/Medium/Low/No Discount Affinity
+discount_affinity_segment_order,   -- dim: 1-4 (sort order)
+
 -- Pet Ownership Analysis
 --dog_revenue,                       -- fact (AED spent on dog products)
 --cat_revenue,                       -- fact (AED spent on cat products)
