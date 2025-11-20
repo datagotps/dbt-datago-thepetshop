@@ -228,12 +228,20 @@ customer_offer_usage AS (
             THEN ol.unified_order_id 
         END) AS orders_with_discount_count,
         
-        -- Total discount amount
-        SUM(CASE 
+        -- Total discount amount (hybrid: exclude voucher items + cap at sales value)
+        ROUND(SUM(CASE 
             WHEN ol.transaction_type = 'Sale' 
-            THEN ABS(COALESCE(ol.discount_amount, 0))
+                AND ol.sales_amount__actual_ > 0
+                -- Exclude voucher/gift ITEMS by category
+                AND COALESCE(ol.item_category, '') NOT IN ('GIFTING', 'Accessory')
+            THEN 
+                -- Cap discount at sales value (handles voucher REDEMPTION transactions)
+                LEAST(
+                    ABS(COALESCE(ol.discount_amount, 0)),
+                    ABS(COALESCE(ol.sales_amount__actual_, 0))
+                )
             ELSE 0
-        END) AS total_discount_amount,
+        END), 0) AS total_discount_amount,
         
         -- Count distinct offers used
         COUNT(DISTINCT CASE 
