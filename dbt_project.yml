@@ -16,7 +16,6 @@ clean-targets:         # directories to be removed by `dbt clean`
   - "target"
   - "dbt_packages"
 
-
 vars:
   erp_source: "sql_erp_prod_dbo"
   ofs_source: "mysql_ofs"

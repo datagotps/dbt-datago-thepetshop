@@ -1,0 +1,93 @@
+name: Sync Selected Files to Team Repo
+
+on:
+  push:
+    branches:
+      - dev_anmar
+    paths:
+      - 'models/2_int/5_item/int_items.sql'
+      - 'models/2_int/5_item/int_items_2.sql'
+      - 'models/3_fct/fact_commercial.sql'
+      - 'models/3_fct/dim_items.sql'
+  workflow_dispatch:
+
+jobs:
+  sync-to-team-repo:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_KEY }}" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          # Verify key format
+          head -1 ~/.ssh/deploy_key
+          echo "✓ SSH key configured"
+      
+      - name: Setup Git
+        run: |
+          git config --global user.name 'DataGo Bot'
+          git config --global user.email 'anmar@8020datago.ai'
+      
+      - name: Create sync directory structure
+        run: |
+          mkdir -p sync/models/2_int/5_item
+          mkdir -p sync/models/3_fct
+      
+      - name: Copy selected files
+        run: |
+          cp models/2_int/5_item/int_items.sql sync/models/2_int/5_item/ || exit 1
+          cp models/2_int/5_item/int_items_2.sql sync/models/2_int/5_item/ || exit 1
+          cp models/3_fct/fact_commercial.sql sync/models/3_fct/ || exit 1
+          cp models/3_fct/dim_items.sql sync/models/3_fct/ || exit 1
+          echo "✓ All 4 files copied successfully"
+      
+      - name: Clone team repo
+        run: |
+          GIT_SSH_COMMAND='ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no' \
+            git clone git@github.com:datagotps/dbt-datago-thepetshop-team.git team-repo || exit 1
+          echo "✓ Team repo cloned successfully"
+      
+      - name: Sync files to team repo
+        run: |
+          rsync -av --delete sync/ team-repo/ || exit 1
+          cd team-repo
+          
+          git add .
+          
+          # Commit only if there are changes
+          if ! git diff-index --quiet HEAD; then
+            COMMIT_MSG="Sync from main repo (dev_anmar branch)
+            
+            Synced files:
+            - models/2_int/5_item/int_items.sql
+            - models/2_int/5_item/int_items_2.sql
+            - models/3_fct/fact_commercial.sql
+            - models/3_fct/dim_items.sql
+            
+            Sync time: $(date '+%Y-%m-%d %H:%M:%S UTC')"
+            
+            git commit -m "$COMMIT_MSG" || exit 1
+            
+            # Push using SSH
+            GIT_SSH_COMMAND='ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no' \
+              git push origin HEAD:main || exit 1
+            
+            echo "✓ Files synced and pushed successfully to team repo!"
+          else
+            echo "No changes to commit - files are already up to date."
+          fi
+      
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -rf ~/.ssh/deploy_key
+          rm -rf sync
+          rm -rf team-repo
