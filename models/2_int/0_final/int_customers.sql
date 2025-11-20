@@ -228,12 +228,20 @@ customer_offer_usage AS (
             THEN ol.unified_order_id 
         END) AS orders_with_discount_count,
         
-        -- Total discount amount
-        SUM(CASE 
+        -- Total discount amount (hybrid: exclude voucher items + cap at sales value)
+        ROUND(SUM(CASE 
             WHEN ol.transaction_type = 'Sale' 
-            THEN ABS(COALESCE(ol.discount_amount, 0))
+                AND ol.sales_amount__actual_ > 0
+                -- Exclude voucher/gift ITEMS by category
+                AND COALESCE(ol.item_category, '') NOT IN ('GIFTING', 'Accessory')
+            THEN 
+                -- Cap discount at sales value (handles voucher REDEMPTION transactions)
+                LEAST(
+                    ABS(COALESCE(ol.discount_amount, 0)),
+                    ABS(COALESCE(ol.sales_amount__actual_, 0))
+                )
             ELSE 0
-        END) AS total_discount_amount,
+        END), 0) AS total_discount_amount,
         
         -- Count distinct offers used
         COUNT(DISTINCT CASE 
@@ -584,6 +592,23 @@ customer_calculated_metrics AS (
             ELSE 3
         END AS offer_seeker_segment_order,
         
+        -- Discount Affinity Metrics
+        ROUND(
+            CASE 
+                WHEN total_order_count > 0 
+                THEN (orders_with_discount_count * 100.0) / total_order_count
+                ELSE 0 
+            END, 2
+        ) AS discount_usage_rate_pct,
+        
+        ROUND(
+            CASE 
+                WHEN total_sales_value > 0 
+                THEN (total_discount_amount * 100.0) / total_sales_value
+                ELSE 0 
+            END, 2
+        ) AS discount_dependency_pct,
+        
         -- Pet Ownership Categorization
         -- Count how many pet types the customer owns
         (is_dog_owner + is_cat_owner + is_fish_owner + is_bird_owner + is_small_pet_owner + is_reptile_owner) AS pet_types_count,
@@ -644,6 +669,51 @@ customer_calculated_metrics AS (
 ),
 
 -- =====================================================
+-- STEP 5A: Discount Affinity Scoring
+-- =====================================================
+customer_discount_scoring AS (
+    SELECT *,
+        -- Create composite discount affinity score (0-100)
+        ROUND(
+            (discount_usage_rate_pct * 0.5) +  -- 50% weight on usage frequency
+            (discount_dependency_pct * 0.3) +   -- 30% weight on discount dependency
+            (LEAST(distinct_offers_used * 5, 20)) -- 20% weight on variety (capped at 20)
+        , 2) AS discount_affinity_score,
+        
+        -- Calculate percentile for distribution-based thresholds
+        PERCENT_RANK() OVER (ORDER BY 
+            (discount_usage_rate_pct * 0.5) + 
+            (discount_dependency_pct * 0.3) + 
+            (LEAST(distinct_offers_used * 5, 20))
+        ) AS discount_affinity_percentile
+        
+    FROM customer_calculated_metrics
+),
+
+-- =====================================================
+-- STEP 5B: Discount Affinity Segmentation
+-- =====================================================
+customer_discount_segments AS (
+    SELECT *,
+        -- Discount Affinity Dimension
+        CASE 
+            WHEN discount_affinity_percentile >= 0.70 THEN 'High Discount Affinity'
+            WHEN discount_affinity_percentile >= 0.30 THEN 'Medium Discount Affinity'
+            WHEN discount_affinity_percentile > 0 THEN 'Low Discount Affinity'
+            ELSE 'No Discount Usage'
+        END AS discount_affinity_segment,
+        
+        CASE 
+            WHEN discount_affinity_percentile >= 0.70 THEN 1
+            WHEN discount_affinity_percentile >= 0.30 THEN 2
+            WHEN discount_affinity_percentile > 0 THEN 3
+            ELSE 4
+        END AS discount_affinity_segment_order
+        
+    FROM customer_discount_scoring
+),
+
+-- =====================================================
 -- STEP 6: RFM Scoring
 -- =====================================================
 customer_rfm_scores AS (
@@ -675,7 +745,7 @@ customer_rfm_scores AS (
             ELSE 1
         END AS m_score
         
-    FROM customer_calculated_metrics
+    FROM customer_discount_segments
 ),
 
 -- =====================================================
@@ -771,6 +841,14 @@ customer_segments AS (
         cs.distinct_offers_used,
         cs.offer_seeker_segment,
         cs.offer_seeker_segment_order,
+        
+        -- Discount Affinity metrics
+        cs.discount_usage_rate_pct,
+        cs.discount_dependency_pct,
+        cs.discount_affinity_score,
+        cs.discount_affinity_percentile,
+        cs.discount_affinity_segment,
+        cs.discount_affinity_segment_order,
         
         -- Pet Ownership metrics
         cs.dog_revenue,
