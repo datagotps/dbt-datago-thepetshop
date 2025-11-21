@@ -27,3 +27,6 @@ secrets.yaml
 
 # Local documentation - not committed to repository
 docs/
+
+# Team work folder - kept local only
+team_work/
