@@ -24,3 +24,6 @@ secrets.yaml
 *.der
 *.p12
 *.pfx
+
+# Local documentation - not committed to repository
+docs/
