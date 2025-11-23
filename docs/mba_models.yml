@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: stg_mba_order_items
+  - name: int_mba_order_items
     description: "Stage of commercial order items filtered to unique sale products per order for MBA."
     columns:
       - name: unified_order_id

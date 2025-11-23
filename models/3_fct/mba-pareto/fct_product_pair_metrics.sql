@@ -1,6 +1,6 @@
 with order_items as (
     select *
-    from {{ ref('stg_mba_order_items') }}
+    from {{ ref('int_mba_order_items') }}
 ),
 
 pair_counts as (
