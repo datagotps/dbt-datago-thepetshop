@@ -1,0 +1,135 @@
+version: 2
+
+models:
+  - name: stg_mba_order_items
+    description: "Stage of commercial order items filtered to unique sale products per order for MBA."
+    columns:
+      - name: unified_order_id
+        description: "Unified identifier for the customer order."
+        tests:
+          - not_null
+      - name: product_id
+        description: "Unique identifier of the product within the order."
+        tests:
+          - not_null
+      - name: product_name
+        description: "Product description as displayed to customers."
+      - name: division
+        description: "Top-level merchandise division."
+      - name: item_category
+        description: "Category assigned to the product."
+      - name: item_subcategory
+        description: "Subcategory assigned to the product."
+      - name: item_brand
+        description: "Brand of the product."
+
+  - name: fct_product_pairs
+    description: "Distinct product pairs that co-occur within the same order, along with their shared attributes."
+    columns:
+      - name: product1_id
+        description: "Identifier for the first product in the pair."
+        tests:
+          - not_null
+      - name: product2_id
+        description: "Identifier for the second product in the pair."
+        tests:
+          - not_null
+      - name: pair_order_count
+        description: "Number of orders that include both products."
+        tests:
+          - not_null
+
+  - name: fct_product_pair_metrics
+    description: "Support and confidence metrics for each product pair derived from order- and product-level counts."
+    columns:
+      - name: product1_id
+        description: "Identifier for the antecedent product."
+        tests:
+          - not_null
+      - name: product2_id
+        description: "Identifier for the consequent product."
+        tests:
+          - not_null
+      - name: pair_order_count
+        description: "Number of orders containing both products."
+      - name: product1_order_count
+        description: "Distinct order count containing product 1."
+      - name: product2_order_count
+        description: "Distinct order count containing product 2."
+      - name: total_orders
+        description: "Total number of sale orders in the fact set."
+      - name: support
+        description: "Support measure: pair_order_count / total_orders."
+      - name: confidence_p1_to_p2
+        description: "Confidence that product 2 is purchased given product 1."
+      - name: confidence_p2_to_p1
+        description: "Confidence that product 1 is purchased given product 2."
+
+  - name: dim_items
+    description: "Item dimension enriched with MBA support scoring."
+    columns:
+      - name: item_id
+        description: "Unique identifier for the item."
+        tests:
+          - not_null
+      - name: mba_support_score
+        description: "Percentage of orders that include the item, derived from MBA pair metrics."
+        tests:
+          - not_null
+
+  - name: mart_pareto_items
+    description: "Pareto metrics per item across multiple merchandising dimensions."
+    columns:
+      - name: item_id
+        description: "Unique identifier for the item."
+        tests:
+          - not_null
+      - name: item_name
+        description: "Business-friendly item name."
+      - name: primary_sales_channel
+        description: "Primary channel through which the item sells."
+      - name: division
+        description: "Division for the item."
+      - name: category
+        description: "Category for the item."
+      - name: subcategory
+        description: "Subcategory for the item."
+      - name: brand
+        description: "Brand for the item."
+      - name: revenue_per_global
+        description: "Item revenue when ranking globally."
+      - name: rank_global
+        description: "Dense rank of the item based on revenue across all items."
+      - name: cumulative_pct_global
+        description: "Cumulative revenue percentage globally."
+      - name: revenue_per_primary_sales_channel
+        description: "Item revenue when ranking within the primary sales channel."
+      - name: rank_primary_sales_channel
+        description: "Dense rank within the primary sales channel."
+      - name: cumulative_pct_primary_sales_channel
+        description: "Cumulative revenue percentage within the primary sales channel."
+      - name: revenue_per_division
+        description: "Item revenue when ranking within the division."
+      - name: rank_division
+        description: "Dense rank within the division."
+      - name: cumulative_pct_division
+        description: "Cumulative revenue percentage within the division."
+      - name: revenue_per_category
+        description: "Item revenue when ranking within the category."
+      - name: rank_category
+        description: "Dense rank within the category."
+      - name: cumulative_pct_category
+        description: "Cumulative revenue percentage within the category."
+      - name: revenue_per_subcategory
+        description: "Item revenue when ranking within the subcategory."
+      - name: rank_subcategory
+        description: "Dense rank within the subcategory."
+      - name: cumulative_pct_subcategory
+        description: "Cumulative revenue percentage within the subcategory."
+      - name: revenue_per_brand
+        description: "Item revenue when ranking within the brand."
+      - name: rank_brand
+        description: "Dense rank within the brand."
+      - name: cumulative_pct_brand
+        description: "Cumulative revenue percentage within the brand."
+
