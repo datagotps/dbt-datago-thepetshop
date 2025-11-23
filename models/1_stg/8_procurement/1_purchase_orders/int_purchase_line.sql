@@ -89,10 +89,9 @@ select
     -- Procurement Timeliness Metrics
     case 
         when a.expected_receipt_date is not null 
-            and current_date > a.expected_receipt_date 
-        then datediff(day, a.expected_receipt_date, current_date)
+            and CURRENT_DATE() > a.expected_receipt_date 
+        then DATE_DIFF(CURRENT_DATE(), a.expected_receipt_date, DAY)
     end as delay_days_open
-    
 
 from {{ ref('stg_petshop_purchase_line') }} as a
 left join {{ ref('stg_petshop_purchase_header') }} as b 
