@@ -22,11 +22,6 @@ base_items as (
         on dim.item_id = rev.item_id
 ),
 
-aggregated_revenue_per_dimension as (
-    select *
-    from base_items
-),
-
 ranking_window_calculations as (
     select
         *,
@@ -68,7 +63,7 @@ ranking_window_calculations as (
             order by revenue desc rows between unbounded preceding and current row
         ) as cumulative_revenue_brand,
         sum(revenue) over (partition by brand) as total_revenue_brand
-    from aggregated_revenue_per_dimension
+    from base_items
 ),
 
 final_output as (
