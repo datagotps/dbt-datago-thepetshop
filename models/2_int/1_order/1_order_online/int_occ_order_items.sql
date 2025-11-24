@@ -216,7 +216,7 @@ END as order_sync_category_sort,
     when q.inserted_by = 'SYSTEM' then 'system_pna'
     else 'manual_pna' end as pna_reason,
 
-q.insert_date_time as pna_date,
+q.insert_date_time as pna_date
 
 -- Main joins
 from {{ ref('stg_ofs_inboundsalesline') }} as a 
