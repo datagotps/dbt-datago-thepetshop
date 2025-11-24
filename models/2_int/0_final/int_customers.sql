@@ -266,33 +266,33 @@ customer_pet_ownership AS (
         ol.unified_customer_id,
         
         -- Revenue by pet division
-        SUM(CASE WHEN ol.division = 'DOG' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS dog_revenue,
-        SUM(CASE WHEN ol.division = 'CAT' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS cat_revenue,
-        SUM(CASE WHEN ol.division = 'FISH' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS fish_revenue,
-        SUM(CASE WHEN ol.division = 'BIRD' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS bird_revenue,
-        SUM(CASE WHEN ol.division = 'SMALL PET' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS small_pet_revenue,
-        SUM(CASE WHEN ol.division = 'REPTILE' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS reptile_revenue,
+        SUM(CASE WHEN ol.item_division = 'DOG' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS dog_revenue,
+        SUM(CASE WHEN ol.item_division = 'CAT' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS cat_revenue,
+        SUM(CASE WHEN ol.item_division = 'FISH' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS fish_revenue,
+        SUM(CASE WHEN ol.item_division = 'BIRD' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS bird_revenue,
+        SUM(CASE WHEN ol.item_division = 'SMALL PET' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS small_pet_revenue,
+        SUM(CASE WHEN ol.item_division = 'REPTILE' AND ol.transaction_type = 'Sale' THEN ol.sales_amount__actual_ ELSE 0 END) AS reptile_revenue,
         
         -- Order counts by pet division
-        COUNT(DISTINCT CASE WHEN ol.division = 'DOG' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS dog_orders,
-        COUNT(DISTINCT CASE WHEN ol.division = 'CAT' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS cat_orders,
-        COUNT(DISTINCT CASE WHEN ol.division = 'FISH' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS fish_orders,
-        COUNT(DISTINCT CASE WHEN ol.division = 'BIRD' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS bird_orders,
-        COUNT(DISTINCT CASE WHEN ol.division = 'SMALL PET' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS small_pet_orders,
-        COUNT(DISTINCT CASE WHEN ol.division = 'REPTILE' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS reptile_orders,
+        COUNT(DISTINCT CASE WHEN ol.item_division = 'DOG' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS dog_orders,
+        COUNT(DISTINCT CASE WHEN ol.item_division = 'CAT' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS cat_orders,
+        COUNT(DISTINCT CASE WHEN ol.item_division = 'FISH' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS fish_orders,
+        COUNT(DISTINCT CASE WHEN ol.item_division = 'BIRD' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS bird_orders,
+        COUNT(DISTINCT CASE WHEN ol.item_division = 'SMALL PET' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS small_pet_orders,
+        COUNT(DISTINCT CASE WHEN ol.item_division = 'REPTILE' AND ol.transaction_type = 'Sale' THEN ol.unified_order_id END) AS reptile_orders,
         
         -- Pet ownership flags (has purchased at least once)
-        CASE WHEN SUM(CASE WHEN ol.division = 'DOG' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_dog_owner,
-        CASE WHEN SUM(CASE WHEN ol.division = 'CAT' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_cat_owner,
-        CASE WHEN SUM(CASE WHEN ol.division = 'FISH' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_fish_owner,
-        CASE WHEN SUM(CASE WHEN ol.division = 'BIRD' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_bird_owner,
-        CASE WHEN SUM(CASE WHEN ol.division = 'SMALL PET' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_small_pet_owner,
-        CASE WHEN SUM(CASE WHEN ol.division = 'REPTILE' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_reptile_owner
+        CASE WHEN SUM(CASE WHEN ol.item_division = 'DOG' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_dog_owner,
+        CASE WHEN SUM(CASE WHEN ol.item_division = 'CAT' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_cat_owner,
+        CASE WHEN SUM(CASE WHEN ol.item_division = 'FISH' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_fish_owner,
+        CASE WHEN SUM(CASE WHEN ol.item_division = 'BIRD' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_bird_owner,
+        CASE WHEN SUM(CASE WHEN ol.item_division = 'SMALL PET' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_small_pet_owner,
+        CASE WHEN SUM(CASE WHEN ol.item_division = 'REPTILE' AND ol.transaction_type = 'Sale' THEN 1 ELSE 0 END) > 0 THEN 1 ELSE 0 END AS is_reptile_owner
         
     FROM {{ ref('int_order_lines') }} ol
     WHERE ol.unified_customer_id IS NOT NULL
         AND ol.transaction_type = 'Sale'
-        AND ol.division IN ('DOG', 'CAT', 'FISH', 'BIRD', 'SMALL PET', 'REPTILE')
+        AND ol.item_division IN ('DOG', 'CAT', 'FISH', 'BIRD', 'SMALL PET', 'REPTILE')
     GROUP BY ol.unified_customer_id
 ),
 

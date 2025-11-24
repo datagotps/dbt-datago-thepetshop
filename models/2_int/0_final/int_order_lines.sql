@@ -191,15 +191,17 @@ SELECT
     -- =====================================================
     -- Item Information (already in int_value_entry)
     -- =====================================================
+    -- Product Hierarchy (Updated Naming)
+    -- =====================================================
     ve.item_no_,
     ve.item_name,
-    ve.item_category,
-    ve.item_type,
-    ve.item_subcategory,
+    ve.item_division,        -- Level 1: Pet (was division)
+    ve.item_block,           -- Level 2: Block (was item_category)
+    ve.item_category,        -- Level 3: Category (was item_subcategory)
+    ve.item_subcategory,     -- Level 4: Subcategory (was item_type)
     ve.item_brand,
-    ve.division,
-    ve.division_sort_order,
-    ve.item_category_sort_order,
+    ve.item_division_sort_order,
+    ve.item_block_sort_order,
     
     -- =====================================================
     -- Time Period Flags

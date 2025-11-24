@@ -65,15 +65,17 @@ SELECT
     -- =====================================================
     -- Item Information
     -- =====================================================
+    -- Product Hierarchy (Updated Naming)
+    -- =====================================================
     it.item_no_,
     it.item_name,
-    it.item_category,
-    it.item_type,
-    it.item_subcategory,
+    it.item_division,        -- Level 1: Pet (was division)
+    it.item_block,           -- Level 2: Block (was item_category)
+    it.item_category,        -- Level 3: Category (was item_subcategory)
+    it.item_subcategory,     -- Level 4: Subcategory (was item_type)
     it.item_brand,
-    it.division,
-    it.division_sort_order,
-    it.item_category_sort_order,
+    it.item_division_sort_order,
+    it.item_block_sort_order,
 
     -- =====================================================
     -- Document Classifications

@@ -52,13 +52,14 @@ items.item_name,                         -- dim (item description)
 items.item_description,                  -- dim (detailed item description)
 items.varient_item,
 
--- Categorization Hierarchy
-items.division,                          -- dim: DOG, CAT, FISH, BIRD, etc
-items.division_sort_order,               -- dim: 1-10 (sort order)
-items.item_category,                     -- dim: FOOD, ACCESSORIES, HEALTH & HYGIENE, etc
-items.item_category_sort_order,          -- dim: 1-999 (sort order)
-items.item_subcategory,                  -- dim: Dry Food, Wet Food, Treats, etc
-items.item_brand,                        -- dim (brand name)
+-- Categorization Hierarchy (Updated Business Naming)
+items.item_division,                     -- dim: Level 1 - Pet (DOG, CAT, FISH, BIRD, etc.)
+items.item_division_sort_order,          -- dim: 1-11 (sort order for item_division)
+items.item_block,                        -- dim: Level 2 - Block (FOOD, ACCESSORIES, etc.)
+items.item_block_sort_order,             -- dim: 1-999 (sort order for item_block)
+items.item_category,                     -- dim: Level 3 - Category (Dry Food, Wet Food, Treats, etc.)
+items.item_subcategory,                  -- dim: Level 4 - Subcategory (item type)
+items.item_brand,                        -- dim: Level 5 - Brand
 items.inventory_posting_group,           -- dim (inventory posting group)
 
 -- Performance Metrics

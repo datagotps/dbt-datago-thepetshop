@@ -2,12 +2,18 @@
 
 select
 
+/*
 c.description  AS division,
 b.description AS item_category,    --item_category
 f.description as item_subcategory,  --retail_product_code
 e.description as item_type,   --item_subcategory
+*/
 
 
+c.description AS item_division,  --(from stg_petshop_division)
+b.description AS item_block,   -- (from stg_petshop_item_category)
+f.description as item_category,  --(from stg_erp_retail_product_group)
+e.description as item_subcategory,   -- (form stg_petshop_item_sub_category
 
 
 a.item_brand,
@@ -32,7 +38,7 @@ a.inventory_posting_group,
         WHEN c.description = 'FOOD' THEN 11
 
         ELSE 999  -- For any unexpected values
-    END AS division_sort_order,
+    END AS item_division_sort_order,
 
 
     -- Add sort order column for item_category
@@ -49,7 +55,7 @@ a.inventory_posting_group,
         WHEN b.description = 'Accessory' THEN 10
         WHEN b.description = 'Other Food' THEN 11
         ELSE 999  -- For any unexpected values
-    END AS item_category_sort_order,
+    END AS item_block_sort_order,
 
 /*
 CASE

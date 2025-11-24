@@ -79,13 +79,14 @@ customer_identity_status,          -- dim: Verified, Unverified
 -- Item Information
 item_no_,                          -- dim (item code)
 item_name,                         -- dim (item description)
-item_category,                     -- dim (category name)
-item_subcategory,                  -- dim (subcategory name)
-item_type,
-item_brand,                        -- dim (brand name)
-division,                          -- dim (division name)
-division_sort_order,
-item_category_sort_order,
+-- Product Hierarchy (Updated Business Naming)
+item_division,                     -- dim: Level 1 - Pet (DOG, CAT, FISH, etc.)
+item_block,                        -- dim: Level 2 - Block (FOOD, ACCESSORIES, etc.)
+item_category,                     -- dim: Level 3 - Category (Dry Food, Wet Food, etc.)
+item_subcategory,                  -- dim: Level 4 - Subcategory (item type)
+item_brand,                        -- dim: Level 5 - Brand
+item_division_sort_order,          -- dim: sort order for item_division
+item_block_sort_order,             -- dim: sort order for item_block
 
 -- Time Period Flags
 is_mtd,                            -- fact: 0, 1 (month-to-date flag)

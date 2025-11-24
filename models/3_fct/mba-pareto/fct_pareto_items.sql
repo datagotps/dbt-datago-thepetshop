@@ -12,10 +12,11 @@ base_items as (
         dim.item_id,
         dim.item_name,
         dim.primary_sales_channel,
-        dim.division,
-        dim.item_category as category,
-        dim.item_subcategory as subcategory,
-        dim.item_brand as brand,
+        -- Updated Business Hierarchy
+        dim.item_division as division,      -- Level 1: Pet
+        dim.item_block as category,         -- Level 2: Block
+        dim.item_category as subcategory,   -- Level 3: Category
+        dim.item_brand as brand,            -- Level 5: Brand
         coalesce(rev.revenue, 0) as revenue
     from {{ ref('dim_items') }} dim
     left join base_revenue rev

@@ -7,10 +7,12 @@
 WITH category_purchases AS (
     SELECT 
         unified_customer_id,
-        item_category,
-        item_subcategory,
-        item_type,
-        item_brand,
+        -- Updated Business Hierarchy
+        item_division,       -- Level 1: Pet (DOG, CAT, FISH, etc.)
+        item_block,          -- Level 2: Block (FOOD, ACCESSORIES, etc.)
+        item_category,       -- Level 3: Category (Dry Food, Wet Food, etc.)
+        item_subcategory,    -- Level 4: Subcategory (item type)
+        item_brand,          -- Level 5: Brand
 
         -- Purchase Counts
         COUNT(DISTINCT unified_order_id) AS category_order_count,
@@ -30,7 +32,7 @@ WITH category_purchases AS (
     FROM {{ ref('int_order_lines') }}
     WHERE transaction_type = 'Sale'
       AND unified_customer_id IS NOT NULL
-    GROUP BY 1,2,3,4,5
+    GROUP BY 1,2,3,4,5,6  -- Added 6 for item_brand
 ),
 
 customer_category_metrics AS (
@@ -52,25 +54,25 @@ customer_category_metrics AS (
 category_flags AS (
     SELECT 
         unified_customer_id,
-        -- Food Categories
-        MAX(CASE WHEN item_subcategory LIKE '%Wet Food%'  THEN category_order_count ELSE 0 END) AS wet_food_order_count,
-        MAX(CASE WHEN item_subcategory LIKE '%Dry Food%'  THEN category_order_count ELSE 0 END) AS dry_food_order_count,
-        MAX(CASE WHEN item_subcategory LIKE '%Treat%'     THEN category_order_count ELSE 0 END) AS treat_order_count,
-        MAX(CASE WHEN item_subcategory LIKE '%Litter%'    THEN category_order_count ELSE 0 END) AS litter_order_count,
-        MAX(CASE WHEN item_subcategory LIKE '%Hay%'       THEN category_order_count ELSE 0 END) AS hay_order_count,
+        -- Food Categories (Level 3: Category - from item_category)
+        MAX(CASE WHEN item_category LIKE '%Wet Food%'  THEN category_order_count ELSE 0 END) AS wet_food_order_count,
+        MAX(CASE WHEN item_category LIKE '%Dry Food%'  THEN category_order_count ELSE 0 END) AS dry_food_order_count,
+        MAX(CASE WHEN item_category LIKE '%Treat%'     THEN category_order_count ELSE 0 END) AS treat_order_count,
+        MAX(CASE WHEN item_category LIKE '%Litter%'    THEN category_order_count ELSE 0 END) AS litter_order_count,
+        MAX(CASE WHEN item_category LIKE '%Hay%'       THEN category_order_count ELSE 0 END) AS hay_order_count,
 
-        -- Pet Types (inferred from category)
-        MAX(CASE WHEN item_category LIKE '%Dog%'        THEN 1 ELSE 0 END) AS has_dog_purchases,
-        MAX(CASE WHEN item_category LIKE '%Cat%'        THEN 1 ELSE 0 END) AS has_cat_purchases,
-        MAX(CASE WHEN item_category LIKE '%Bird%'       THEN 1 ELSE 0 END) AS has_bird_purchases,
-        MAX(CASE WHEN item_category LIKE '%Fish%'       THEN 1 ELSE 0 END) AS has_fish_purchases,
-        MAX(CASE WHEN item_category LIKE '%Small Pet%'  THEN 1 ELSE 0 END) AS has_small_pet_purchases,
-        MAX(CASE WHEN item_category LIKE '%Reptile%'    THEN 1 ELSE 0 END) AS has_reptile_purchases,
+        -- Pet Types (Level 1: Pet/Division - from item_division)
+        MAX(CASE WHEN item_division = 'DOG'        THEN 1 ELSE 0 END) AS has_dog_purchases,
+        MAX(CASE WHEN item_division = 'CAT'        THEN 1 ELSE 0 END) AS has_cat_purchases,
+        MAX(CASE WHEN item_division = 'BIRD'       THEN 1 ELSE 0 END) AS has_bird_purchases,
+        MAX(CASE WHEN item_division = 'FISH'       THEN 1 ELSE 0 END) AS has_fish_purchases,
+        MAX(CASE WHEN item_division = 'SMALL PET'  THEN 1 ELSE 0 END) AS has_small_pet_purchases,
+        MAX(CASE WHEN item_division = 'REPTILE'    THEN 1 ELSE 0 END) AS has_reptile_purchases,
 
-        -- Livestock & Fish Specific
-        MAX(CASE WHEN item_category = 'Livestock'            THEN category_order_count ELSE 0 END) AS livestock_order_count,
-        MAX(CASE WHEN item_subcategory LIKE '%Freshwater%'   THEN category_order_count ELSE 0 END) AS freshwater_fish_order_count,
-        MAX(CASE WHEN item_subcategory LIKE '%Marine%'       THEN category_order_count ELSE 0 END) AS marine_fish_order_count
+        -- Livestock & Fish Specific (Level 2: Block - from item_block)
+        MAX(CASE WHEN item_block = 'LIVESTOCK'            THEN category_order_count ELSE 0 END) AS livestock_order_count,
+        MAX(CASE WHEN item_category LIKE '%Freshwater%'   THEN category_order_count ELSE 0 END) AS freshwater_fish_order_count,
+        MAX(CASE WHEN item_category LIKE '%Marine%'       THEN category_order_count ELSE 0 END) AS marine_fish_order_count
     FROM category_purchases
     GROUP BY 1
 ),

@@ -92,15 +92,15 @@ SELECT DISTINCT
     it.item_name as item_description,  -- Using item_name as description
     
     -- =====================================================
-    -- Categorization Hierarchy
+    -- Categorization Hierarchy (Updated Business Naming)
     -- =====================================================
-    it.division,
-    it.division_sort_order,
-    it.item_category,
-    it.item_category_sort_order,
-    it.item_subcategory,
+    it.item_division,              -- Level 1: Pet (was division)
+    it.item_division_sort_order,
+    it.item_block,                 -- Level 2: Block (was item_category)
+    it.item_block_sort_order,
+    it.item_category,              -- Level 3: Category (was item_subcategory)
+    it.item_subcategory,           -- Level 4: Subcategory (was item_type)
     it.item_brand,
-    it.item_type,
     it.inventory_posting_group,
     it.varient_item,
     

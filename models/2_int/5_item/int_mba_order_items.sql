@@ -3,7 +3,7 @@ with source_orders as (
         unified_order_id,
         item_no_ as product_id,
         item_name as product_name,
-        division,
+        item_division as division,        -- Updated: was 'division'
         item_category,
         item_subcategory,
         item_brand
