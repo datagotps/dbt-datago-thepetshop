@@ -99,10 +99,10 @@ select
     
     -- Product details
     e.description as item_name,
-    e.divisioncodedescription as division,
-    e.itemcategorycode as item_category,
-    e.retailproductcode as item_subcategory,
-    e.brand as item_brand,
+    e.divisioncodedescription as item_division,      -- Level 1: Pet (DOG, CAT, FISH, etc.)
+    e.itemcategorycode as item_block,                -- Level 2: Block (FOOD, ACCESSORIES, etc.)
+    e.retailproductcode as item_category,            -- Level 3: Category (Dry Food, Wet Food, etc.)
+    e.brand as item_brand,                           -- Level 5: Brand
     
     -- Order details
     h.orderplatform,

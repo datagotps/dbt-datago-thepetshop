@@ -12,10 +12,10 @@ quantity,                          -- fact (quantity ordered)
 
 -- Product Details
 item_name,                         -- dim (product description)
-division,                          -- dim (division description)
-item_category,                     -- dim (category code)
-item_subcategory,                  -- dim (subcategory/retail product code)
-item_brand,                        -- dim (brand name)
+item_division,                     -- dim: Level 1 - Pet (DOG, CAT, FISH, etc.)
+item_block,                        -- dim: Level 2 - Block (FOOD, ACCESSORIES, etc.)
+item_category,                     -- dim: Level 3 - Category (Dry Food, Wet Food, etc.)
+item_brand,                        -- dim: Level 5 - Brand
 
 -- Order Details
 orderplatform,                     -- dim: website, Android, iOS, etc
