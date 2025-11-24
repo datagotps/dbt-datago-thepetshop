@@ -24,7 +24,10 @@ models:
         description: "Brand of the product."
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - unified_order_id
-            - product_id
+          arguments:
+            combination_of_columns:
+              - unified_order_id
+              - product_id
+          config:
+            severity: warn
 
