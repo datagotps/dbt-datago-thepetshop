@@ -88,6 +88,41 @@ item_brand,                        -- dim: Level 5 - Brand
 item_division_sort_order,          -- dim: sort order for item_division
 item_block_sort_order,             -- dim: sort order for item_block
 
+-- Customer Tenure Metrics (Line-Level Context)
+customer_first_purchase_date,      -- dim: customer's first purchase date (any transaction)
+customer_tenure_months,            -- fact: months since customer's first purchase at time of this transaction
+
+-- Customer Age Segment (based on first purchase and acquisition timing)
+CASE 
+    WHEN posting_date = customer_first_purchase_date 
+        THEN 'New'
+    WHEN DATE_DIFF(CURRENT_DATE(), customer_first_purchase_date, DAY) <= 90 
+        THEN 'Recently Acquired'
+    ELSE 'Active Non-Recent'
+END AS customer_age_segment,
+
+CASE 
+    WHEN posting_date = customer_first_purchase_date THEN 1
+    WHEN DATE_DIFF(CURRENT_DATE(), customer_first_purchase_date, DAY) <= 90 THEN 2
+    ELSE 3
+END AS customer_age_segment_sort,
+
+-- Revenue Type Segmentation
+CASE 
+    WHEN posting_date = customer_first_purchase_date THEN 1
+    ELSE 0
+END AS is_first_purchase_transaction,
+
+CASE 
+    WHEN posting_date = customer_first_purchase_date THEN 'New'
+    ELSE 'Repeat'
+END AS revenue_type,
+
+CASE 
+    WHEN posting_date = customer_first_purchase_date THEN 1
+    ELSE 2
+END AS revenue_type_sort,
+
 -- Time Period Flags
 is_mtd,                            -- fact: 0, 1 (month-to-date flag)
 is_ytd,                            -- fact: 0, 1 (year-to-date flag)

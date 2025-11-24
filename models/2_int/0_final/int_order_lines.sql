@@ -204,6 +204,30 @@ SELECT
     ve.item_block_sort_order,
     
     -- =====================================================
+    -- Customer Tenure Metrics (Line-Level Context)
+    -- =====================================================
+    
+    -- Customer's first purchase date (across all transactions)
+    MIN(ve.posting_date) OVER (
+        PARTITION BY CASE 
+            WHEN ve.std_phone_no_ = '000000000000' OR ve.std_phone_no_ IS NULL THEN ve.source_no_
+            ELSE CAST(ve.std_phone_no_ AS STRING)
+        END
+    ) AS customer_first_purchase_date,
+    
+    -- Customer tenure in months at time of this transaction
+    DATE_DIFF(
+        ve.posting_date,
+        MIN(ve.posting_date) OVER (
+            PARTITION BY CASE 
+                WHEN ve.std_phone_no_ = '000000000000' OR ve.std_phone_no_ IS NULL THEN ve.source_no_
+                ELSE CAST(ve.std_phone_no_ AS STRING)
+            END
+        ),
+        MONTH
+    ) AS customer_tenure_months,
+    
+    -- =====================================================
     -- Time Period Flags
     -- =====================================================
     
