@@ -1,44 +1,10 @@
 version: 2
 
 models:
-  - name: fct_product_pairs
-    description: "Fact table of distinct product pairs that co-occur within the same order. Generated via self-join on int_mba_order_items with product1_id < product2_id to avoid duplicates. Includes all product attributes for both items in the pair and the count of orders containing both."
-    columns:
-      - name: product1_id
-        description: "Identifier for the first product in the pair (lower product_id)."
-        tests:
-          - not_null
-      - name: product1_name
-        description: "Name of the first product."
-      - name: product1_division
-        description: "Division of the first product."
-      - name: product1_category
-        description: "Category of the first product."
-      - name: product1_subcategory
-        description: "Subcategory of the first product."
-      - name: product1_brand
-        description: "Brand of the first product."
-      - name: product2_id
-        description: "Identifier for the second product in the pair (higher product_id)."
-        tests:
-          - not_null
-      - name: product2_name
-        description: "Name of the second product."
-      - name: product2_division
-        description: "Division of the second product."
-      - name: product2_category
-        description: "Category of the second product."
-      - name: product2_subcategory
-        description: "Subcategory of the second product."
-      - name: product2_brand
-        description: "Brand of the second product."
-      - name: pair_order_count
-        description: "Number of distinct orders that include both products together."
-        tests:
-          - not_null
-
   - name: fct_product_pair_metrics
-    description: "Market Basket Analysis metrics table containing support and confidence calculations for each product pair. Support measures how frequently the pair appears together, while confidence measures the likelihood of purchasing one product given the other."
+    description: "Market Basket Analysis (MBA) fact table containing support and confidence metrics for product pairs. Optimized model that combines pairing logic and filtering in one step, outputting only meaningful pairs (support >= 0.001, appearing in 0.1%+ of orders or 1,730+ orders). Ready for Power BI consumption with ~249 actionable product associations."
+    config:
+      materialized: table
     columns:
       - name: product1_id
         description: "Identifier for the antecedent product in the association rule."
