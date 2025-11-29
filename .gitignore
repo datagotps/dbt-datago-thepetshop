@@ -28,6 +28,9 @@ secrets.yaml
 # Local documentation - not committed to repository
 docs/
 
+# Local data exports - not committed to repository
+export/
+
 # Editor and AI assistant settings - kept local only
 .claude/
 .cursor/
