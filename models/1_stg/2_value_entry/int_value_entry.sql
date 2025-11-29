@@ -203,6 +203,7 @@ cu.std_phone_no_,
 cu.customer_identity_status,
 cu.duplicate_flag,
 cu.loyality_member_id,
+cu.web_customer_no_,  -- Shopify customer ID for SuperApp linkage
 
 ROUND(COALESCE(-1*isl.discount_amount,0) / (1 + 5 / 100), 2) as online_discount_amount,
 

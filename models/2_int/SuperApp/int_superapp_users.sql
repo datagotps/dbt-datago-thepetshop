@@ -50,6 +50,7 @@ document_stats as (
 select 
     -- User identifiers
     u.id as user_id,
+    u.shopify_id,  -- Shopify customer ID for ERP linkage
     u.email as user_email,
     concat(u.firstname, ' ', u.lastname) as user_full_name,
     

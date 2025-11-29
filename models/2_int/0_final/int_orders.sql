@@ -28,6 +28,7 @@ with order_aggregation AS (
         MAX(ol.online_order_channel) AS online_order_channel,
         MAX(ol.order_type) AS order_type,
         MAX(ol.loyality_member_id) AS loyality_member_id,
+        MAX(ol.web_customer_no_) AS web_customer_no_,  -- Shopify customer ID for SuperApp linkage
         
         -- Payment information (should be consistent per order)
         MAX(ol.paymentgateway) AS paymentgateway,
@@ -620,6 +621,7 @@ SELECT
     company_source,
     web_order_id,
     loyality_member_id,
+    web_customer_no_,  -- Shopify customer ID for SuperApp linkage
     
     -- Order core data (aggregated from line items)
     order_date,

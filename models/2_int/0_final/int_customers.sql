@@ -66,6 +66,7 @@ customer_base_metrics AS (
         -- Placeholder for loyalty
         MAX(o.loyality_member_id ) AS loyality_member_id,
         MAX(o.raw_phone_no_) AS raw_phone_no_,
+        MAX(CAST(o.web_customer_no_ AS STRING)) AS web_customer_no_,  -- Shopify ID for SuperApp linkage
         
         -- Active months count
         COUNT(DISTINCT DATE_TRUNC(o.order_date, MONTH)) AS active_months_count,
@@ -297,6 +298,52 @@ customer_pet_ownership AS (
 ),
 
 -- =====================================================
+-- STEP 3B: SuperApp User Data for Customer Enrichment
+-- Uses fct_superapp_users (gold layer) with shopify_id for ERP linkage
+-- =====================================================
+superapp_data AS (
+    SELECT 
+        CAST(shopify_id AS STRING) AS shopify_id,
+        
+        -- Demographics
+        user_gender AS superapp_gender,
+        user_age AS superapp_age,
+        nationality AS superapp_nationality,
+        preferred_language AS superapp_language,
+        
+        -- Account Status
+        is_email_verified AS superapp_email_verified,
+        is_phone_verified AS superapp_phone_verified,
+        is_profile_complete AS superapp_profile_complete,
+        is_active AS superapp_is_active,
+        
+        -- Account Dates
+        user_created_date AS superapp_registration_date,
+        account_age_days AS superapp_account_age_days,
+        days_since_last_update AS superapp_days_since_update,
+        
+        -- Pet Metrics (Registered in App)
+        COALESCE(total_pets, 0) AS superapp_registered_pets,
+        COALESCE(active_pets, 0) AS superapp_active_pets,
+        avg_pet_age AS superapp_avg_pet_age,
+        avg_pet_weight AS superapp_avg_pet_weight,
+        COALESCE(vaccinated_pets, 0) AS superapp_vaccinated_pets,
+        
+        -- Vaccination Metrics
+        COALESCE(total_vaccinations, 0) AS superapp_total_vaccinations,
+        COALESCE(overdue_vaccinations, 0) AS superapp_overdue_vaccinations,
+        vaccination_compliance AS superapp_vaccination_compliance,
+        
+        -- Engagement Metrics
+        engagement_level AS superapp_engagement_level,
+        user_segment AS superapp_user_segment
+        
+    FROM {{ ref('fct_superapp_users') }}
+    WHERE shopify_id IS NOT NULL 
+      AND shopify_id != ''
+),
+
+-- =====================================================
 -- STEP 4: Join base metrics with lists and acquisition
 -- =====================================================
 customer_combined AS (
@@ -311,6 +358,7 @@ customer_combined AS (
         cbm.customer_identity_status,
         cbm.loyality_member_id,
         cbm.raw_phone_no_,
+        cbm.web_customer_no_,  -- Shopify ID for SuperApp linkage
         cbm.active_months_count,
         cbm.customer_acquisition_date,
         cbm.first_order_date,
@@ -366,13 +414,58 @@ customer_combined AS (
         COALESCE(cpo.is_fish_owner, 0) AS is_fish_owner,
         COALESCE(cpo.is_bird_owner, 0) AS is_bird_owner,
         COALESCE(cpo.is_small_pet_owner, 0) AS is_small_pet_owner,
-        COALESCE(cpo.is_reptile_owner, 0) AS is_reptile_owner
+        COALESCE(cpo.is_reptile_owner, 0) AS is_reptile_owner,
+        
+        -- =====================================================
+        -- SuperApp Data (joined via shopify_id/web_customer_no_)
+        -- Single source from fct_superapp_users (gold layer)
+        -- =====================================================
+        -- SuperApp Link Status
+        CASE 
+            WHEN sa.shopify_id IS NOT NULL THEN 'Yes'
+            ELSE 'No'
+        END AS has_superapp_account,
+        
+        -- Demographics from SuperApp
+        sa.superapp_gender,
+        sa.superapp_age,
+        sa.superapp_nationality,
+        sa.superapp_language,
+        
+        -- Account Verification from SuperApp
+        sa.superapp_email_verified,
+        sa.superapp_phone_verified,
+        sa.superapp_profile_complete,
+        sa.superapp_is_active,
+        
+        -- SuperApp Account Timeline
+        sa.superapp_registration_date,
+        sa.superapp_account_age_days,
+        sa.superapp_days_since_update,
+        
+        -- SuperApp Pet Data (Registered)
+        sa.superapp_registered_pets,
+        sa.superapp_active_pets,
+        sa.superapp_avg_pet_age,
+        sa.superapp_avg_pet_weight,
+        sa.superapp_vaccinated_pets,
+        
+        -- SuperApp Vaccination
+        sa.superapp_total_vaccinations,
+        sa.superapp_overdue_vaccinations,
+        sa.superapp_vaccination_compliance,
+        
+        -- SuperApp Engagement
+        sa.superapp_engagement_level,
+        sa.superapp_user_segment
         
     FROM customer_base_metrics cbm
     LEFT JOIN customer_order_lists col ON cbm.unified_customer_id = col.unified_customer_id
     LEFT JOIN customer_acquisition_details cad ON cbm.unified_customer_id = cad.unified_customer_id
     LEFT JOIN customer_offer_usage cou ON cbm.unified_customer_id = cou.unified_customer_id
     LEFT JOIN customer_pet_ownership cpo ON cbm.unified_customer_id = cpo.unified_customer_id
+    -- SuperApp join via shopify_id (web_customer_no_) from fct_superapp_users
+    LEFT JOIN superapp_data sa ON cbm.web_customer_no_ = sa.shopify_id
 ),
 
 -- =====================================================
@@ -777,6 +870,7 @@ customer_segments AS (
         cs.duplicate_flag,
         cs.raw_phone_no_,
         cs.loyality_member_id,
+        cs.web_customer_no_,
         cs.active_months_count,
         cs.loyalty_enrollment_status,
         cs.customer_acquisition_date,
@@ -873,6 +967,30 @@ customer_segments AS (
         cs.primary_pet_type,
         cs.pet_owner_profile,
         cs.multi_pet_detail,
+        
+        -- SuperApp Data
+        cs.has_superapp_account,
+        cs.superapp_gender,
+        cs.superapp_age,
+        cs.superapp_nationality,
+        cs.superapp_language,
+        cs.superapp_email_verified,
+        cs.superapp_phone_verified,
+        cs.superapp_profile_complete,
+        cs.superapp_is_active,
+        cs.superapp_registration_date,
+        cs.superapp_account_age_days,
+        cs.superapp_days_since_update,
+        cs.superapp_registered_pets,
+        cs.superapp_active_pets,
+        cs.superapp_avg_pet_age,
+        cs.superapp_avg_pet_weight,
+        cs.superapp_vaccinated_pets,
+        cs.superapp_total_vaccinations,
+        cs.superapp_overdue_vaccinations,
+        cs.superapp_vaccination_compliance,
+        cs.superapp_engagement_level,
+        cs.superapp_user_segment,
         
         -- Multiple source tracking
         cs.all_source_nos,

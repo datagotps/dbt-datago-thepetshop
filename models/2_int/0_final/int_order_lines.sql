@@ -169,6 +169,7 @@ SELECT
     END AS unified_customer_id,
 
     ve.loyality_member_id,
+    ve.web_customer_no_,  -- Shopify customer ID for SuperApp linkage
     
     -- =====================================================
     -- Online Order Information (already in int_value_entry)

@@ -159,6 +159,46 @@ is_overdue,                        -- dim: Yes, No
 overdue_confidence,                -- dim: On Schedule, 68% Confidence, 95% Confidence, 99.7% Confidence
 churn_action_required,             -- dim: Single Order-Monitor, Dormant, Severely Overdue, At Risk, On Track
 
+-- =====================================================
+-- SuperApp Data (joined via shopify_id/web_customer_no_)
+-- =====================================================
+-- SuperApp Link Status
+web_customer_no_,                  -- dim (Shopify customer ID for linkage)
+has_superapp_account,              -- dim: Yes, No
+
+-- SuperApp Demographics
+superapp_gender,                   -- dim: Male, Female, null
+superapp_age,                      -- fact: age in years, null if not linked
+superapp_nationality,              -- dim: UAE, India, etc
+superapp_language,                 -- dim: en, ar, etc
+
+-- SuperApp Account Verification
+superapp_email_verified,           -- dim: true, false, null
+superapp_phone_verified,           -- dim: true, false, null
+superapp_profile_complete,         -- dim: true, false, null
+superapp_is_active,                -- dim: true, false, null
+
+-- SuperApp Account Timeline
+superapp_registration_date,        -- dim: date of SuperApp registration
+superapp_account_age_days,         -- fact: days since SuperApp registration
+superapp_days_since_update,        -- fact: days since last SuperApp activity
+
+-- SuperApp Pet Data (Registered in App)
+superapp_registered_pets,          -- fact: actual registered pets count
+superapp_active_pets,              -- fact: non-deleted pets count
+superapp_avg_pet_age,              -- fact: average pet age in years
+superapp_avg_pet_weight,           -- fact: average pet weight in kg
+superapp_vaccinated_pets,          -- fact: count of vaccinated pets
+
+-- SuperApp Vaccination
+superapp_total_vaccinations,       -- fact: total vaccination records
+superapp_overdue_vaccinations,     -- fact: count of overdue vaccinations
+superapp_vaccination_compliance,   -- dim: No Vaccinations, Non-Compliant, Compliant, Fully Vaccinated
+
+-- SuperApp Engagement
+superapp_engagement_level,         -- dim: Highly Engaged, Moderately Engaged, Low Engagement, Inactive
+superapp_user_segment,             -- dim: No Pets, Single Pet Owner, Multi Pet Owner, Pet Enthusiast
+
 -- System Metadata
 
 DATETIME_ADD(CURRENT_DATETIME(), INTERVAL 4 HOUR) AS report_last_updated_at,
