@@ -11,7 +11,7 @@ duplicate_flag,                    -- dim: Yes, No
 raw_phone_no_,                     -- dim (original phone)
 loyality_member_id,                -- dim (member ID or null)
 active_months_count,               -- fact (count)
-loyalty_enrollment_status,         -- dim: Enrolled, Not Enrolled
+loyalty_enrollment_status,         -- dim: Loyalty Member, Non-Loyalty Member
 
 -- Customer Dates
 customer_acquisition_date,         -- dim (date)
@@ -164,7 +164,7 @@ churn_action_required,             -- dim: Single Order-Monitor, Dormant, Severe
 -- =====================================================
 -- SuperApp Link Status
 web_customer_no_,                  -- dim (Shopify customer ID for linkage)
-has_superapp_account,              -- dim: Yes, No
+superapp_enrollment_status,        -- dim: SuperApp User, Non-SuperApp User
 
 -- SuperApp Demographics
 superapp_gender,                   -- dim: Male, Female, null

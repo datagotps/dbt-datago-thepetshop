@@ -422,9 +422,9 @@ customer_combined AS (
         -- =====================================================
         -- SuperApp Link Status
         CASE 
-            WHEN sa.shopify_id IS NOT NULL THEN 'Yes'
-            ELSE 'No'
-        END AS has_superapp_account,
+            WHEN sa.shopify_id IS NOT NULL THEN 'SuperApp User'
+            ELSE 'Non-SuperApp User'
+        END AS superapp_enrollment_status,
         
         -- Demographics from SuperApp
         sa.superapp_gender,
@@ -476,8 +476,8 @@ customer_calculated_metrics AS (
         -- Loyalty status
         CASE 
             WHEN loyality_member_id IS NOT NULL AND loyality_member_id != '' 
-            THEN 'Enrolled'
-            ELSE 'Not Enrolled'
+            THEN 'Loyalty Member'
+            ELSE 'Non-Loyalty Member'
         END AS loyalty_enrollment_status,
         
         -- Core RFM metrics
@@ -969,7 +969,7 @@ customer_segments AS (
         cs.multi_pet_detail,
         
         -- SuperApp Data
-        cs.has_superapp_account,
+        cs.superapp_enrollment_status,
         cs.superapp_gender,
         cs.superapp_age,
         cs.superapp_nationality,
