@@ -199,10 +199,10 @@ superapp_vaccination_compliance,   -- dim: No Vaccinations, Non-Compliant, Compl
 superapp_engagement_level,         -- dim: Highly Engaged, Moderately Engaged, Low Engagement, Inactive
 superapp_user_segment,             -- dim: No Pets, Single Pet Owner, Multi Pet Owner, Pet Enthusiast
 
--- Combined Segmentation Matrix (Channel + Loyalty + App)
-combined_segment_order,            -- dim: 1-7 (sort order for priority segments)
-combined_segment,                  -- dim: Hybrid + Loyalty + SuperApp, etc.
-combined_segment_priority,         -- dim: ★★★ VIP - Protect, ★★★ Push SuperApp, etc.
+-- CRM Action Segmentation (Channel + Loyalty + App)
+crm_action_segment_order,          -- dim: 1-12 (sort order for priority segments)
+crm_action_segment,                -- dim: Hybrid + Loyalty + SuperApp, etc.
+crm_action_priority,               -- dim: ★★★ VIP - Protect, ★★★ Push SuperApp, etc.
 
 -- System Metadata
 

@@ -993,61 +993,101 @@ customer_segments AS (
         cs.superapp_user_segment,
         
         -- =====================================================
-        -- Combined Segmentation Matrix (Channel + Loyalty + App)
+        -- CRM Action Segmentation Matrix (Channel + Loyalty + App)
+        -- Full 12-segment matrix covering all valid combinations
         -- =====================================================
         CASE 
+            -- VIP Tier: Hybrid customers (shop both channels)
             WHEN cs.customer_channel_distribution = 'Hybrid' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
                 THEN 1
             WHEN cs.customer_channel_distribution = 'Hybrid' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
                 THEN 2
-            WHEN cs.customer_channel_distribution = 'Hybrid' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
+            WHEN cs.customer_channel_distribution = 'Hybrid' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
                 THEN 3
-            WHEN cs.customer_channel_distribution = 'Online' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
+            WHEN cs.customer_channel_distribution = 'Hybrid' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
                 THEN 4
-            WHEN cs.customer_channel_distribution = 'Shop' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
+            -- Online Tier: Online-only customers
+            WHEN cs.customer_channel_distribution = 'Online' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
                 THEN 5
-            WHEN cs.customer_channel_distribution = 'Online' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
+            WHEN cs.customer_channel_distribution = 'Online' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
                 THEN 6
-            WHEN cs.customer_channel_distribution = 'Shop' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
+            WHEN cs.customer_channel_distribution = 'Online' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
                 THEN 7
-            ELSE NULL
-        END AS combined_segment_order,
+            WHEN cs.customer_channel_distribution = 'Online' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
+                THEN 8
+            -- Shop Tier: Shop-only customers
+            WHEN cs.customer_channel_distribution = 'Shop' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
+                THEN 9
+            WHEN cs.customer_channel_distribution = 'Shop' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
+                THEN 10
+            WHEN cs.customer_channel_distribution = 'Shop' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
+                THEN 11
+            WHEN cs.customer_channel_distribution = 'Shop' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
+                THEN 12
+            ELSE NULL  -- Unknown channel
+        END AS crm_action_segment_order,
         
         CASE 
+            -- VIP Tier: Hybrid customers
             WHEN cs.customer_channel_distribution = 'Hybrid' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
                 THEN 'Hybrid + Loyalty + SuperApp'
             WHEN cs.customer_channel_distribution = 'Hybrid' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
                 THEN 'Hybrid + Loyalty + No App'
+            WHEN cs.customer_channel_distribution = 'Hybrid' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
+                THEN 'Hybrid + No Loyalty + SuperApp'
             WHEN cs.customer_channel_distribution = 'Hybrid' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
                 THEN 'Hybrid + No Loyalty + No App'
+            -- Online Tier
             WHEN cs.customer_channel_distribution = 'Online' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
                 THEN 'Online + Loyalty + SuperApp'
-            WHEN cs.customer_channel_distribution = 'Shop' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
-                THEN 'Shop + Loyalty + No App'
+            WHEN cs.customer_channel_distribution = 'Online' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
+                THEN 'Online + Loyalty + No App'
+            WHEN cs.customer_channel_distribution = 'Online' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
+                THEN 'Online + No Loyalty + SuperApp'
             WHEN cs.customer_channel_distribution = 'Online' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
                 THEN 'Online + No Loyalty + No App'
+            -- Shop Tier
+            WHEN cs.customer_channel_distribution = 'Shop' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
+                THEN 'Shop + Loyalty + SuperApp'
+            WHEN cs.customer_channel_distribution = 'Shop' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
+                THEN 'Shop + Loyalty + No App'
+            WHEN cs.customer_channel_distribution = 'Shop' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
+                THEN 'Shop + No Loyalty + SuperApp'
             WHEN cs.customer_channel_distribution = 'Shop' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
                 THEN 'Shop + No Loyalty + No App'
-            ELSE 'Other'
-        END AS combined_segment,
+            ELSE 'Unknown Channel'
+        END AS crm_action_segment,
         
         CASE 
+            -- VIP Tier: Hybrid customers (★★★)
             WHEN cs.customer_channel_distribution = 'Hybrid' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
                 THEN '★★★ VIP - Protect'
             WHEN cs.customer_channel_distribution = 'Hybrid' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
                 THEN '★★★ Push SuperApp'
+            WHEN cs.customer_channel_distribution = 'Hybrid' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
+                THEN '★★★ Enroll Loyalty'
             WHEN cs.customer_channel_distribution = 'Hybrid' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
-                THEN '★★ Enroll Loyalty'
+                THEN '★★ Enroll Both'
+            -- Online Tier (★★)
             WHEN cs.customer_channel_distribution = 'Online' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
-                THEN '★★ Drive Hybrid'
+                THEN '★★ Drive to Store'
+            WHEN cs.customer_channel_distribution = 'Online' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
+                THEN '★★ Push SuperApp'
+            WHEN cs.customer_channel_distribution = 'Online' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
+                THEN '★★ Enroll Loyalty'
+            WHEN cs.customer_channel_distribution = 'Online' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
+                THEN '★ Full Enrollment'
+            -- Shop Tier (★★ to ★)
+            WHEN cs.customer_channel_distribution = 'Shop' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
+                THEN '★★ Drive Online'
             WHEN cs.customer_channel_distribution = 'Shop' AND cs.loyalty_enrollment_status = 'Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
                 THEN '★★ Push Online + App'
-            WHEN cs.customer_channel_distribution = 'Online' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
+            WHEN cs.customer_channel_distribution = 'Shop' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'SuperApp User'
                 THEN '★ Enroll Loyalty'
             WHEN cs.customer_channel_distribution = 'Shop' AND cs.loyalty_enrollment_status = 'Non-Loyalty Member' AND cs.superapp_enrollment_status = 'Non-SuperApp User'
                 THEN '★ Mass Enrollment'
-            ELSE 'Other'
-        END AS combined_segment_priority,
+            ELSE 'Unknown'
+        END AS crm_action_priority,
         
         -- Multiple source tracking
         cs.all_source_nos,
