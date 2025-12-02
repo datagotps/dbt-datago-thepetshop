@@ -199,6 +199,11 @@ superapp_vaccination_compliance,   -- dim: No Vaccinations, Non-Compliant, Compl
 superapp_engagement_level,         -- dim: Highly Engaged, Moderately Engaged, Low Engagement, Inactive
 superapp_user_segment,             -- dim: No Pets, Single Pet Owner, Multi Pet Owner, Pet Enthusiast
 
+-- Combined Segmentation Matrix (Channel + Loyalty + App)
+combined_segment_order,            -- dim: 1-7 (sort order for priority segments)
+combined_segment,                  -- dim: Hybrid + Loyalty + SuperApp, etc.
+combined_segment_priority,         -- dim: ★★★ VIP - Protect, ★★★ Push SuperApp, etc.
+
 -- System Metadata
 
 DATETIME_ADD(CURRENT_DATETIME(), INTERVAL 4 HOUR) AS report_last_updated_at,
