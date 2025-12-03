@@ -171,6 +171,18 @@ END AS fulfillment_stage_sort,
         ELSE 7  -- Unknown
     END AS fulfillment_stuck_stage_sort,
 
+-- Not Posted Issue Category (for revenue analysis)
+CASE 
+    WHEN crm_order_line_status IN ('Cancel') 
+        THEN 'Normal - Cancelled'
+    WHEN crm_order_line_status IN ('ReturnClose', 'ReturnInitiated', 'ReturnedPutaway') 
+        THEN 'Normal - Returns'
+    WHEN crm_order_line_status IN ('PNA') 
+        THEN 'Stock Issue - PNA'
+    WHEN crm_order_line_status IN ('Driver Accept', 'PACKED', 'Driver at Customer Door', 'OutForDelivery', 'Picked', 'CONFIRM') 
+        THEN 'Actionable - Sync Issue'
+    ELSE 'Unknown'
+END AS issue_category,                 -- dim: Actionable - Sync Issue, Normal - Cancelled, Normal - Returns, Stock Issue - PNA
 
 from source 
 where 1=1
