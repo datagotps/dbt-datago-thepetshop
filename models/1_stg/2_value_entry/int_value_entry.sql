@@ -171,6 +171,7 @@ SELECT
     
     ve.source_no_,
     ve.posting_date,
+    ve.document_date,
     ve.invoiced_quantity,
     ve.document_line_no_,
     ve.dimension_code,

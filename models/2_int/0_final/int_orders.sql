@@ -12,6 +12,7 @@ with order_aggregation AS (
         -- Primary grouping keys (only these two)
         ol.unified_order_id,
         ol.posting_date AS order_date,
+        MAX(ol.document_date) AS document_date,
 
         -- Order identifiers (using MAX as they should be consistent per order)
         --MAX(ol.source_no_) AS source_no_,
@@ -625,6 +626,7 @@ SELECT
     
     -- Order core data (aggregated from line items)
     order_date,
+    document_date,
     order_value,
     refund_amount,
     total_order_amount,

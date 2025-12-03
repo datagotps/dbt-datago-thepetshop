@@ -9,7 +9,8 @@ web_order_id,                      -- dim (web order ID)
 loyality_member_id,                -- dim (member ID or null)
 
 -- Order Metrics
-order_date,                        -- dim (date)
+order_date,                        -- dim (posting date)
+document_date,                     -- dim (document date from ERP)
 order_value,                       -- fact (AED amount for sales)
 refund_amount,                     -- fact (AED negative amount)
 total_order_amount,                -- fact (AED net amount)

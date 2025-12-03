@@ -14,6 +14,7 @@ SELECT
     ve.source_no_,
     ve.document_no_,
     ve.posting_date,
+    ve.document_date,
     ve.invoiced_quantity,
 
     ve.company_source,
