@@ -182,7 +182,7 @@ CASE
     -- Normal Returns (not PNA)
     WHEN erp_posting_status = 'Not Posted' 
          AND pna_flag_detail != 'permanent_pna'
-         AND crm_order_line_status IN ('ReturnClose', 'ReturnInitiated', 'ReturnedPutaway') 
+         AND crm_order_line_status IN ('ReturnClose', 'ReturnInitiated', 'ReturnedPutaway', 'ReturnQCFail', 'RetrunQCPass','ReturnGateEntry') 
         THEN 'Normal - Returns'
     
     -- Normal Cancelled (not PNA)
@@ -193,11 +193,11 @@ CASE
     
     -- Actionable Sync Issue (everything else that's Not Posted)
     WHEN erp_posting_status = 'Not Posted' 
-        THEN 'Actionable - Sync Issue'
+        THEN 'Actionable - Review'
     
     -- Posted - Returns
     WHEN erp_posting_status = 'Posted' 
-         AND crm_order_line_status IN ('ReturnClose', 'ReturnInitiated', 'ReturnedPutaway', 'ReturnOCFail', 'ReturnQCPass') 
+         AND crm_order_line_status IN ('ReturnClose', 'ReturnInitiated', 'ReturnedPutaway', 'ReturnQCFail', 'RetrunQCPass','ReturnGateEntry') 
         THEN 'Posted - Returns'
     
     -- Posted - Completed (CLOSE status)
