@@ -172,17 +172,42 @@ END AS fulfillment_stage_sort,
     END AS fulfillment_stuck_stage_sort,
 
 -- Not Posted Issue Category (for revenue analysis)
+-- Only applies when erp_posting_status = 'Not Posted'
 CASE 
-    WHEN crm_order_line_status IN ('Cancel') 
-        THEN 'Normal - Cancelled'
-    WHEN crm_order_line_status IN ('ReturnClose', 'ReturnInitiated', 'ReturnedPutaway') 
-        THEN 'Normal - Returns'
-    WHEN crm_order_line_status IN ('PNA') 
+    -- Stock Issue: Permanent PNA (highest priority)
+    WHEN erp_posting_status = 'Not Posted' 
+         AND pna_flag_detail = 'permanent_pna' 
         THEN 'Stock Issue - PNA'
-    WHEN crm_order_line_status IN ('Driver Accept', 'PACKED', 'Driver at Customer Door', 'OutForDelivery', 'Picked', 'CONFIRM') 
+    
+    -- Normal Returns (not PNA)
+    WHEN erp_posting_status = 'Not Posted' 
+         AND pna_flag_detail != 'permanent_pna'
+         AND crm_order_line_status IN ('ReturnClose', 'ReturnInitiated', 'ReturnedPutaway') 
+        THEN 'Normal - Returns'
+    
+    -- Normal Cancelled (not PNA)
+    WHEN erp_posting_status = 'Not Posted' 
+         AND pna_flag_detail != 'permanent_pna'
+         AND crm_order_line_status = 'Cancel' 
+        THEN 'Normal - Cancelled'
+    
+    -- Actionable Sync Issue (everything else that's Not Posted)
+    WHEN erp_posting_status = 'Not Posted' 
         THEN 'Actionable - Sync Issue'
-    ELSE 'Unknown'
-END AS issue_category,                 -- dim: Actionable - Sync Issue, Normal - Cancelled, Normal - Returns, Stock Issue - PNA
+    
+    -- Posted - Returns
+    WHEN erp_posting_status = 'Posted' 
+         AND crm_order_line_status IN ('ReturnClose', 'ReturnInitiated', 'ReturnedPutaway', 'ReturnOCFail', 'ReturnQCPass') 
+        THEN 'Posted - Returns'
+    
+    -- Posted - Completed (CLOSE status)
+    WHEN erp_posting_status = 'Posted' 
+         AND crm_order_line_status = 'CLOSE' 
+        THEN 'Posted'
+    
+    -- Posted - Other
+    ELSE 'Posted - Other'
+END AS issue_category,                 -- dim: Stock Issue - PNA, Normal - Returns, Normal - Cancelled, Actionable - Sync Issue, Posted - Returns, Posted, Posted - Other
 
 from source 
 where 1=1
