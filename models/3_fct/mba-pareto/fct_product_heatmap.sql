@@ -1,16 +1,36 @@
+-- Product Hierarchy Heatmap (Gold Layer)
+-- Analyzes co-occurrence of product hierarchy levels within orders
+-- Full 5-Level Product Hierarchy: Division > Block > Category > Subcategory > Brand
+-- Use for Power BI heatmap visualizations showing category affinity
+
 {{ config(materialized='table') }}
 
 with order_attributes as (
     select distinct
         unified_order_id,
-        item_block,
+        -- Full Product Hierarchy (5 Levels)
+        item_division,                    -- Level 1: Pet (DOG, CAT, FISH, etc.)
+        item_division_sort_order,
+        item_block,                       -- Level 2: Block (FOOD, ACCESSORIES, etc.)
         item_block_sort_order,
-        item_category,
-        item_brand
+        item_category,                    -- Level 3: Category (Dry Food, Wet Food, etc.)
+        item_subcategory,                 -- Level 4: Subcategory (item type)
+        item_brand                        -- Level 5: Brand
     from {{ ref('fact_commercial') }}
     where unified_order_id is not null
 ),
 
+-- Level 1: Division pairs
+division_orders as (
+    select
+        unified_order_id,
+        item_division,
+        item_division_sort_order
+    from order_attributes
+    where item_division is not null
+),
+
+-- Level 2: Block pairs
 block_orders as (
     select
         unified_order_id,
@@ -20,6 +40,7 @@ block_orders as (
     where item_block is not null
 ),
 
+-- Level 3: Category pairs
 category_orders as (
     select
         unified_order_id,
@@ -28,6 +49,16 @@ category_orders as (
     where item_category is not null
 ),
 
+-- Level 4: Subcategory pairs
+subcategory_orders as (
+    select
+        unified_order_id,
+        item_subcategory
+    from order_attributes
+    where item_subcategory is not null
+),
+
+-- Level 5: Brand pairs
 brand_orders as (
     select
         unified_order_id,
@@ -36,6 +67,29 @@ brand_orders as (
     where item_brand is not null
 ),
 
+-- Division pair co-occurrence (Level 1)
+division_pairs as (
+    select
+        'division' as pair_type,
+        div1.item_division as member1_value,
+        div2.item_division as member2_value,
+        div1.item_division_sort_order as member1_sort_order,
+        div2.item_division_sort_order as member2_sort_order,
+        count(distinct div1.unified_order_id) as pair_order_count
+    from division_orders div1
+    join division_orders div2
+        on div1.unified_order_id = div2.unified_order_id
+        and (
+            coalesce(div1.item_division_sort_order, 9999) < coalesce(div2.item_division_sort_order, 9999)
+            or (
+                coalesce(div1.item_division_sort_order, 9999) = coalesce(div2.item_division_sort_order, 9999)
+                and div1.item_division < div2.item_division
+            )
+        )
+    group by 1, 2, 3, 4, 5
+),
+
+-- Block pair co-occurrence (Level 2)
 block_pairs as (
     select
         'block' as pair_type,
@@ -57,13 +111,14 @@ block_pairs as (
     group by 1, 2, 3, 4, 5
 ),
 
+-- Category pair co-occurrence (Level 3)
 category_pairs as (
     select
         'category' as pair_type,
         cat1.item_category as member1_value,
         cat2.item_category as member2_value,
-        null as member1_sort_order,
-        null as member2_sort_order,
+        cast(null as int64) as member1_sort_order,
+        cast(null as int64) as member2_sort_order,
         count(distinct cat1.unified_order_id) as pair_order_count
     from category_orders cat1
     join category_orders cat2
@@ -72,13 +127,30 @@ category_pairs as (
     group by 1, 2, 3, 4, 5
 ),
 
+-- Subcategory pair co-occurrence (Level 4)
+subcategory_pairs as (
+    select
+        'subcategory' as pair_type,
+        sub1.item_subcategory as member1_value,
+        sub2.item_subcategory as member2_value,
+        cast(null as int64) as member1_sort_order,
+        cast(null as int64) as member2_sort_order,
+        count(distinct sub1.unified_order_id) as pair_order_count
+    from subcategory_orders sub1
+    join subcategory_orders sub2
+        on sub1.unified_order_id = sub2.unified_order_id
+        and sub1.item_subcategory < sub2.item_subcategory
+    group by 1, 2, 3, 4, 5
+),
+
+-- Brand pair co-occurrence (Level 5)
 brand_pairs as (
     select
         'brand' as pair_type,
         br1.item_brand as member1_value,
         br2.item_brand as member2_value,
-        null as member1_sort_order,
-        null as member2_sort_order,
+        cast(null as int64) as member1_sort_order,
+        cast(null as int64) as member2_sort_order,
         count(distinct br1.unified_order_id) as pair_order_count
     from brand_orders br1
     join brand_orders br2
@@ -88,9 +160,13 @@ brand_pairs as (
 ),
 
 unioned_pairs as (
+    select * from division_pairs
+    union all
     select * from block_pairs
     union all
     select * from category_pairs
+    union all
+    select * from subcategory_pairs
     union all
     select * from brand_pairs
 )
@@ -103,10 +179,15 @@ select
     member1_sort_order,
     member2_sort_order,
     pair_order_count,
+    -- Convenience columns for Power BI filtering
+    case when pair_type = 'division' then member1_value end as division1,
+    case when pair_type = 'division' then member2_value end as division2,
     case when pair_type = 'block' then member1_value end as block1,
     case when pair_type = 'block' then member2_value end as block2,
     case when pair_type = 'category' then member1_value end as category1,
     case when pair_type = 'category' then member2_value end as category2,
+    case when pair_type = 'subcategory' then member1_value end as subcategory1,
+    case when pair_type = 'subcategory' then member2_value end as subcategory2,
     case when pair_type = 'brand' then member1_value end as brand1,
     case when pair_type = 'brand' then member2_value end as brand2
 from unioned_pairs
