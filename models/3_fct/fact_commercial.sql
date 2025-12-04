@@ -85,8 +85,12 @@ item_block,                        -- dim: Level 2 - Block (FOOD, ACCESSORIES, e
 item_category,                     -- dim: Level 3 - Category (Dry Food, Wet Food, etc.)
 item_subcategory,                  -- dim: Level 4 - Subcategory (item type)
 item_brand,                        -- dim: Level 5 - Brand
-item_division_sort_order,          -- dim: sort order for item_division
-item_block_sort_order,             -- dim: sort order for item_block
+-- Dynamic Sort Orders (based on revenue - highest revenue = 1)
+item_division_sort_order,          -- dim: Level 1 sort order
+item_block_sort_order,             -- dim: Level 2 sort order
+item_category_sort_order,          -- dim: Level 3 sort order (NEW)
+item_subcategory_sort_order,       -- dim: Level 4 sort order (NEW)
+item_brand_sort_order,             -- dim: Level 5 sort order (NEW)
 
 -- Customer Tenure Metrics (Line-Level Context)
 customer_first_purchase_date,      -- dim: customer's first purchase date (any transaction)

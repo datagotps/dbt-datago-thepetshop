@@ -202,8 +202,12 @@ SELECT
     ve.item_category,        -- Level 3: Category (was item_subcategory)
     ve.item_subcategory,     -- Level 4: Subcategory (was item_type)
     ve.item_brand,
-    ve.item_division_sort_order,
-    ve.item_block_sort_order,
+    -- Dynamic Sort Orders (based on revenue contribution - highest revenue = 1)
+    ve.item_division_sort_order,      -- Level 1 sort
+    ve.item_block_sort_order,         -- Level 2 sort
+    ve.item_category_sort_order,      -- Level 3 sort (NEW)
+    ve.item_subcategory_sort_order,   -- Level 4 sort (NEW)
+    ve.item_brand_sort_order,         -- Level 5 sort (NEW)
     
     -- =====================================================
     -- Customer Tenure Metrics (Line-Level Context)

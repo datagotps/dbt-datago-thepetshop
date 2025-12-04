@@ -74,8 +74,12 @@ SELECT
     it.item_category,        -- Level 3: Category (was item_subcategory)
     it.item_subcategory,     -- Level 4: Subcategory (was item_type)
     it.item_brand,
-    it.item_division_sort_order,
-    it.item_block_sort_order,
+    -- Dynamic Sort Orders (based on revenue contribution)
+    it.item_division_sort_order,      -- Level 1 sort
+    it.item_block_sort_order,         -- Level 2 sort
+    it.item_category_sort_order,      -- Level 3 sort (NEW)
+    it.item_subcategory_sort_order,   -- Level 4 sort (NEW)
+    it.item_brand_sort_order,         -- Level 5 sort (NEW)
 
     -- =====================================================
     -- Document Classifications
