@@ -58,8 +58,11 @@ items.item_division_sort_order,          -- dim: 1-11 (sort order for item_divis
 items.item_block,                        -- dim: Level 2 - Block (FOOD, ACCESSORIES, etc.)
 items.item_block_sort_order,             -- dim: 1-999 (sort order for item_block)
 items.item_category,                     -- dim: Level 3 - Category (Dry Food, Wet Food, Treats, etc.)
+items.item_category_sort_order,          -- dim: sort order for item_category
 items.item_subcategory,                  -- dim: Level 4 - Subcategory (item type)
+items.item_subcategory_sort_order,       -- dim: sort order for item_subcategory
 items.item_brand,                        -- dim: Level 5 - Brand
+items.item_brand_sort_order,             -- dim: sort order for item_brand
 items.inventory_posting_group,           -- dim (inventory posting group)
 
 -- Performance Metrics

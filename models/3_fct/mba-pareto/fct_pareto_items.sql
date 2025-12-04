@@ -21,10 +21,15 @@ base_items as (
         dim.primary_sales_channel,
         -- Full Product Hierarchy (5 Levels) - Consistent Naming
         dim.item_division,                -- Level 1: Pet (DOG, CAT, FISH, etc.)
+        dim.item_division_sort_order,     -- Sort order by revenue
         dim.item_block,                   -- Level 2: Block (FOOD, ACCESSORIES, etc.)
+        dim.item_block_sort_order,        -- Sort order by revenue
         dim.item_category,                -- Level 3: Category (Dry Food, Wet Food, etc.)
+        dim.item_category_sort_order,     -- Sort order by revenue
         dim.item_subcategory,             -- Level 4: Subcategory (item type)
+        dim.item_subcategory_sort_order,  -- Sort order by revenue
         dim.item_brand,                   -- Level 5: Brand
+        dim.item_brand_sort_order,        -- Sort order by revenue
         coalesce(rev.revenue, 0) as revenue
     from {{ ref('dim_items') }} dim
     left join base_revenue rev
@@ -89,25 +94,30 @@ ranking_window_calculations as (
     from base_items
 )
 
-select
+    select
     -- Item Identifiers
-    item_id,
-    item_name,
-    primary_sales_channel,
+        item_id,
+        item_name,
+        primary_sales_channel,
     
-    -- Full Product Hierarchy (5 Levels)
+    -- Full Product Hierarchy (5 Levels) with Sort Orders
     item_division,                        -- Level 1
+    item_division_sort_order,             -- Sort by revenue (for Power BI Sort by Column)
     item_block,                           -- Level 2
+    item_block_sort_order,                -- Sort by revenue
     item_category,                        -- Level 3
+    item_category_sort_order,             -- Sort by revenue
     item_subcategory,                     -- Level 4
+    item_subcategory_sort_order,          -- Sort by revenue
     item_brand,                           -- Level 5
+    item_brand_sort_order,                -- Sort by revenue
     
     -- Item Revenue (single column, not duplicated)
     revenue,
     
     -- Global Pareto Metrics
     rank_global,
-    cumulative_revenue_global / nullif(total_revenue_global, 0) as cumulative_pct_global,
+        cumulative_revenue_global / nullif(total_revenue_global, 0) as cumulative_pct_global,
     case
         when cumulative_revenue_global / nullif(total_revenue_global, 0) <= 0.80 then 'A'
         when cumulative_revenue_global / nullif(total_revenue_global, 0) <= 0.95 then 'B'
@@ -124,8 +134,8 @@ select
     end as pareto_class_channel,
 
     -- Level 1: Division Pareto Metrics
-    rank_division,
-    cumulative_revenue_division / nullif(total_revenue_division, 0) as cumulative_pct_division,
+        rank_division,
+        cumulative_revenue_division / nullif(total_revenue_division, 0) as cumulative_pct_division,
     case
         when cumulative_revenue_division / nullif(total_revenue_division, 0) <= 0.80 then 'A'
         when cumulative_revenue_division / nullif(total_revenue_division, 0) <= 0.95 then 'B'
@@ -142,8 +152,8 @@ select
     end as pareto_class_block,
 
     -- Level 3: Category Pareto Metrics
-    rank_category,
-    cumulative_revenue_category / nullif(total_revenue_category, 0) as cumulative_pct_category,
+        rank_category,
+        cumulative_revenue_category / nullif(total_revenue_category, 0) as cumulative_pct_category,
     case
         when cumulative_revenue_category / nullif(total_revenue_category, 0) <= 0.80 then 'A'
         when cumulative_revenue_category / nullif(total_revenue_category, 0) <= 0.95 then 'B'
@@ -151,8 +161,8 @@ select
     end as pareto_class_category,
 
     -- Level 4: Subcategory Pareto Metrics
-    rank_subcategory,
-    cumulative_revenue_subcategory / nullif(total_revenue_subcategory, 0) as cumulative_pct_subcategory,
+        rank_subcategory,
+        cumulative_revenue_subcategory / nullif(total_revenue_subcategory, 0) as cumulative_pct_subcategory,
     case
         when cumulative_revenue_subcategory / nullif(total_revenue_subcategory, 0) <= 0.80 then 'A'
         when cumulative_revenue_subcategory / nullif(total_revenue_subcategory, 0) <= 0.95 then 'B'
@@ -160,7 +170,7 @@ select
     end as pareto_class_subcategory,
 
     -- Level 5: Brand Pareto Metrics
-    rank_brand,
+        rank_brand,
     cumulative_revenue_brand / nullif(total_revenue_brand, 0) as cumulative_pct_brand,
     case
         when cumulative_revenue_brand / nullif(total_revenue_brand, 0) <= 0.80 then 'A'
@@ -168,4 +178,4 @@ select
         else 'C'
     end as pareto_class_brand
 
-from ranking_window_calculations
+    from ranking_window_calculations

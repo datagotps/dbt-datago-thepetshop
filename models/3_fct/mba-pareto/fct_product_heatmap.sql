@@ -133,7 +133,7 @@ category_pairs as (
             coalesce(cat1.item_category_sort_order, 9999) < coalesce(cat2.item_category_sort_order, 9999)
             or (
                 coalesce(cat1.item_category_sort_order, 9999) = coalesce(cat2.item_category_sort_order, 9999)
-                and cat1.item_category < cat2.item_category
+        and cat1.item_category < cat2.item_category
             )
         )
     group by 1, 2, 3, 4, 5
@@ -177,7 +177,7 @@ brand_pairs as (
             coalesce(br1.item_brand_sort_order, 9999) < coalesce(br2.item_brand_sort_order, 9999)
             or (
                 coalesce(br1.item_brand_sort_order, 9999) = coalesce(br2.item_brand_sort_order, 9999)
-                and br1.item_brand < br2.item_brand
+        and br1.item_brand < br2.item_brand
             )
         )
     group by 1, 2, 3, 4, 5

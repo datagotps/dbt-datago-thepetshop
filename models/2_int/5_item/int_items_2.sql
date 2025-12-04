@@ -99,8 +99,11 @@ SELECT DISTINCT
     it.item_block,                 -- Level 2: Block (was item_category)
     it.item_block_sort_order,
     it.item_category,              -- Level 3: Category (was item_subcategory)
+    it.item_category_sort_order,
     it.item_subcategory,           -- Level 4: Subcategory (was item_type)
-    it.item_brand,
+    it.item_subcategory_sort_order,
+    it.item_brand,                 -- Level 5: Brand
+    it.item_brand_sort_order,
     it.inventory_posting_group,
     it.varient_item,
     

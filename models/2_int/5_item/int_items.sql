@@ -19,9 +19,9 @@ base_items AS (
     SELECT
         a.item_no_,
         a.item_name,
-        a.item_brand,
-        a.inventory_posting_group,
-        a.varient_item,
+a.item_brand,
+a.inventory_posting_group,
+a.varient_item,
         -- Hierarchy columns
         c.description AS item_division,      -- Level 1: Pet (from stg_petshop_division)
         b.description AS item_block,         -- Level 2: Block (from stg_petshop_item_category)
