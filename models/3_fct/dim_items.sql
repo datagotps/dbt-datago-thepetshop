@@ -89,17 +89,29 @@ items.discount_rate_pct,                 -- fact (percentage of discounted sales
 items.abc_classification,                -- dim: A, B, C
 items.revenue_contribution_pct,          -- fact (percentage of total revenue)
 
+-- XYZ Classification (Demand Predictability)
+items.xyz_class,                         -- dim: X (predictable), Y (variable), Z (sporadic)
+items.xyz_class_sort_order,              -- dim: sort order (X=1, Y=2, Z=3)
+items.coefficient_of_variation,          -- fact: CV = stddev/mean (lower = more predictable)
+items.avg_monthly_transactions_12m,      -- fact: avg monthly transactions over 12 months
+items.stddev_monthly_transactions,       -- fact: standard deviation of monthly transactions
+items.months_with_sales_data,            -- fact: number of months with sales data
+items.abc_xyz_class,                     -- dim: combined classification (A-X, B-Y, C-Z, etc.)
+
 -- Sales Velocity & Frequency
 items.avg_monthly_sales_3m,              -- fact (3-month average monthly sales)
 items.avg_weekly_sales_4w,               -- fact (4-week average weekly sales)
 items.purchase_frequency_tier,           -- dim: Very High, High, Medium, Low, Very Low
+items.purchase_frequency_tier_sort_order,-- dim: sort order (1=Very High, 5=Very Low)
 items.velocity_classification,           -- dim: Fast Moving, Regular Moving, Slow Moving, Non Moving
+items.velocity_classification_sort_order,-- dim: sort order (1=Fast, 4=Non Moving)
 
 -- Channel Mix
 items.online_sales_pct,                  -- fact (percentage sold online)
 items.shop_sales_pct,                    -- fact (percentage sold in shops)
 items.affiliate_sales_pct,               -- fact (percentage sold via affiliates)
 items.primary_sales_channel,             -- dim: Online, Shop, Affiliate, None
+items.primary_sales_channel_sort_order,  -- dim: sort order (1=Online, 4=None)
 
 -- Status & Lifecycle
 items.first_sale_date,                   -- dim (date of first sale)
@@ -107,6 +119,7 @@ items.last_sale_date,                    -- dim (date of last sale)
 items.days_since_last_sale,              -- fact (days since last transaction)
 items.active_months_count,               -- fact (number of active months)
 items.item_status,                       -- dim: Active, Slow, Dormant, Inactive, Never Sold
+items.item_status_sort_order,            -- dim: sort order (1=Active, 5=Never Sold)
 
 -- MBA Support Metrics
 items.is_high_support_item,              -- fact: 0, 1 (flag for MBA analysis)
