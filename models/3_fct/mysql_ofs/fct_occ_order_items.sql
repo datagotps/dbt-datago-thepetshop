@@ -174,31 +174,31 @@ END AS fulfillment_stage_sort,
 -- Not Posted Issue Category (for revenue analysis)
 -- Only applies when erp_posting_status = 'Not Posted'
 CASE 
-    -- Stock Issue: Permanent PNA (highest priority)
+    -- PNA: Permanent PNA (highest priority)
     WHEN erp_posting_status = 'Not Posted' 
          AND pna_flag_detail = 'permanent_pna' 
-        THEN 'Stock Issue - PNA'
+        THEN 'Not Posted → PNA'
     
-    -- Normal Returns (not PNA)
+    -- Returns (not PNA)
     WHEN erp_posting_status = 'Not Posted' 
          AND pna_flag_detail != 'permanent_pna'
          AND crm_order_line_status IN ('ReturnClose', 'ReturnInitiated', 'ReturnedPutaway', 'ReturnQCFail', 'RetrunQCPass','ReturnGateEntry') 
-        THEN 'Normal - Returns'
+        THEN 'Not Posted → Returns'
     
-    -- Normal Cancelled (not PNA)
+    -- Cancelled (not PNA)
     WHEN erp_posting_status = 'Not Posted' 
          AND pna_flag_detail != 'permanent_pna'
          AND crm_order_line_status = 'Cancel' 
-        THEN 'Normal - Cancelled'
+        THEN 'Not Posted → Cancelled'
     
-    -- Actionable Sync Issue (everything else that's Not Posted)
+    -- Review: Everything else that's Not Posted (needs investigation)
     WHEN erp_posting_status = 'Not Posted' 
-        THEN 'Actionable - Review'
+        THEN 'Not Posted → Review'
     
     -- Posted - Returns
     WHEN erp_posting_status = 'Posted' 
          AND crm_order_line_status IN ('ReturnClose', 'ReturnInitiated', 'ReturnedPutaway', 'ReturnQCFail', 'RetrunQCPass','ReturnGateEntry') 
-        THEN 'Posted - Returns'
+        THEN 'Posted → Returns'
     
     -- Posted - Completed (CLOSE status)
     WHEN erp_posting_status = 'Posted' 
@@ -206,8 +206,8 @@ CASE
         THEN 'Posted'
     
     -- Posted - Other
-    ELSE 'Posted - Other'
-END AS issue_category,                 -- dim: Stock Issue - PNA, Normal - Returns, Normal - Cancelled, Actionable - Sync Issue, Posted - Returns, Posted, Posted - Other
+    ELSE 'Posted → Other'
+END AS issue_category,                 -- dim: Not Posted → PNA, Not Posted → Returns, Not Posted → Cancelled, Not Posted → Review, Posted → Returns, Posted, Posted → Other
 
 from source 
 where 1=1
