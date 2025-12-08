@@ -19,12 +19,15 @@ pay_to_vendor_no_,                -- dim (pay-to vendor no.)
 -- Dates
 order_date,                       -- dim (order date at line level)
 document_date,                    -- dim (header document date)
+expected_receipt_date,            -- dim (expected delivery date)
 
 -- Quantities (Line-Level)
 qty_ordered,                      -- fact (ordered qty)
 qty_received,                     -- fact (received qty to date)
 qty_invoiced,                     -- fact (invoiced qty to date)
 qty_outstanding,                  -- fact (remaining qty = ordered - received)
+return_qty__shipped_not_invd_,    -- fact (return qty shipped not invoiced)
+qty__rcd__not_invoiced,           -- fact (GRN qty not yet invoiced)
 
 -- Status Flags
 is_fully_received,                -- dim (boolean: line completely received)
@@ -40,10 +43,18 @@ qty_over_received,                -- fact (over-receipt qty)
 -- Financials (Line-Level)
 currency_code,                    -- dim (ISO currency)
 direct_unit_cost,                 -- fact (unit cost from vendor)
+unit_cost__lcy_,                  -- fact (unit cost in LCY)
 line_amount,                      -- fact (extended amount = qty × cost, before discounts)
 line_discount_amount,             -- fact (line discount amount)
+inv__discount_amount,             -- fact (invoice discount amount)
+pmt__discount_amount,             -- fact (payment discount amount)
 amount,                           -- fact (net amount excl. VAT)
 outstanding_amount,               -- fact (value of pending goods)
+overhead_rate,                    -- fact (overhead rate)
+indirect_cost,                    -- fact (indirect cost)
+job_total_price_lcy,              -- fact (job total price in LCY)
+expected_job_cost,                -- fact (expected job cost proxy)
+return_cost,                      -- fact (return cost estimate)
 
 -- Posting Groups
 gen__bus__posting_group,          -- dim (general business posting group)
@@ -51,6 +62,9 @@ gen__prod__posting_group,         -- dim (general product posting group)
 
 -- Location / Logistics
 location_code,                    -- dim (location / site code)
+
+-- Job / Project
+job_no_,                          -- dim (job number)
 
 -- Quality Control
 quality_status,                   -- dim (QC status text/code)

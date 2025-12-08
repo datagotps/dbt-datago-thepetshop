@@ -44,6 +44,8 @@ select
     a.quantity_received as qty_received,
     a.quantity_invoiced as qty_invoiced,
     a.outstanding_quantity as qty_outstanding,
+    a.qty__rcd__not_invoiced,
+    a.return_qty__shipped_not_invd_,
     
     -- Status Flags
     a.completely_received as is_fully_received,
@@ -62,9 +64,18 @@ select
     a.line_amount,                      -- Extended amount (qty × cost)
     a.line_discount_amount,             -- Discount received
     a.amount,                           -- Net amount (excl. VAT)
+    a.unit_cost__lcy_,
+    a.inv__discount_amount,
+    a.pmt__discount_amount,
+    a.overhead_rate,
+    a.indirect_cost__ as indirect_cost,
+    a.job_total_price__lcy_ as job_total_price_lcy,
+    a.job_total_price__lcy_ as expected_job_cost,
+    a.unit_cost__lcy_ * a.return_qty__shipped_not_invd_ as return_cost,
     --a.amount_including_vat as amount_incl_vat,             -- Gross amount (incl. VAT)
     a.outstanding_amount,               -- Value of pending goods
     --a.a__rcd__not_inv__ex__vat__lcy_ as amount_rcd_not_inv,  -- GRN accrual amount
+    a.job_no_,
 
     -- POSTING GROUPS
     a.gen__bus__posting_group,
@@ -89,9 +100,10 @@ select
     -- Procurement Timeliness Metrics
     case 
         when a.expected_receipt_date is not null 
-            and CURRENT_DATE() > a.expected_receipt_date 
-        then DATE_DIFF(CURRENT_DATE(), a.expected_receipt_date, DAY)
+            and current_date > a.expected_receipt_date 
+        then datediff(day, a.expected_receipt_date, current_date)
     end as delay_days_open
+    
 
 from {{ ref('stg_petshop_purchase_line') }} as a
 left join {{ ref('stg_petshop_purchase_header') }} as b 

@@ -6,7 +6,6 @@ with order_attributes as (
         item_block,
         item_block_sort_order,
         item_category,
-        item_category_sort_order,
         item_brand
     from {{ ref('fact_commercial') }}
     where unified_order_id is not null
@@ -24,8 +23,7 @@ block_orders as (
 category_orders as (
     select
         unified_order_id,
-        item_category,
-        item_category_sort_order
+        item_category
     from order_attributes
     where item_category is not null
 ),
@@ -64,19 +62,13 @@ category_pairs as (
         'category' as pair_type,
         cat1.item_category as member1_value,
         cat2.item_category as member2_value,
-        cat1.item_category_sort_order as member1_sort_order,
-        cat2.item_category_sort_order as member2_sort_order,
+        null as member1_sort_order,
+        null as member2_sort_order,
         count(distinct cat1.unified_order_id) as pair_order_count
     from category_orders cat1
     join category_orders cat2
         on cat1.unified_order_id = cat2.unified_order_id
-        and (
-            coalesce(cat1.item_category_sort_order, 9999) < coalesce(cat2.item_category_sort_order, 9999)
-            or (
-                coalesce(cat1.item_category_sort_order, 9999) = coalesce(cat2.item_category_sort_order, 9999)
-                and cat1.item_category < cat2.item_category
-            )
-        )
+        and cat1.item_category < cat2.item_category
     group by 1, 2, 3, 4, 5
 ),
 
