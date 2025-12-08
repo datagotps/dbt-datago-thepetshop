@@ -171,43 +171,6 @@ END AS fulfillment_stage_sort,
         ELSE 7  -- Unknown
     END AS fulfillment_stuck_stage_sort,
 
--- Not Posted Issue Category (for revenue analysis)
--- Only applies when erp_posting_status = 'Not Posted'
-CASE 
-    -- PNA: Permanent PNA (highest priority)
-    WHEN erp_posting_status = 'Not Posted' 
-         AND pna_flag_detail = 'permanent_pna' 
-        THEN 'Not Posted → PNA'
-    
-    -- Returns (not PNA)
-    WHEN erp_posting_status = 'Not Posted' 
-         AND pna_flag_detail != 'permanent_pna'
-         AND crm_order_line_status IN ('ReturnClose', 'ReturnInitiated', 'ReturnedPutaway', 'ReturnQCFail', 'RetrunQCPass','ReturnGateEntry') 
-        THEN 'Not Posted → Returns'
-    
-    -- Cancelled (not PNA)
-    WHEN erp_posting_status = 'Not Posted' 
-         AND pna_flag_detail != 'permanent_pna'
-         AND crm_order_line_status = 'Cancel' 
-        THEN 'Not Posted → Cancelled'
-    
-    -- Review: Everything else that's Not Posted (needs investigation)
-    WHEN erp_posting_status = 'Not Posted' 
-        THEN 'Not Posted → Review'
-    
-    -- Posted - Returns
-    WHEN erp_posting_status = 'Posted' 
-         AND crm_order_line_status IN ('ReturnClose', 'ReturnInitiated', 'ReturnedPutaway', 'ReturnQCFail', 'RetrunQCPass','ReturnGateEntry') 
-        THEN 'Posted → Returns'
-    
-    -- Posted - Completed (CLOSE status)
-    WHEN erp_posting_status = 'Posted' 
-         AND crm_order_line_status = 'CLOSE' 
-        THEN 'Posted'
-    
-    -- Posted - Other
-    ELSE 'Posted → Other'
-END AS issue_category,                 -- dim: Not Posted → PNA, Not Posted → Returns, Not Posted → Cancelled, Not Posted → Review, Posted → Returns, Posted, Posted → Other
 
 from source 
 where 1=1

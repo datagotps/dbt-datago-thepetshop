@@ -1,2 +1,23 @@
-team_work/**
+# Ignore team_work directory - it's a git subtree for collaboration
+# Models in team_work/ are duplicates of main models/ directory
+team_work/
+
+# Target directory (dbt compiled files)
+target/
+
+# dbt packages
+dbt_packages/
+dbt_internal_packages/
+
+# Python bytecode
+*.pyc
+__pycache__/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
 

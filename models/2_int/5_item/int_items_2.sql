@@ -81,6 +81,56 @@ item_velocity AS (
     WHERE transaction_type = 'Sale'
         --AND posting_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
     GROUP BY item_no_
+),
+
+-- =====================================================
+-- XYZ Classification (Demand Variability)
+-- Based on Coefficient of Variation (CV) of monthly sales
+-- X = Low variability (CV < 0.5) - Predictable demand
+-- Y = Medium variability (0.5 <= CV < 1.0) - Variable demand
+-- Z = High variability (CV >= 1.0) - Sporadic/unpredictable
+-- =====================================================
+monthly_sales AS (
+    -- Get monthly sales count per item for last 12 months
+    SELECT 
+        item_no_,
+        DATE_TRUNC(posting_date, MONTH) as sale_month,
+        COUNT(DISTINCT document_no_) as monthly_transactions,
+        SUM(sales_amount__actual_) as monthly_revenue
+    FROM {{ ref('fact_commercial') }}
+    WHERE transaction_type = 'Sale'
+        AND posting_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+    GROUP BY item_no_, DATE_TRUNC(posting_date, MONTH)
+),
+
+xyz_classification AS (
+    SELECT 
+        item_no_,
+        -- Statistics for transactions
+        AVG(monthly_transactions) as avg_monthly_transactions,
+        STDDEV(monthly_transactions) as stddev_monthly_transactions,
+        -- Statistics for revenue
+        AVG(monthly_revenue) as avg_monthly_revenue,
+        STDDEV(monthly_revenue) as stddev_monthly_revenue,
+        -- Count of months with sales
+        COUNT(DISTINCT sale_month) as months_with_data,
+        -- Coefficient of Variation (CV) = StdDev / Mean
+        -- Using transactions as the basis (more stable than revenue)
+        CASE 
+            WHEN AVG(monthly_transactions) > 0 
+            THEN STDDEV(monthly_transactions) / AVG(monthly_transactions)
+            ELSE 999  -- No data = high variability
+        END as coefficient_of_variation,
+        -- XYZ Classification
+        CASE 
+            WHEN COUNT(DISTINCT sale_month) < 3 THEN 'Z'  -- Not enough data
+            WHEN AVG(monthly_transactions) = 0 THEN 'Z'   -- No sales
+            WHEN STDDEV(monthly_transactions) / NULLIF(AVG(monthly_transactions), 0) < 0.5 THEN 'X'
+            WHEN STDDEV(monthly_transactions) / NULLIF(AVG(monthly_transactions), 0) < 1.0 THEN 'Y'
+            ELSE 'Z'
+        END as xyz_class
+    FROM monthly_sales
+    GROUP BY item_no_
 )
 
 SELECT DISTINCT
@@ -92,15 +142,18 @@ SELECT DISTINCT
     it.item_name as item_description,  -- Using item_name as description
     
     -- =====================================================
-    -- Categorization Hierarchy
+    -- Categorization Hierarchy (Updated Business Naming)
     -- =====================================================
-    it.division,
-    it.division_sort_order,
-    it.item_category,
+    it.item_division,              -- Level 1: Pet (was division)
+    it.item_division_sort_order,
+    it.item_block,                 -- Level 2: Block (was item_category)
+    it.item_block_sort_order,
+    it.item_category,              -- Level 3: Category (was item_subcategory)
     it.item_category_sort_order,
-    it.item_subcategory,
-    it.item_brand,
-    it.item_type,
+    it.item_subcategory,           -- Level 4: Subcategory (was item_type)
+    it.item_subcategory_sort_order,
+    it.item_brand,                 -- Level 5: Brand
+    it.item_brand_sort_order,
     it.inventory_posting_group,
     it.varient_item,
     
@@ -178,6 +231,14 @@ SELECT DISTINCT
         WHEN m.total_transactions >= 5 THEN 'Low'
         ELSE 'Very Low'
     END as purchase_frequency_tier,
+    -- Sort Order: Very High=1, High=2, Medium=3, Low=4, Very Low=5
+    CASE 
+        WHEN m.total_transactions >= 100 THEN 1
+        WHEN m.total_transactions >= 50 THEN 2
+        WHEN m.total_transactions >= 20 THEN 3
+        WHEN m.total_transactions >= 5 THEN 4
+        ELSE 5
+    END as purchase_frequency_tier_sort_order,
     
     -- Velocity Classification
     CASE 
@@ -186,6 +247,13 @@ SELECT DISTINCT
         WHEN v.avg_weekly_transactions_4w >= 0.5 THEN 'Slow Moving'
         ELSE 'Non Moving'
     END as velocity_classification,
+    -- Sort Order: Fast=1, Regular=2, Slow=3, Non=4
+    CASE 
+        WHEN v.avg_weekly_transactions_4w >= 10 THEN 1
+        WHEN v.avg_weekly_transactions_4w >= 2 THEN 2
+        WHEN v.avg_weekly_transactions_4w >= 0.5 THEN 3
+        ELSE 4
+    END as velocity_classification_sort_order,
     
     -- =====================================================
     -- Channel Mix
@@ -215,6 +283,13 @@ SELECT DISTINCT
         WHEN m.affiliate_transactions > 0 THEN 'Affiliate'
         ELSE 'None'
     END as primary_sales_channel,
+    -- Sort Order: Online=1, Shop=2, Affiliate=3, None=4
+    CASE 
+        WHEN m.online_transactions >= m.shop_transactions AND m.online_transactions >= m.affiliate_transactions THEN 1
+        WHEN m.shop_transactions >= m.online_transactions AND m.shop_transactions >= m.affiliate_transactions THEN 2
+        WHEN m.affiliate_transactions > 0 THEN 3
+        ELSE 4
+    END as primary_sales_channel_sort_order,
     
     -- =====================================================
     -- Status & Lifecycle
@@ -232,6 +307,14 @@ SELECT DISTINCT
         WHEN DATE_DIFF(CURRENT_DATE(), m.last_sale_date, DAY) <= 180 THEN 'Dormant'
         ELSE 'Inactive'
     END as item_status,
+    -- Sort Order: Active=1, Slow=2, Dormant=3, Inactive=4, Never Sold=5
+    CASE 
+        WHEN m.last_sale_date IS NULL THEN 5
+        WHEN DATE_DIFF(CURRENT_DATE(), m.last_sale_date, DAY) <= 30 THEN 1
+        WHEN DATE_DIFF(CURRENT_DATE(), m.last_sale_date, DAY) <= 90 THEN 2
+        WHEN DATE_DIFF(CURRENT_DATE(), m.last_sale_date, DAY) <= 180 THEN 3
+        ELSE 4
+    END as item_status_sort_order,
     
     -- =====================================================
     -- MBA Support Metrics
@@ -254,6 +337,28 @@ SELECT DISTINCT
     END as cross_sell_potential_score,
     
     -- =====================================================
+    -- XYZ Classification (Demand Predictability)
+    -- =====================================================
+    COALESCE(xyz.coefficient_of_variation, 999) as coefficient_of_variation,
+    COALESCE(xyz.avg_monthly_transactions, 0) as avg_monthly_transactions_12m,
+    COALESCE(xyz.stddev_monthly_transactions, 0) as stddev_monthly_transactions,
+    COALESCE(xyz.months_with_data, 0) as months_with_sales_data,
+    COALESCE(xyz.xyz_class, 'Z') as xyz_class,
+    -- Sort Order: X=1, Y=2, Z=3
+    CASE COALESCE(xyz.xyz_class, 'Z')
+        WHEN 'X' THEN 1
+        WHEN 'Y' THEN 2
+        ELSE 3
+    END as xyz_class_sort_order,
+    
+    -- ABC-XYZ Combined Classification
+    CASE 
+        WHEN abc.cumulative_revenue <= abc.grand_total_revenue * 0.80 THEN 'A'
+        WHEN abc.cumulative_revenue <= abc.grand_total_revenue * 0.95 THEN 'B'
+        ELSE 'C'
+    END || '-' || COALESCE(xyz.xyz_class, 'Z') as abc_xyz_class,
+    
+    -- =====================================================
     -- Metadata
     -- =====================================================
     CURRENT_DATE() as dim_created_date,
@@ -263,6 +368,7 @@ FROM {{ ref('int_items') }} as it
 LEFT JOIN item_metrics as m ON it.item_no_ = m.item_no_
 LEFT JOIN item_abc_classification as abc ON it.item_no_ = abc.item_no_
 LEFT JOIN item_velocity as v ON it.item_no_ = v.item_no_
+LEFT JOIN xyz_classification as xyz ON it.item_no_ = xyz.item_no_
 
 -- Optional: Filter out items with no sales history if needed
 -- WHERE m.total_transactions > 0 OR m.first_sale_date IS NOT NULL

@@ -35,7 +35,7 @@ select
 
     -- DATES
     a.order_date,
-    --a.expected_receipt_date,
+    a.expected_receipt_date,
     --a.promised_receipt_date,
     --a.planned_receipt_date,
 
@@ -83,8 +83,15 @@ select
     -- DOCUMENT INFO
     b.status as po_header_status,
     b.document_date,
+    b.vendor_invoice_no_,
     b.buy_from_vendor_name,
 
+    -- Procurement Timeliness Metrics
+    case 
+        when a.expected_receipt_date is not null 
+            and CURRENT_DATE() > a.expected_receipt_date 
+        then DATE_DIFF(CURRENT_DATE(), a.expected_receipt_date, DAY)
+    end as delay_days_open
 
 from {{ ref('stg_petshop_purchase_line') }} as a
 left join {{ ref('stg_petshop_purchase_header') }} as b 

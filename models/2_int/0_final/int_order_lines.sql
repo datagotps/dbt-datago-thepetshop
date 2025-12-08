@@ -14,6 +14,7 @@ SELECT
     ve.source_no_,
     ve.document_no_,
     ve.posting_date,
+    ve.document_date,
     ve.invoiced_quantity,
 
     ve.company_source,
@@ -169,6 +170,7 @@ SELECT
     END AS unified_customer_id,
 
     ve.loyality_member_id,
+    ve.web_customer_no_,  -- Shopify customer ID for SuperApp linkage
     
     -- =====================================================
     -- Online Order Information (already in int_value_entry)
@@ -191,15 +193,45 @@ SELECT
     -- =====================================================
     -- Item Information (already in int_value_entry)
     -- =====================================================
+    -- Product Hierarchy (Updated Naming)
+    -- =====================================================
     ve.item_no_,
     ve.item_name,
-    ve.item_category,
-    ve.item_type,
-    ve.item_subcategory,
+    ve.item_division,        -- Level 1: Pet (was division)
+    ve.item_block,           -- Level 2: Block (was item_category)
+    ve.item_category,        -- Level 3: Category (was item_subcategory)
+    ve.item_subcategory,     -- Level 4: Subcategory (was item_type)
     ve.item_brand,
-    ve.division,
-    ve.division_sort_order,
-    ve.item_category_sort_order,
+    -- Dynamic Sort Orders (based on revenue contribution - highest revenue = 1)
+    ve.item_division_sort_order,      -- Level 1 sort
+    ve.item_block_sort_order,         -- Level 2 sort
+    ve.item_category_sort_order,      -- Level 3 sort (NEW)
+    ve.item_subcategory_sort_order,   -- Level 4 sort (NEW)
+    ve.item_brand_sort_order,         -- Level 5 sort (NEW)
+    
+    -- =====================================================
+    -- Customer Tenure Metrics (Line-Level Context)
+    -- =====================================================
+    
+    -- Customer's first purchase date (across all transactions)
+    MIN(ve.posting_date) OVER (
+        PARTITION BY CASE 
+            WHEN ve.std_phone_no_ = '000000000000' OR ve.std_phone_no_ IS NULL THEN ve.source_no_
+            ELSE CAST(ve.std_phone_no_ AS STRING)
+        END
+    ) AS customer_first_purchase_date,
+    
+    -- Customer tenure in months at time of this transaction
+    DATE_DIFF(
+        ve.posting_date,
+        MIN(ve.posting_date) OVER (
+            PARTITION BY CASE 
+                WHEN ve.std_phone_no_ = '000000000000' OR ve.std_phone_no_ IS NULL THEN ve.source_no_
+                ELSE CAST(ve.std_phone_no_ AS STRING)
+            END
+        ),
+        MONTH
+    ) AS customer_tenure_months,
     
     -- =====================================================
     -- Time Period Flags

@@ -2,6 +2,7 @@
 select
 -- User Identifiers & Demographics
 user_id,                           -- dim (unique user identifier)
+shopify_id,                        -- dim (Shopify customer ID for ERP linkage)
 user_email,                        -- dim (user email address)
 user_full_name,                    -- dim (concatenated first + last name)
 loyalty_member_id,                 -- dim (OpenLoyalty member ID or null)

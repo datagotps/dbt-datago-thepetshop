@@ -79,13 +79,53 @@ customer_identity_status,          -- dim: Verified, Unverified
 -- Item Information
 item_no_,                          -- dim (item code)
 item_name,                         -- dim (item description)
-item_category,                     -- dim (category name)
-item_subcategory,                  -- dim (subcategory name)
-item_type,
-item_brand,                        -- dim (brand name)
-division,                          -- dim (division name)
-division_sort_order,
-item_category_sort_order,
+-- Product Hierarchy (Updated Business Naming)
+item_division,                     -- dim: Level 1 - Pet (DOG, CAT, FISH, etc.)
+item_block,                        -- dim: Level 2 - Block (FOOD, ACCESSORIES, etc.)
+item_category,                     -- dim: Level 3 - Category (Dry Food, Wet Food, etc.)
+item_subcategory,                  -- dim: Level 4 - Subcategory (item type)
+item_brand,                        -- dim: Level 5 - Brand
+-- Dynamic Sort Orders (based on revenue - highest revenue = 1)
+item_division_sort_order,          -- dim: Level 1 sort order
+item_block_sort_order,             -- dim: Level 2 sort order
+item_category_sort_order,          -- dim: Level 3 sort order (NEW)
+item_subcategory_sort_order,       -- dim: Level 4 sort order (NEW)
+item_brand_sort_order,             -- dim: Level 5 sort order (NEW)
+
+-- Customer Tenure Metrics (Line-Level Context)
+customer_first_purchase_date,      -- dim: customer's first purchase date (any transaction)
+customer_tenure_months,            -- fact: months since customer's first purchase at time of this transaction
+
+-- Customer Age Segment (based on first purchase and acquisition timing)
+CASE 
+    WHEN posting_date = customer_first_purchase_date 
+        THEN 'New'
+    WHEN DATE_DIFF(CURRENT_DATE(), customer_first_purchase_date, DAY) <= 90 
+        THEN 'Recently Acquired'
+    ELSE 'Active Non-Recent'
+END AS customer_age_segment,
+
+CASE 
+    WHEN posting_date = customer_first_purchase_date THEN 1
+    WHEN DATE_DIFF(CURRENT_DATE(), customer_first_purchase_date, DAY) <= 90 THEN 2
+    ELSE 3
+END AS customer_age_segment_sort,
+
+-- Revenue Type Segmentation
+CASE 
+    WHEN posting_date = customer_first_purchase_date THEN 1
+    ELSE 0
+END AS is_first_purchase_transaction,
+
+CASE 
+    WHEN posting_date = customer_first_purchase_date THEN 'New'
+    ELSE 'Repeat'
+END AS revenue_type,
+
+CASE 
+    WHEN posting_date = customer_first_purchase_date THEN 1
+    ELSE 2
+END AS revenue_type_sort,
 
 -- Time Period Flags
 is_mtd,                            -- fact: 0, 1 (month-to-date flag)

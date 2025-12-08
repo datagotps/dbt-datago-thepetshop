@@ -65,15 +65,21 @@ SELECT
     -- =====================================================
     -- Item Information
     -- =====================================================
+    -- Product Hierarchy (Updated Naming)
+    -- =====================================================
     it.item_no_,
     it.item_name,
-    it.item_category,
-    it.item_type,
-    it.item_subcategory,
+    it.item_division,        -- Level 1: Pet (was division)
+    it.item_block,           -- Level 2: Block (was item_category)
+    it.item_category,        -- Level 3: Category (was item_subcategory)
+    it.item_subcategory,     -- Level 4: Subcategory (was item_type)
     it.item_brand,
-    it.division,
-    it.division_sort_order,
-    it.item_category_sort_order,
+    -- Dynamic Sort Orders (based on revenue contribution)
+    it.item_division_sort_order,      -- Level 1 sort
+    it.item_block_sort_order,         -- Level 2 sort
+    it.item_category_sort_order,      -- Level 3 sort (NEW)
+    it.item_subcategory_sort_order,   -- Level 4 sort (NEW)
+    it.item_brand_sort_order,         -- Level 5 sort (NEW)
 
     -- =====================================================
     -- Document Classifications
@@ -169,6 +175,7 @@ SELECT
     
     ve.source_no_,
     ve.posting_date,
+    ve.document_date,
     ve.invoiced_quantity,
     ve.document_line_no_,
     ve.dimension_code,
@@ -201,6 +208,7 @@ cu.std_phone_no_,
 cu.customer_identity_status,
 cu.duplicate_flag,
 cu.loyality_member_id,
+cu.web_customer_no_,  -- Shopify customer ID for SuperApp linkage
 
 ROUND(COALESCE(-1*isl.discount_amount,0) / (1 + 5 / 100), 2) as online_discount_amount,
 

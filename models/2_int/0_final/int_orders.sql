@@ -12,6 +12,7 @@ with order_aggregation AS (
         -- Primary grouping keys (only these two)
         ol.unified_order_id,
         ol.posting_date AS order_date,
+        MAX(ol.document_date) AS document_date,
 
         -- Order identifiers (using MAX as they should be consistent per order)
         --MAX(ol.source_no_) AS source_no_,
@@ -28,6 +29,7 @@ with order_aggregation AS (
         MAX(ol.online_order_channel) AS online_order_channel,
         MAX(ol.order_type) AS order_type,
         MAX(ol.loyality_member_id) AS loyality_member_id,
+        MAX(ol.web_customer_no_) AS web_customer_no_,  -- Shopify customer ID for SuperApp linkage
         
         -- Payment information (should be consistent per order)
         MAX(ol.paymentgateway) AS paymentgateway,
@@ -620,9 +622,11 @@ SELECT
     company_source,
     web_order_id,
     loyality_member_id,
+    web_customer_no_,  -- Shopify customer ID for SuperApp linkage
     
     -- Order core data (aggregated from line items)
     order_date,
+    document_date,
     order_value,
     refund_amount,
     total_order_amount,

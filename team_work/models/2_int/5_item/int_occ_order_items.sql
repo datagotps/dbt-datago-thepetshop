@@ -164,11 +164,9 @@ END as order_sync_category_sort,
 
     
     -- Revenue calculations and classifications
-    -- Fixed: Added k.item_id IS NULL to prevent double counting with recognized_revenue
-    -- Items that are Posted in ERP should NOT be counted as unfulfilled, even if OFS isdelivered=false
     case 
-        when f.isdelivered is not true AND k.item_id IS NULL then net_subtotal_exclu_tax 
-        when f.returned = 1 and f.iscancelled is true AND k.item_id IS NULL then net_subtotal_exclu_tax
+        when f.isdelivered is not true then net_subtotal_exclu_tax 
+        when f.returned = 1 and f.iscancelled is true then net_subtotal_exclu_tax
         else 0 
     end as unfulfilled_revenue,
     

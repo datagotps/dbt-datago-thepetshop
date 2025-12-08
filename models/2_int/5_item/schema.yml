@@ -1,0 +1,35 @@
+version: 2
+
+models:
+  - name: int_mba_order_items
+    description: "Intermediate model of commercial order items filtered to unique sale products per order for Market Basket Analysis (MBA). Deduplicates product-order combinations and carries forward the full 5-level product hierarchy."
+    columns:
+      - name: unified_order_id
+        description: "Unified identifier for the customer order."
+        tests:
+          - not_null
+      - name: product_id
+        description: "Unique identifier of the product within the order (sourced from item_no_)."
+        tests:
+          - not_null
+      - name: product_name
+        description: "Product description as displayed to customers."
+      - name: item_division
+        description: "Level 1: Top-level merchandise division (e.g., DOG, CAT, FISH, BIRD)."
+      - name: item_block
+        description: "Level 2: Product block (e.g., FOOD, ACCESSORIES, HEALTH & HYGIENE)."
+      - name: item_category
+        description: "Level 3: Product category (e.g., Dry Food, Wet Food, Treats)."
+      - name: item_subcategory
+        description: "Level 4: Product subcategory (item type)."
+      - name: item_brand
+        description: "Level 5: Brand of the product."
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - unified_order_id
+              - product_id
+          config:
+            severity: warn
+
