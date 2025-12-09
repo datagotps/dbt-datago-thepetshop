@@ -209,6 +209,8 @@ CASE
     ELSE 'Posted → Other'
 END AS issue_category,                 -- dim: Not Posted → PNA, Not Posted → Returns, Not Posted → Cancelled, Not Posted → Review, Posted → Returns, Posted, Posted → Other
 
+DATETIME_ADD(CURRENT_DATETIME(), INTERVAL 4 HOUR) AS report_last_updated_at,
+
 from source 
 where 1=1
 {{ dev_date_filter('ofs_order_date') }}
