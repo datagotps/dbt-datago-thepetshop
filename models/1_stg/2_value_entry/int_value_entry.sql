@@ -33,16 +33,18 @@ SELECT
         
         WHEN clc_global_dimension_2_code_name IN ('Online') THEN 'Online' 
         WHEN clc_global_dimension_2_code_name IN ('POS Sale') THEN 'Shop'
-        WHEN clc_global_dimension_2_code_name IN ('Now Now','Amazon', 'Amazon FBA', 'Amazon DFS', 'Swan','Instashop', 'El Grocer', 'Careem', 'Noon','Deliveroo', 'Talabat', 'BlazeApp' ) THEN 'Affiliate'
+        WHEN clc_global_dimension_2_code_name IN ('Now Now','Amazon', 'Amazon FBA', 'Amazon DFS', 'Swan','Instashop', 'El Grocer', 'Careem', 'Noon','Deliveroo', 'Talabat', 'BlazeApp', 'Trendyol' ) THEN 'Affiliate'
         WHEN clc_global_dimension_2_code_name IN ('B2B Sales') THEN 'B2B'
         WHEN clc_global_dimension_2_code_name IN ('P&M', 'Pet Relocation','Cleaning & Potty', 'PETRELOC', 'Grooming','Mobile Grooming', 'Shop Grooming' ) THEN 'Service'
+        -- Handle NULL name with PETGROOM code (legacy grooming vouchers from Jan-Mar 2022)
+        WHEN clc_global_dimension_2_code_name IS NULL AND global_dimension_2_code = 'PETGROOM' THEN 'Service'
         ELSE 'Check My Logic'
     END AS sales_channel,  
 
     CASE 
         WHEN clc_global_dimension_2_code_name IN ('Online') THEN 1 
         WHEN clc_global_dimension_2_code_name IN ('POS Sale') THEN 2
-        WHEN clc_global_dimension_2_code_name IN ('Amazon', 'Amazon FBA', 'Amazon DFS', 'Swan','Instashop', 'El Grocer', 'Careem', 'Noon','Deliveroo', 'Talabat', 'BlazeApp' ) THEN 3
+        WHEN clc_global_dimension_2_code_name IN ('Amazon', 'Amazon FBA', 'Amazon DFS', 'Swan','Instashop', 'El Grocer', 'Careem', 'Noon','Deliveroo', 'Talabat', 'BlazeApp', 'Trendyol' ) THEN 3
         WHEN clc_global_dimension_2_code_name IN ('B2B Sales') THEN 4
         WHEN clc_global_dimension_2_code_name IN ('P&M', 'Pet Relocation','Cleaning & Potty', 'PETRELOC', 'Grooming','Mobile Grooming', 'Shop Grooming' ) THEN 5
         ELSE 6
