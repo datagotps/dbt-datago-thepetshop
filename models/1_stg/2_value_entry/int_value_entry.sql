@@ -37,7 +37,7 @@ SELECT
         WHEN clc_global_dimension_2_code_name IN ('B2B Sales') THEN 'B2B'
         WHEN clc_global_dimension_2_code_name IN ('P&M', 'Pet Relocation','Cleaning & Potty', 'PETRELOC', 'Grooming','Mobile Grooming', 'Shop Grooming' ) THEN 'Service'
         -- Handle NULL name with PETGROOM code (legacy grooming vouchers from Jan-Mar 2022)
-        WHEN clc_global_dimension_2_code_name IS NULL AND global_dimension_2_code = 'PETGROOM' THEN 'Service'
+        WHEN clc_global_dimension_2_code_name IS NULL AND ve.global_dimension_2_code = 'PETGROOM' THEN 'Service'
         ELSE 'Check My Logic'
     END AS sales_channel,  
 
