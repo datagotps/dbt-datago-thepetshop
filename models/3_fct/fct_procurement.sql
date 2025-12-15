@@ -14,11 +14,16 @@ item_category_code,               -- dim (item category)
 
 -- Vendor Information
 buy_from_vendor_no_,              -- dim (buy-from vendor no.)
+buy_from_vendor_name,             -- dim (vendor display name)
 pay_to_vendor_no_,                -- dim (pay-to vendor no.)
 
 -- Dates
 order_date,                       -- dim (order date at line level)
 document_date,                    -- dim (header document date)
+expected_receipt_date,            -- dim (expected delivery date)
+
+-- Delivery Timeliness
+delay_days_open,                  -- fact (days overdue if past expected receipt date)
 
 -- Quantities (Line-Level)
 qty_ordered,                      -- fact (ordered qty)
@@ -28,6 +33,22 @@ qty_outstanding,                  -- fact (remaining qty = ordered - received)
 
 -- Status Flags
 is_fully_received,                -- dim (boolean: line completely received)
+
+-- Calculated Status Columns
+case 
+    when qty_received = 0 then 'Not Received'
+    when qty_received > 0 and qty_outstanding > 0 then 'Partially Received'
+    when qty_outstanding = 0 or is_fully_received = 1 then 'Fully Received'
+    else 'Unknown'
+end as receiving_status,          -- dim: Not Received, Partially Received, Fully Received
+
+case 
+    when qty_received = 0 then 'Not Yet Received'
+    when qty_grn_pending_invoice > 0 and qty_invoiced = 0 then 'Pending Invoice'
+    when qty_invoiced > 0 and qty_invoiced < qty_received then 'Partially Invoiced'
+    when qty_invoiced >= qty_received and qty_received > 0 then 'Fully Invoiced'
+    else 'Unknown'
+end as invoice_status,            -- dim: Not Yet Received, Pending Invoice, Partially Invoiced, Fully Invoiced
 
 -- Pending Actions
 qty_to_receive_next,              -- fact (next qty to receive)
