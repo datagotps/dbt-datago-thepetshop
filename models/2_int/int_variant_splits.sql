@@ -83,5 +83,3 @@ select
     end as split_status
 
 from variant_mapping
-
-where document_no_ = 'TPS/2025/002646'
