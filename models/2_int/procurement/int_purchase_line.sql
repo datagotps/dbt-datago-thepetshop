@@ -56,48 +56,6 @@ variant_splits_agg as (
     from {{ ref('int_variant_splits') }}
     where original_po_line is not null  -- Only matched variants
     group by document_no_, original_po_line, original_item_no
-),
-
--- Aggregate GRN receipts by PO line (since int_purchase_receipts groups by item number)
-grn_agg as (
-    select
-        document_no_,
-        line_no_,
-        
-        -- Receipt Metrics (aggregated across all items for this PO line)
-        sum(grn_qty_received) as grn_qty_received,
-        sum(grn_qty_invoiced) as grn_qty_invoiced,
-        sum(grn_qty_pending_invoice) as grn_qty_pending_invoice,
-        
-        -- GRN COST & VALUE (weighted average across all receipts for this PO line)
-        safe_divide(sum(grn_value_received), nullif(sum(grn_qty_received), 0)) as grn_unit_cost,
-        sum(grn_value_received) as grn_value_received,
-        safe_divide(sum(grn_value_received_lcy), nullif(sum(grn_qty_received), 0)) as grn_unit_cost_lcy,
-        sum(grn_value_received_lcy) as grn_value_received_lcy,
-        
-        -- Receipt Dates (earliest and latest across all receipts)
-        min(first_receipt_date) as first_receipt_date,
-        max(last_receipt_date) as last_receipt_date,
-        min(grn_expected_receipt_date) as grn_expected_receipt_date,
-        
-        -- GRN Document Tracking
-        sum(grn_count) as grn_count,
-        string_agg(distinct grn_numbers, ', ' order by grn_numbers) as grn_numbers,
-        
-        -- On-Time Delivery Metrics (use earliest receipt for on-time calculation)
-        -- If any receipt was on-time, consider it on-time; otherwise use the minimum delay
-        case 
-            when min(case when is_on_time = 1 then 1 else 0 end) = 1 then 1
-            else 0
-        end as is_on_time,
-        min(delivery_delay_days) as delivery_delay_days,
-        
-        -- Variance Detection: PO vs GRN
-        max(case when is_orphan_grn then true else false end) as is_orphan_grn,
-        string_agg(distinct grn_discrepancy_type, ', ' order by grn_discrepancy_type) as grn_discrepancy_type
-        
-    from {{ ref('int_purchase_receipts') }}
-    group by document_no_, line_no_
 )
 
 select
@@ -279,7 +237,7 @@ from {{ ref('stg_petshop_purchase_line') }} as a
 left join {{ ref('stg_petshop_purchase_header') }} as b 
     on a.document_no_ = b.no_
 
-left join grn_agg as grn
+left join {{ ref('int_purchase_receipts') }} as grn
     on a.document_no_ = grn.document_no_
     and a.line_no_ = grn.line_no_
 

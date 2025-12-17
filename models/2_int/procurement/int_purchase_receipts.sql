@@ -23,13 +23,20 @@ grn_by_po_line as (
         sum(qty__rcd__not_invoiced) as grn_qty_pending_invoice,
         
         -- GRN COST & VALUE (from GRN - actual received cost)
-        -- Use weighted average for unit cost when multiple receipts
-        safe_divide(sum(item_charge_base_amount), nullif(sum(quantity), 0)) as grn_unit_cost,
-        sum(item_charge_base_amount) as grn_value_received,  -- Direct from GRN (no calc needed)
-        
+        -- Cast to FLOAT64 in case source has STRUCT type
+        safe_divide(
+            sum(cast(item_charge_base_amount as float64)), 
+            nullif(sum(quantity), 0)
+        ) as grn_unit_cost,
+        sum(cast(item_charge_base_amount as float64)) as grn_value_received,
+
         -- Local Currency (AED)
-        safe_divide(sum(quantity * unit_cost__lcy_), nullif(sum(quantity), 0)) as grn_unit_cost_lcy,
-        sum(quantity * unit_cost__lcy_) as grn_value_received_lcy,
+        safe_divide(
+            sum(quantity * cast(unit_cost__lcy_ as float64)), 
+            nullif(sum(quantity), 0)
+        ) as grn_unit_cost_lcy,
+        sum(quantity * cast(unit_cost__lcy_ as float64)) as grn_value_received_lcy,
+
         
         -- Receipt Dates
         min(posting_date) as first_receipt_date,

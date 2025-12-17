@@ -379,5 +379,3 @@ joined as (
 )
 
 select * from joined
-
-where no_ = 'TPS/2025/001411'
