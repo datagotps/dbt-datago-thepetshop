@@ -118,9 +118,13 @@ select
     a.currency_code,
     a.direct_unit_cost,
     a.line_amount,
+    a.line_discount__ as line_discount_pct,  -- Discount percentage
     a.line_discount_amount,
     a.amount,
     a.outstanding_amount,
+    
+    -- GROSS/NET CALCULATION
+    a.quantity * a.direct_unit_cost as gross_value,  -- Value before discount
 
     -- POSTING GROUPS
     a.gen__bus__posting_group,

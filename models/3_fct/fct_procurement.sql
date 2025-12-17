@@ -110,9 +110,16 @@ qty_over_received,                -- fact (over-receipt qty)
 -- FINANCIALS (Line-Level)
 currency_code,                    -- dim (ISO currency)
 direct_unit_cost,                 -- fact (unit cost from vendor)
-line_amount,                      -- fact (extended amount = qty × cost)
-line_discount_amount,             -- fact (line discount amount)
-amount,                           -- fact (net amount excl. VAT)
+
+-- PO VALUE BREAKDOWN (Gross → Discount → Net)
+gross_value as po_gross_value,    -- fact: qty × unit cost (BEFORE discount)
+line_discount_pct as po_discount_pct,      -- fact: discount percentage (e.g., 20)
+line_discount_amount as po_discount_amount, -- fact: discount amount in currency
+amount as po_net_value,           -- fact: net amount (AFTER discount) = gross - discount
+
+-- Legacy columns (same as above, for backwards compatibility)
+line_amount,                      -- fact (same as po_net_value)
+amount,                           -- fact (same as po_net_value)
 outstanding_amount,               -- fact (value of pending goods)
 
 -- POSTING GROUPS
