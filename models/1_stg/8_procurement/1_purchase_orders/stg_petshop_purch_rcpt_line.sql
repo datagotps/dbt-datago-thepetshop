@@ -142,5 +142,3 @@ renamed as (
 
 select * from renamed
 
---where order_no_ = 'TPS/2024/001236'
-

@@ -54,6 +54,12 @@ combined_last_receipt_date,       -- dim (latest receipt including variants)
 grn_count,                        -- fact (number of GRN documents - direct match)
 grn_numbers,                      -- dim (list of GRN document numbers - direct match)
 
+-- GRN COST & VALUE (from GRN - actual received cost)
+grn_unit_cost,                    -- fact (weighted avg unit cost from GRN receipts)
+grn_value_received,               -- fact (total value received from GRN - direct, no calc)
+grn_unit_cost_lcy,                -- fact (unit cost in local currency AED)
+grn_value_received_lcy,           -- fact (value received in local currency AED)
+
 -- ON-TIME DELIVERY METRICS
 is_on_time,                       -- dim (1=on time, 0=late, null=not received)
 delivery_delay_days,              -- fact (days late, negative=early)
@@ -71,6 +77,9 @@ has_receiving_variance,           -- dim (true if PO qty != Total received)
 receiving_variance_qty,           -- fact (PO received - Total received)
 is_orphan_grn,                    -- dim (true if GRN has no matching PO line)
 grn_discrepancy_type,             -- dim (Variant Split, Item Changed, etc.)
+
+-- PO MODIFICATION FLAG
+is_superseded,                    -- dim (true if line was superseded by PO modification - same item on later line)
 
 -- STATUS COLUMNS (Based on TOTAL received data)
 is_fully_received,                -- dim (boolean from PO)

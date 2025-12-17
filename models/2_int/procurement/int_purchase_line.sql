@@ -7,6 +7,34 @@
 
 with 
 
+-- Identify PO Modification pattern: same item on same PO, earlier line with no receipts (superseded by later line)
+line_item_counts as (
+    select
+        document_no_,
+        no_ as item_no,
+        line_no_,
+        quantity_received,
+        ROW_NUMBER() OVER (PARTITION BY document_no_, no_ ORDER BY line_no_) as item_seq,
+        COUNT(*) OVER (PARTITION BY document_no_, no_) as item_line_count
+    from {{ ref('stg_petshop_purchase_line') }}
+),
+
+superseded_lines as (
+    select
+        document_no_,
+        line_no_,
+        item_no,
+        -- Line is superseded if: same item appears multiple times AND this is an earlier line AND no qty received
+        case 
+            when item_line_count > 1 
+                and item_seq < item_line_count 
+                and quantity_received = 0 
+            then true 
+            else false 
+        end as is_superseded
+    from line_item_counts
+),
+
 -- Aggregate variant splits by original PO line
 variant_splits_agg as (
     select
@@ -28,6 +56,48 @@ variant_splits_agg as (
     from {{ ref('int_variant_splits') }}
     where original_po_line is not null  -- Only matched variants
     group by document_no_, original_po_line, original_item_no
+),
+
+-- Aggregate GRN receipts by PO line (since int_purchase_receipts groups by item number)
+grn_agg as (
+    select
+        document_no_,
+        line_no_,
+        
+        -- Receipt Metrics (aggregated across all items for this PO line)
+        sum(grn_qty_received) as grn_qty_received,
+        sum(grn_qty_invoiced) as grn_qty_invoiced,
+        sum(grn_qty_pending_invoice) as grn_qty_pending_invoice,
+        
+        -- GRN COST & VALUE (weighted average across all receipts for this PO line)
+        safe_divide(sum(grn_value_received), nullif(sum(grn_qty_received), 0)) as grn_unit_cost,
+        sum(grn_value_received) as grn_value_received,
+        safe_divide(sum(grn_value_received_lcy), nullif(sum(grn_qty_received), 0)) as grn_unit_cost_lcy,
+        sum(grn_value_received_lcy) as grn_value_received_lcy,
+        
+        -- Receipt Dates (earliest and latest across all receipts)
+        min(first_receipt_date) as first_receipt_date,
+        max(last_receipt_date) as last_receipt_date,
+        min(grn_expected_receipt_date) as grn_expected_receipt_date,
+        
+        -- GRN Document Tracking
+        sum(grn_count) as grn_count,
+        string_agg(distinct grn_numbers, ', ' order by grn_numbers) as grn_numbers,
+        
+        -- On-Time Delivery Metrics (use earliest receipt for on-time calculation)
+        -- If any receipt was on-time, consider it on-time; otherwise use the minimum delay
+        case 
+            when min(case when is_on_time = 1 then 1 else 0 end) = 1 then 1
+            else 0
+        end as is_on_time,
+        min(delivery_delay_days) as delivery_delay_days,
+        
+        -- Variance Detection: PO vs GRN
+        max(case when is_orphan_grn then true else false end) as is_orphan_grn,
+        string_agg(distinct grn_discrepancy_type, ', ' order by grn_discrepancy_type) as grn_discrepancy_type
+        
+    from {{ ref('int_purchase_receipts') }}
+    group by document_no_, line_no_
 )
 
 select
@@ -123,6 +193,12 @@ select
     coalesce(grn.grn_qty_invoiced, 0) as grn_qty_invoiced,
     coalesce(grn.grn_qty_pending_invoice, 0) as grn_qty_pending_invoice,
     
+    -- GRN COST & VALUE (from GRN - actual received cost)
+    grn.grn_unit_cost,                           -- Weighted avg unit cost from GRN
+    coalesce(grn.grn_value_received, 0) as grn_value_received,  -- Direct value from GRN
+    grn.grn_unit_cost_lcy,                       -- Unit cost in local currency (AED)
+    coalesce(grn.grn_value_received_lcy, 0) as grn_value_received_lcy,  -- Value in local currency
+    
     -- Receipt Dates (from GRN)
     grn.first_receipt_date,
     grn.last_receipt_date,
@@ -189,17 +265,28 @@ select
     
     -- First/Last Receipt Date (considering both GRN and Variants)
     least(grn.first_receipt_date, vs.variant_first_receipt_date) as combined_first_receipt_date,
-    greatest(grn.last_receipt_date, vs.variant_last_receipt_date) as combined_last_receipt_date
+    greatest(grn.last_receipt_date, vs.variant_last_receipt_date) as combined_last_receipt_date,
+
+-- ══════════════════════════════════════════════════════════════════════════════
+-- PO MODIFICATION DETECTION
+-- ══════════════════════════════════════════════════════════════════════════════
+
+    -- Flag for lines superseded by PO modification (same item added on later line)
+    coalesce(sup.is_superseded, false) as is_superseded
 
 from {{ ref('stg_petshop_purchase_line') }} as a
 
 left join {{ ref('stg_petshop_purchase_header') }} as b 
     on a.document_no_ = b.no_
 
-left join {{ ref('int_purchase_receipts') }} as grn
+left join grn_agg as grn
     on a.document_no_ = grn.document_no_
     and a.line_no_ = grn.line_no_
 
 left join variant_splits_agg as vs
     on a.document_no_ = vs.document_no_
     and a.line_no_ = vs.line_no_
+
+left join superseded_lines as sup
+    on a.document_no_ = sup.document_no_
+    and a.line_no_ = sup.line_no_

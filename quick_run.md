@@ -5,6 +5,8 @@ dbt run --select dim_date fct_occ_order_items dim_customers fact_orders fact_com
 ```
 
 
+---dbt parse to refresh the project manifest:
+
 git subtree pull --prefix=team_work team main --squash
 git subtree push --prefix=team_work team main
 
