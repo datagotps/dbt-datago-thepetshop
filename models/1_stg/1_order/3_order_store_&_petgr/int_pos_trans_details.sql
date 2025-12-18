@@ -15,6 +15,40 @@ header AS (
     SELECT * FROM {{ ref('stg_pos_trans_header') }}
 ),
 
+-- Get staff master data (using original source column names due to BigQuery caching)
+staff AS (
+    SELECT 
+        id AS staff_id,
+        TRIM(CONCAT(first_name, ' ', last_name)) AS staff_full_name,
+        CASE 
+            WHEN permission_group = 'MANAGER' THEN 'Manager'
+            WHEN permission_group = 'CASHIER' THEN 'Cashier'
+            WHEN permission_group = 'TPSCHR' THEN 'Team Lead'
+            ELSE permission_group
+        END AS staff_role,
+        name_on_receipt AS staff_receipt_name,
+        store_no_ AS staff_store_code
+    FROM {{ source(var('erp_source'), 'petshop_staff_5ecfc871_5d82_43f1_9c54_59685e82318d') }}
+),
+
+-- Get customer master data (for customer_identity_status)
+customers AS (
+    SELECT 
+        no_ AS customer_no,
+        customer_identity_status,
+        customer_journey_segment,
+        name AS customer_name,
+        retail_customer_group
+    FROM {{ ref('int_erp_customer') }}
+),
+
+-- Get Value Entry document numbers (to check if POS transaction was posted)
+value_entry_docs AS (
+    SELECT DISTINCT document_no_
+    FROM {{ ref('stg_value_entry') }}
+    WHERE document_no_ LIKE '%-%-%'  -- POS format: STORE-TERMINAL-TRANS
+),
+
 -- Join details with header (LEFT JOIN to preserve all detail lines)
 joined AS (
     SELECT
@@ -44,6 +78,19 @@ joined AS (
         
         -- Customer (from detail line)
         d.customer_no_,
+        
+        -- Effective Customer (COALESCE: line first, then header fallback)
+        COALESCE(
+            NULLIF(d.customer_no_, ''),
+            NULLIF(h.customer_no_, '')
+        ) AS effective_customer_no_,
+        
+        -- Customer ID Source (for tracking data quality)
+        CASE 
+            WHEN d.customer_no_ IS NOT NULL AND d.customer_no_ != '' THEN 'Line'
+            WHEN h.customer_no_ IS NOT NULL AND h.customer_no_ != '' THEN 'Header (Recovered)'
+            ELSE 'Missing'
+        END AS customer_id_source,
         
         -- Date & Time (line level)
         d.pos_posting_date,                    -- When transaction was finalized/posted (matches Value Entry)
@@ -92,6 +139,17 @@ joined AS (
         -- Staff (line level)
         d.staff_id AS line_staff_id,
         d.sales_staff,
+        
+        -- Staff Name (from staff master)
+        s.staff_full_name AS staff_name,
+        s.staff_role,
+        s.staff_receipt_name,
+        
+        -- Customer Info (from customer master)
+        c.customer_identity_status,      -- 'Anonymous' (Walk-in) or 'Identified'
+        c.customer_journey_segment,      -- 'offline_customer', 'online_legacy_customer', 'online_ofs_customer'
+        c.customer_name,
+        c.retail_customer_group,
         
         -- Refund Reference
         d.refunded_line_no_,
@@ -146,10 +204,18 @@ joined AS (
         h.no__of_item_lines,
         
         -- Refund Receipt Reference
-        h.refund_receipt_no_
+        h.refund_receipt_no_,
+        
+        -- Value Entry Posting Check
+        CASE WHEN ve.document_no_ IS NOT NULL THEN TRUE ELSE FALSE END AS is_in_value_entry
         
     FROM details d
     LEFT JOIN header h ON d.document_no_ = h.document_no_
+    LEFT JOIN staff s ON CAST(d.staff_id AS STRING) = s.staff_id
+    -- Use COALESCE to match customer: try line first, then header
+    LEFT JOIN customers c ON COALESCE(NULLIF(d.customer_no_, ''), NULLIF(h.customer_no_, '')) = c.customer_no
+    -- Check if transaction exists in Value Entry
+    LEFT JOIN value_entry_docs ve ON d.document_no_ = ve.document_no_
 ),
 
 -- Add calculated columns
@@ -160,19 +226,30 @@ enriched AS (
         -- =====================================================
         -- SALES CHANNEL CLASSIFICATION
         -- =====================================================
+        -- Note: "Hyperlocal" = Online orders fulfilled from store (not in POS)
+        -- All third-party platforms (Instashop, Deliveroo, Amazon, etc.) = "Affiliate"
         
         -- Sales Channel (high-level)
         CASE 
             -- Service first (by store)
             WHEN store_no_ = 'MOBILE' THEN 'Service'
             WHEN store_no_ = 'GRM' THEN 'Service'
-            -- Hyperlocal partners (quick commerce from store)
-            WHEN header_customer_no_ IN ('BCN/2021/4059', 'BCN/2021/4067', 'BCN/2021/4064', 
-                                         'BCN/2021/4408', 'BCN/2021/4063', 'BCN/2021/4060') THEN 'Hyperlocal'
-            -- Affiliate partners (marketplace)
-            WHEN header_customer_no_ IN ('BCN/2021/0691', 'BCN/2021/4066', 'BCN/2024/4066', 
-                                         'BCN/2021/4061') THEN 'Affiliate'
-            -- Everything else is Shopfloor
+            -- Affiliate = ALL third-party platforms (quick commerce + marketplace)
+            WHEN header_customer_no_ IN (
+                -- Quick commerce platforms
+                'BCN/2021/4059',  -- Instashop
+                'BCN/2021/4067',  -- Deliveroo
+                'BCN/2021/4064',  -- Talabat
+                'BCN/2021/4408',  -- Noon
+                'BCN/2021/4063',  -- Careem
+                'BCN/2021/4060',  -- El Grocer
+                -- Marketplace platforms
+                'BCN/2021/0691',  -- Amazon/Souq
+                'BCN/2021/4066',  -- Amazon DFS
+                'BCN/2024/4066',  -- Amazon DFS (new code)
+                'BCN/2021/4061'   -- Swan
+            ) THEN 'Affiliate'
+            -- Everything else is Shopfloor (walk-in customers)
             ELSE 'Shopfloor'
         END AS pos_sales_channel,
         
@@ -181,30 +258,33 @@ enriched AS (
             -- Service types
             WHEN store_no_ = 'MOBILE' THEN 'Mobile Grooming'
             WHEN store_no_ = 'GRM' THEN 'Shop Grooming'
-            -- Hyperlocal partners
+            -- Quick commerce platforms (Affiliate)
             WHEN header_customer_no_ = 'BCN/2021/4059' THEN 'Instashop'
             WHEN header_customer_no_ = 'BCN/2021/4067' THEN 'Deliveroo'
             WHEN header_customer_no_ = 'BCN/2021/4064' THEN 'Talabat'
             WHEN header_customer_no_ = 'BCN/2021/4408' THEN 'Noon'
             WHEN header_customer_no_ = 'BCN/2021/4063' THEN 'Careem'
             WHEN header_customer_no_ = 'BCN/2021/4060' THEN 'El Grocer'
-            -- Affiliate partners
+            -- Marketplace platforms (Affiliate)
             WHEN header_customer_no_ = 'BCN/2021/0691' THEN 'Amazon/Souq'
             WHEN header_customer_no_ IN ('BCN/2021/4066', 'BCN/2024/4066') THEN 'Amazon DFS'
             WHEN header_customer_no_ = 'BCN/2021/4061' THEN 'Swan'
-            -- Shopfloor types
+            -- Shopfloor types (use customer_identity_status from int_erp_customer)
+            WHEN customer_identity_status = 'Anonymous' THEN 'Walk-in'
             WHEN header_customer_no_ IS NULL OR header_customer_no_ = '' THEN 'Walk-in'
             ELSE 'Retail Customer'
         END AS pos_sales_channel_detail,
         
-        -- Sales Channel Sort Order
+        -- Sales Channel Sort Order (1=Shopfloor, 2=Affiliate, 3=Service)
         CASE 
-            WHEN store_no_ IN ('MOBILE', 'GRM') THEN 4
-            WHEN header_customer_no_ IN ('BCN/2021/4059', 'BCN/2021/4067', 'BCN/2021/4064', 
-                                         'BCN/2021/4408', 'BCN/2021/4063', 'BCN/2021/4060') THEN 2
-            WHEN header_customer_no_ IN ('BCN/2021/0691', 'BCN/2021/4066', 'BCN/2024/4066', 
-                                         'BCN/2021/4061') THEN 3
-            ELSE 1
+            WHEN store_no_ IN ('MOBILE', 'GRM') THEN 3  -- Service
+            WHEN header_customer_no_ IN (
+                'BCN/2021/4059', 'BCN/2021/4067', 'BCN/2021/4064', 
+                'BCN/2021/4408', 'BCN/2021/4063', 'BCN/2021/4060',
+                'BCN/2021/0691', 'BCN/2021/4066', 'BCN/2024/4066', 
+                'BCN/2021/4061'
+            ) THEN 2  -- Affiliate
+            ELSE 1    -- Shopfloor
         END AS pos_sales_channel_sort,
         
         -- =====================================================
@@ -212,22 +292,74 @@ enriched AS (
         -- =====================================================
         
         -- Transaction Type (Sale vs Refund)
+        -- In POS: quantity < 0 = items leaving (SALE), quantity > 0 = items returning (REFUND)
+        -- In POS: net_amount < 0 = revenue in (SALE), net_amount > 0 = money back (REFUND)
         CASE 
             WHEN sale_is_return_sale = 1 THEN 'Refund'
-            WHEN quantity < 0 THEN 'Refund'
-            WHEN net_amount > 0 THEN 'Refund'  -- Positive = money back to customer
+            WHEN quantity > 0 THEN 'Refund'           -- Items returning to inventory
+            WHEN net_amount > 0 THEN 'Refund'         -- Money going back to customer
             ELSE 'Sale'
         END AS transaction_type,
         
         -- Is Refund Flag
         CASE 
-            WHEN sale_is_return_sale = 1 OR quantity < 0 OR net_amount > 0 THEN 1 
+            WHEN sale_is_return_sale = 1 OR quantity > 0 OR net_amount > 0 THEN 1 
             ELSE 0 
         END AS is_refund,
         
         -- =====================================================
+        -- VALUE ENTRY POSTING STATUS
+        -- Tracks if transaction exists in Value Entry (source of fact_commercial)
+        -- Uses actual join to value_entry_docs to verify
+        -- Service is excluded from fact_commercial (separate model) - check is N/A
+        -- =====================================================
+        
+        -- Is Posted to Value Entry (boolean - based on actual existence in Value Entry)
+        is_in_value_entry AS is_posted_to_value_entry,
+        
+        -- Value Entry Posting Status (descriptive)
+        CASE 
+            -- Service transactions go to Value Entry via int_pos_service_trans_details
+            -- They are NOT in fact_commercial (excluded by filter) - so status is N/A
+            WHEN store_no_ IN ('MOBILE', 'GRM') THEN 'Service (Separate Model)'
+            -- Shopfloor & Affiliate should be posted
+            WHEN is_in_value_entry = TRUE THEN 'Posted'
+            WHEN is_in_value_entry = FALSE AND header_customer_no_ IN (
+                'BCN/2021/4059', 'BCN/2021/4067', 'BCN/2021/4064', 
+                'BCN/2021/4408', 'BCN/2021/4063', 'BCN/2021/4060',
+                'BCN/2021/0691', 'BCN/2021/4066', 'BCN/2024/4066', 
+                'BCN/2021/4061'
+            ) THEN 'Affiliate - Not Posted (Issue)'
+            WHEN is_in_value_entry = FALSE THEN 'Shopfloor - Not Posted (Issue)'
+            ELSE 'Unknown'
+        END AS value_entry_posting_status,
+        
+        -- =====================================================
         -- ITEM CLASSIFICATION
         -- =====================================================
+        
+        -- Revenue Category (for reconciliation with Value Entry/Commercial)
+        -- Note: Carrier bags & Delivery fees are in POS but NOT in Value Entry
+        CASE 
+            WHEN item_no_ = '205619-1' THEN 'Carrier Bag'
+            WHEN item_no_ IN ('300131', '300132', '300139') THEN 'Delivery Fee'
+            WHEN item_category_code IN ('310', '311') THEN 'Service'
+            WHEN retail_product_code IN ('31024', '31010', '31011', '31012', '31113', '31114') THEN 'Service'
+            ELSE 'Merchandise'
+        END AS revenue_category,
+        
+        -- Is Merchandise (flows to Value Entry)
+        CASE 
+            WHEN item_no_ = '205619-1' THEN 0  -- Carrier bag
+            WHEN item_no_ IN ('300131', '300132', '300139') THEN 0  -- Delivery fees
+            ELSE 1
+        END AS is_merchandise,
+        
+        -- Is Carrier Bag
+        CASE WHEN item_no_ = '205619-1' THEN 1 ELSE 0 END AS is_carrier_bag,
+        
+        -- Is Delivery Fee
+        CASE WHEN item_no_ IN ('300131', '300132', '300139') THEN 1 ELSE 0 END AS is_delivery_fee,
         
         -- Is Service Item (grooming)
         CASE 
@@ -282,6 +414,25 @@ enriched AS (
         
         -- Has Discount Flag
         CASE WHEN COALESCE(discount_amount, 0) != 0 THEN 1 ELSE 0 END AS has_discount,
+        
+        -- =====================================================
+        -- REVENUE BY CATEGORY (for reconciliation)
+        -- Merchandise revenue matches Value Entry
+        -- Carrier bags & Delivery fees are POS-only (not in Value Entry)
+        -- =====================================================
+        
+        -- Merchandise Revenue (matches Value Entry - signed for proper netting)
+        CASE 
+            WHEN item_no_ = '205619-1' THEN 0  -- Carrier bag
+            WHEN item_no_ IN ('300131', '300132', '300139') THEN 0  -- Delivery fees
+            ELSE net_amount
+        END AS merchandise_net_amount,
+        
+        -- Carrier Bag Revenue (POS-only)
+        CASE WHEN item_no_ = '205619-1' THEN net_amount ELSE 0 END AS carrier_bag_net_amount,
+        
+        -- Delivery Fee Revenue (POS-only)
+        CASE WHEN item_no_ IN ('300131', '300132', '300139') THEN net_amount ELSE 0 END AS delivery_fee_net_amount,
         
         -- =====================================================
         -- TIME-BASED CALCULATIONS

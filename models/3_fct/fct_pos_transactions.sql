@@ -3,18 +3,20 @@ select
 -- Core Identifiers
 document_no_,                      -- dim (POS document number: STORE-TERMINAL-TRANS)
 line_no_,                          -- dim (line number within transaction)
-header_customer_no_ AS customer_no_, -- dim (customer ID from header)
+effective_customer_no_ AS customer_no_, -- dim (best available customer ID: line first, then header)
+customer_no_ AS line_customer_no_, -- dim (customer ID from line level)
+header_customer_no_,               -- dim (customer ID from header level)
+customer_id_source,                -- dim (Line, Header (Recovered), Missing)
 pos_posting_date AS posting_date,  -- dim (transaction date - matches value entry posting_date)
 quantity,                          -- fact (quantity sold/returned)
 
 -- Sales Channel Information
 'Pet Shop POS' AS company_source,  -- dim: source system
-pos_sales_channel AS sales_channel, -- dim: Shopfloor, Hyperlocal, Affiliate, Service
-pos_sales_channel_sort AS sales_channel_sort, -- dim: 1-4 (sort order)
-pos_sales_channel_detail AS sales_channel_detail, -- dim: specific partner/type
+pos_sales_channel,                 -- dim: Shopfloor, Affiliate, Service
+pos_sales_channel_sort,            -- dim: 1-3 (sort order)
+pos_sales_channel_detail,          -- dim: specific partner/type (Walk-in, Retail Customer, Instashop, etc.)
 transaction_type,                  -- dim: Sale, Refund
 is_refund,                         -- fact: 0, 1 (flag)
-store_no_ AS offline_order_channel, -- dim: store code (DIP, FZN, etc.)
 
 -- Discount Information
 CASE 
@@ -43,7 +45,7 @@ net_price,                         -- fact (net unit price)
 standard_net_price,                -- fact (standard net price)
 
 -- Location Information
-store_no_ AS location_code,        -- dim: DIP, FZN, REM, UMSQ, WSL, etc.
+store_no_,                         -- dim: DIP, FZN, REM, UMSQ, WSL, GRM, MOBILE, etc.
 CASE
     WHEN store_no_ IN ('DIP', 'SZR', 'FZN', 'WSL', 'REM', 'UMSQ', 'DLM', 'DSO', 'JVC') THEN 'Dubai'
     WHEN store_no_ IN ('CRK', 'MRI', 'MAJ') THEN 'Abu Dhabi'
@@ -55,6 +57,9 @@ END AS location_city,              -- dim: Dubai, Abu Dhabi, Ras Al Khaimah
 
 -- Staff Information
 line_staff_id AS staff_id,         -- dim (staff who processed line)
+staff_name,                        -- dim (staff full name from master)
+staff_role,                        -- dim (Manager, Cashier, Team Lead, etc.)
+staff_receipt_name,                -- dim (name printed on receipt)
 sales_staff,                       -- dim (sales staff)
 header_staff_id,                   -- dim (staff from header)
 manager_id,                        -- dim (manager ID)
@@ -74,13 +79,26 @@ retail_product_code,               -- dim (retail product code)
 retail_product_code_2,             -- dim (retail product description)
 item_posting_group,                -- dim (item posting group)
 
--- Service Item Classification
+-- Item & Revenue Classification
+revenue_category,                  -- dim: Merchandise, Carrier Bag, Delivery Fee, Service
+is_merchandise,                    -- fact: 0, 1 (1 = flows to Value Entry)
+is_carrier_bag,                    -- fact: 0, 1 (POS-only, not in Value Entry)
+is_delivery_fee,                   -- fact: 0, 1 (POS-only, not in Value Entry)
 is_service_item,                   -- fact: 0, 1 (flag for grooming)
 service_type,                      -- dim: Dog Groom, Cat Groom, Mobile Dog, etc.
+
+-- Revenue by Category (for reconciliation with Commercial)
+merchandise_net_amount,            -- fact: Revenue that matches Value Entry (signed)
+carrier_bag_net_amount,            -- fact: Carrier bag revenue (POS-only, signed)
+delivery_fee_net_amount,           -- fact: Delivery fee revenue (POS-only, signed)
 
 -- Customer Information
 member_card_no_,                   -- dim (loyalty card number)
 customer_disc__group,              -- dim (customer discount group)
+customer_identity_status,          -- dim (Anonymous/Identified - from customer master)
+customer_journey_segment,          -- dim (offline_customer, online_legacy_customer, online_ofs_customer)
+customer_name,                     -- dim (customer name from master)
+retail_customer_group,             -- dim (customer group from master)
 
 -- Transaction Header Totals (for reference)
 header_gross_amount,               -- fact (transaction total gross)
@@ -95,7 +113,9 @@ refunded_store_no_,                -- dim (original store if refund)
 refunded_trans__no_,               -- dim (original transaction if refund)
 
 -- Transaction Status
-entry_status,                      -- dim (entry status code)
+entry_status,                      -- dim (entry status code: 0=Not Posted, 1=Posted)
+is_posted_to_value_entry,          -- fact: TRUE/FALSE (posted to Value Entry/fact_commercial)
+value_entry_posting_status,        -- dim: Posted, Shopfloor - Not Posted (Issue), Affiliate - Not Posted (Issue), Service - Not in Value Entry (Expected)
 sale_is_return_sale,               -- fact: 0, 1 (is return sale flag)
 trans__is_mixed_sale_refund,       -- fact: 0, 1 (mixed transaction flag)
 
@@ -119,14 +139,6 @@ time_when_trans__closed,           -- dim (when transaction closed)
 -- Receipt Information
 receipt_no_,                       -- dim (receipt number)
 
--- Time Period Flags
-CASE WHEN pos_posting_date >= DATE_TRUNC(CURRENT_DATE(), MONTH) THEN 1 ELSE 0 END AS is_mtd,
-CASE WHEN pos_posting_date >= DATE_TRUNC(CURRENT_DATE(), YEAR) THEN 1 ELSE 0 END AS is_ytd,
-CASE WHEN pos_posting_date >= DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH), MONTH) 
-     AND pos_posting_date < DATE_TRUNC(CURRENT_DATE(), MONTH) THEN 1 ELSE 0 END AS is_lm,
-CASE WHEN pos_posting_date >= DATE_TRUNC(DATE_SUB(CURRENT_DATE(), INTERVAL 1 YEAR), YEAR) 
-     AND pos_posting_date < DATE_TRUNC(CURRENT_DATE(), YEAR) THEN 1 ELSE 0 END AS is_ly,
-
 -- Report Metadata
 DATETIME_ADD(CURRENT_DATETIME(), INTERVAL 4 HOUR) AS report_last_updated_at,
 
@@ -140,4 +152,3 @@ FROM {{ ref('int_pos_trans_details') }}
 WHERE COALESCE(line_fivetran_deleted, FALSE) = FALSE
 
 {{ dev_date_filter('pos_posting_date') }}
-
