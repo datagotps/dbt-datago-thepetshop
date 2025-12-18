@@ -33,9 +33,9 @@ renamed as (
         post_as_shipment,
         
         -- DATE & TIME FIELDS
-        date,
+        date AS pos_posting_date,              -- When transaction was finalized/posted
         original_date,
-        time,
+        time AS pos_posting_time,              -- Time when finalized
         time_when_total_pressed,
         time_when_trans__closed,
         shift_date,

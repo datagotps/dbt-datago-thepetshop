@@ -17,3 +17,5 @@ Purpose: Fetch the latest changes from the main branch of the remote repo called
 2. Push your updates from the staging folder back to the team repo
 Purpose: Send changes you’ve made in the team_work folder in your repo up to the main branch of the team’s remote repo.
 
+dbt clean
+

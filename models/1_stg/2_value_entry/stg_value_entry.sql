@@ -423,10 +423,10 @@ source_service_revenue as (
         CAST(NULL AS STRING) as reason_code,
         CAST(return_no_sale AS STRING) as return_reason_code,
 
-        -- Dates
-        CAST(date AS DATETIME) as document_date,
-        CAST(trans__date AS DATETIME) as posting_date,
-        CAST(trans__date AS DATETIME) as valuation_date,
+        -- Dates (using pos_posting_date which matches value entry posting_date)
+        CAST(pos_posting_date AS DATETIME) as document_date,
+        CAST(pos_posting_date AS DATETIME) as posting_date,
+        CAST(pos_posting_date AS DATETIME) as valuation_date,
 
         -- Quantities
         CAST(quantity AS BIGNUMERIC) as valued_quantity,
@@ -503,7 +503,7 @@ source_service_revenue as (
         _fivetran_deleted,  -- BOOLEAN type, no casting needed
         _fivetran_synced  -- TIMESTAMP type, no casting needed
         
-    from {{ ref('int_erp_trans__sales_entry') }}
+    from {{ ref('int_pos_service_trans_details') }}
 ),
 
 -- Union all sources
