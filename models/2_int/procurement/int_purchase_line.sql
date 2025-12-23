@@ -89,6 +89,13 @@ select
     a.description as item_name,
     a.item_category_code,
 
+    -- PRODUCT HIERARCHY (Pet → Block → Category → Sub-Category → Brand)
+    item.item_division,                      -- Level 1: Pet (DOG, CAT, FISH, BIRD, etc.)
+    item.item_block,                         -- Level 2: Block (FOOD, ACCESSORIES, etc.)
+    item.item_category,                      -- Level 3: Category (Dry Food, Wet Food, Treats, etc.)
+    item.item_subcategory,                   -- Level 4: Sub-Category (item type detail)
+    item.item_brand,                         -- Level 5: Brand (Royal Canin, Hills, etc.)
+
     -- VENDOR INFORMATION
     a.buy_from_vendor_no_,
     a.pay_to_vendor_no_,
@@ -230,6 +237,36 @@ select
     greatest(grn.last_receipt_date, vs.variant_last_receipt_date) as combined_last_receipt_date,
 
 -- ══════════════════════════════════════════════════════════════════════════════
+-- INVOICE DATA (inv.) - POSTED PURCHASE INVOICES
+-- ══════════════════════════════════════════════════════════════════════════════
+
+    -- Invoice Metrics (source of truth for payment)
+    coalesce(inv.inv_qty_invoiced, 0) as inv_qty_invoiced,
+    
+    -- Invoice Cost & Value
+    inv.inv_unit_cost,                              -- Actual invoiced unit cost
+    coalesce(inv.inv_gross_value, 0) as inv_gross_value,  -- Invoice gross (before discount)
+    inv.inv_discount_pct,                           -- Invoice discount percentage
+    coalesce(inv.inv_discount_amount, 0) as inv_discount_amount,  -- Invoice discount amount
+    coalesce(inv.inv_net_value, 0) as inv_net_value,  -- Net payment value (after discount)
+    inv.inv_vat_pct,                                -- VAT percentage
+    coalesce(inv.inv_vat_amount, 0) as inv_vat_amount,  -- VAT amount
+    coalesce(inv.inv_total_value, 0) as inv_total_value,  -- Total incl. VAT
+    coalesce(inv.inv_value_lcy, 0) as inv_value_lcy,  -- Local currency value (AED)
+    
+    -- Invoice Dates
+    inv.first_invoice_date,
+    inv.last_invoice_date,
+    
+    -- Invoice Document Tracking
+    coalesce(inv.invoice_count, 0) as invoice_count,
+    inv.invoice_numbers,
+    
+    -- Invoice Discrepancy Detection
+    inv.is_orphan_invoice,
+    inv.inv_discrepancy_type,
+
+-- ══════════════════════════════════════════════════════════════════════════════
 -- PO MODIFICATION DETECTION
 -- ══════════════════════════════════════════════════════════════════════════════
 
@@ -252,3 +289,11 @@ left join variant_splits_agg as vs
 left join superseded_lines as sup
     on a.document_no_ = sup.document_no_
     and a.line_no_ = sup.line_no_
+
+left join {{ ref('int_purchase_invoices') }} as inv
+    on a.document_no_ = inv.document_no_
+    and a.line_no_ = inv.line_no_
+
+-- Product Hierarchy (Pet → Block → Category → Sub-Category → Brand → Item)
+left join {{ ref('int_items') }} as item
+    on a.no_ = item.item_no_

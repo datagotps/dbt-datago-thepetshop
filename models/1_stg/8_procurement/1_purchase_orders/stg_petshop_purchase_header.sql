@@ -12,7 +12,7 @@ renamed_source_1 as (
     select
         document_type,
         no_,
-        status,
+        status,     --Open, Released, Pending Approval	
         ic_direction,
         ic_status,
         job_queue_status,
@@ -159,7 +159,7 @@ renamed_source_2 as (
     select
         document_type,
         no_,
-        quality_status,
+        quality_status,  --Pass, Fail
         _fivetran_deleted,
         _fivetran_synced,
         completely_qc_done,
@@ -169,7 +169,7 @@ renamed_source_2 as (
         expense_template_code,
         operation_types,
         order_no_,
-        purchase_type,
+        purchase_type,  --Trade, Service, Consignment, Other
         qc_started,
         short_close,
         timestamp,
