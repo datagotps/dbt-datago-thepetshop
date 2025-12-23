@@ -39,10 +39,10 @@ renamed as (
         customer_no_,
         
         -- DATE & TIME FIELDS
-        date,
-        trans__date,
-        time,
-        trans__time,
+        date AS pos_posting_date,              -- When transaction was finalized/posted (matches Value Entry posting_date)
+        trans__date AS pos_document_date,      -- When customer started checkout (document date)
+        time AS pos_posting_time,              -- Time when finalized
+        trans__time AS pos_document_time,      -- Time when checkout started
         shift_date,
         shift_no_,
         expiration_date,
@@ -170,8 +170,7 @@ renamed as (
         timestamp,
         bi_timestamp,
         _fivetran_synced,
-        _fivetran_deleted,
-        
+        _fivetran_deleted
 
     from source
 )

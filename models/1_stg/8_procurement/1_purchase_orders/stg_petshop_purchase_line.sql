@@ -567,5 +567,3 @@ joined as (
 )
 
 select * from joined
-
---where  document_no_ = 'TPS/2025/001411'  
