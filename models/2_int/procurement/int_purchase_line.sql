@@ -103,7 +103,7 @@ select
     a.pay_to_vendor_no_,
     
     -- VENDOR DIMENSION FIELDS (from int_vendor)
-    vendor.purchase_type as vendor_purchase_type,
+    vendor.vendor_purchase_type as vendor_purchase_type,
     vendor.vendor_type as vendor_type,
     vendor.business_posting_group as vendor_business_posting_group,
     vendor.vendor_posting_group as vendor_posting_group,

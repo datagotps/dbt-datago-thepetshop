@@ -366,7 +366,7 @@ joined as (
             when s2.purchase_type = 2 then 'Consignment'
             when s2.purchase_type = 3 then 'Other'
             else 'cheack'
-        end as purchase_type,
+        end as po_purchase_type,
 
         s2.qc_started,
         s2.short_close,

@@ -309,7 +309,7 @@ source_3 as (
         packet_unit_of_measure,
         pos,
         ps_classification,
-        purchase_type,
+        purchase_type AS item_purchase_type,
         qcinstruction,
         sales_price_synced,
         sales_price_synced_retry,
@@ -400,7 +400,7 @@ select
 
             e.item_sub_category,
 
-            
+            e.item_purchase_type,
 
 from source_1 as a
 left join source_2 as c on a.no_ =c.no_

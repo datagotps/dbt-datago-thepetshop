@@ -22,8 +22,13 @@ base_items AS (
         a.item_brand,
         a.inventory_posting_group,
         a.varient_item,
+        -- Item purchase type
+        a.item_purchase_type,
         -- Vendor information
+        a.VendorNo AS vendor_no_,
         v.vendor_posting_group,
+        v.vendor_purchase_type,
+        v.name AS vendor_name,
         -- Brand Ownership Type Classification
         CASE 
             WHEN v.vendor_posting_group = 'Foreign' 
@@ -148,8 +153,14 @@ SELECT
     bi.inventory_posting_group,
     bi.varient_item,
     
+    -- Item Purchase Type
+    bi.item_purchase_type,
+    
     -- Vendor Information
+    bi.vendor_no_,
     bi.vendor_posting_group,
+    bi.vendor_purchase_type,
+    bi.vendor_name,
     bi.brand_ownership_type,
     
     -- Full Product Hierarchy (5 Levels)

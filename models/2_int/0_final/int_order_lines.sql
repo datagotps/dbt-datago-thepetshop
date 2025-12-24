@@ -209,6 +209,11 @@ SELECT
     ve.item_subcategory_sort_order,   -- Level 4 sort (NEW)
     ve.item_brand_sort_order,         -- Level 5 sort (NEW)
     ve.brand_ownership_type,          -- Brand Ownership Type
+    ve.item_purchase_type,            -- Item Purchase Type
+    ve.vendor_no_,                    -- Vendor Number
+    ve.vendor_posting_group,          -- Vendor Posting Group
+    ve.vendor_purchase_type,          -- Vendor Purchase Type
+    ve.vendor_name,                   -- Vendor Name
     
     -- =====================================================
     -- Customer Tenure Metrics (Line-Level Context)

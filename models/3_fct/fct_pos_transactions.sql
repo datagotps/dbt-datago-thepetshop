@@ -79,6 +79,8 @@ retail_product_code,               -- dim (retail product code)
 retail_product_code_2,             -- dim (retail product description)
 item_posting_group,                -- dim (item posting group)
 brand_ownership_type,              -- dim: Brand Ownership Type (Own Brand, Private Label, Other Brand)
+vendor_no_,                        -- dim: Vendor number (ID)
+vendor_name,                       -- dim: Vendor name
 
 -- Item & Revenue Classification
 revenue_category,                  -- dim: Merchandise, Carrier Bag, Delivery Fee, Service

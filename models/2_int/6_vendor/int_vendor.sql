@@ -18,7 +18,7 @@ select
     end as vendor_status,
     
     -- PURCHASE TYPE (International/Local) - Direct from ERP source
-    purchase_type,
+    vendor_purchase_type,
     
     -- VENDOR TYPE (Trade/Service/Consignment/Other) - Direct from ERP source
     vendor_type,

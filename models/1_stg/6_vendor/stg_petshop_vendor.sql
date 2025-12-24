@@ -189,7 +189,7 @@ joined as (
             when s2.purchase_type = 0 then 'Local'
             when s2.purchase_type = 1 then 'International'
             else null
-        end as purchase_type,
+        end as vendor_purchase_type,
         case 
             when s2.vendor_type = 0 then 'Trade'
             when s2.vendor_type = 1 then 'Service'

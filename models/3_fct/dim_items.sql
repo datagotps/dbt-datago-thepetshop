@@ -64,6 +64,9 @@ items.item_subcategory_sort_order,       -- dim: sort order for item_subcategory
 items.item_brand,                        -- dim: Level 5 - Brand
 items.item_brand_sort_order,             -- dim: sort order for item_brand
 items.inventory_posting_group,           -- dim (inventory posting group)
+items.item_purchase_type,                -- dim: Item-level purchase type (0,1,2,3)
+items.vendor_no_,                        -- dim: Vendor number (ID)
+items.vendor_name,                       -- dim: Vendor name
 
 -- Performance Metrics
 items.lifetime_transactions,             -- fact (total transaction count)

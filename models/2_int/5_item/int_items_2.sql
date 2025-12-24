@@ -156,6 +156,9 @@ SELECT DISTINCT
     it.item_brand_sort_order,
     it.inventory_posting_group,
     it.varient_item,
+    it.item_purchase_type,
+    it.vendor_no_,
+    it.vendor_name,
     
     -- =====================================================
     -- Performance Metrics (from item_metrics)

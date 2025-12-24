@@ -84,6 +84,12 @@ SELECT
     it.item_brand_sort_order,         -- Level 5 sort (NEW)
     -- Brand Ownership Type
     it.brand_ownership_type,
+    -- Purchase Type Information
+    it.item_purchase_type,
+    it.vendor_no_,
+    it.vendor_posting_group,
+    it.vendor_purchase_type,
+    it.vendor_name,
 
     -- =====================================================
     -- Document Classifications

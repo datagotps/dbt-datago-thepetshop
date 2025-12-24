@@ -92,6 +92,11 @@ item_category_sort_order,          -- dim: Level 3 sort order (NEW)
 item_subcategory_sort_order,       -- dim: Level 4 sort order (NEW)
 item_brand_sort_order,             -- dim: Level 5 sort order (NEW)
 brand_ownership_type,              -- dim: Brand Ownership Type (Own Brand, Private Label, Other Brand)
+item_purchase_type,                -- dim: Item-level purchase type (0,1,2,3)
+vendor_no_,                        -- dim: Vendor number (ID)
+vendor_posting_group,              -- dim: Vendor posting group (Local, Foreign)
+vendor_purchase_type,              -- dim: Vendor purchase type (Local, International)
+vendor_name,                       -- dim: Vendor name
 
 -- Customer Tenure Metrics (Line-Level Context)
 customer_first_purchase_date,      -- dim: customer's first purchase date (any transaction)
