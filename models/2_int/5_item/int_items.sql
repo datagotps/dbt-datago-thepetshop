@@ -19,9 +19,20 @@ base_items AS (
     SELECT
         a.item_no_,
         a.item_name,
-a.item_brand,
-a.inventory_posting_group,
-a.varient_item,
+        a.item_brand,
+        a.inventory_posting_group,
+        a.varient_item,
+        -- Vendor information
+        v.vendor_posting_group,
+        -- Brand Ownership Type Classification
+        CASE 
+            WHEN v.vendor_posting_group = 'Foreign' 
+                 AND a.item_brand IN ('Regalia', 'Bud & Billy', 'ThunderPaws', 'Kitty Clean') 
+            THEN 'Private Label'
+            WHEN v.vendor_posting_group = 'Foreign' 
+            THEN 'Own Brand'
+            ELSE 'Other Brand'
+        END AS brand_ownership_type,
         -- Hierarchy columns
         c.description AS item_division,      -- Level 1: Pet (from stg_petshop_division)
         b.description AS item_block,         -- Level 2: Block (from stg_petshop_item_category)
@@ -35,6 +46,7 @@ a.varient_item,
     LEFT JOIN {{ ref('stg_dimension_value') }} AS d ON a.retail_product_code = d.code AND d.dimension_code = 'PRODUCT GROUP'
     LEFT JOIN {{ ref('stg_petshop_item_sub_category') }} AS e ON e.code = a.item_sub_category
     LEFT JOIN {{ ref('stg_erp_retail_product_group') }} AS f ON f.code = a.retail_product_code
+    LEFT JOIN {{ ref('stg_petshop_vendor') }} AS v ON v.no_ = a.VendorNo
     LEFT JOIN item_revenue AS ir ON ir.item_no_ = a.item_no_
 ),
 
@@ -135,6 +147,10 @@ SELECT
     bi.item_name,
     bi.inventory_posting_group,
     bi.varient_item,
+    
+    -- Vendor Information
+    bi.vendor_posting_group,
+    bi.brand_ownership_type,
     
     -- Full Product Hierarchy (5 Levels)
     bi.item_division,                                           -- Level 1: Pet

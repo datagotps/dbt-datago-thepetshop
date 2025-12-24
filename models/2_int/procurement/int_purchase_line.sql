@@ -95,10 +95,57 @@ select
     item.item_category,                      -- Level 3: Category (Dry Food, Wet Food, Treats, etc.)
     item.item_subcategory,                   -- Level 4: Sub-Category (item type detail)
     item.item_brand,                         -- Level 5: Brand (Royal Canin, Hills, etc.)
+    item.brand_ownership_type,               -- Brand Ownership Type (Own Brand, Private Label, Other Brand)
 
-    -- VENDOR INFORMATION
-    a.buy_from_vendor_no_,
+    -- VENDOR INFORMATION (with simplified aliases)
+    a.buy_from_vendor_no_ as vendor_no_,
+    b.buy_from_vendor_name as vendor_name,
     a.pay_to_vendor_no_,
+    
+    -- VENDOR DIMENSION FIELDS (from int_vendor)
+    vendor.purchase_type as vendor_purchase_type,
+    vendor.vendor_type as vendor_type,
+    vendor.business_posting_group as vendor_business_posting_group,
+    vendor.vendor_posting_group as vendor_posting_group,
+    vendor.vat_posting_group as vendor_vat_posting_group,
+    vendor.country_code as vendor_country_code,
+    vendor.city as vendor_city,
+    vendor.currency_code as vendor_currency_code,
+    vendor.is_active as vendor_is_active,
+    vendor.lead_time__days_ as vendor_lead_time_days,
+    vendor.review_time__days_ as vendor_review_time_days,
+
+-- ══════════════════════════════════════════════════════════════════════════════
+-- RETURN ORDER INFORMATION (aggregated by original PO)
+-- ══════════════════════════════════════════════════════════════════════════════
+
+    -- Return Order Flags
+    coalesce(returns.has_return_order, false) as has_return_order,
+    
+    -- Return Order Count
+    coalesce(returns.return_order_count, 0) as return_order_count,
+    returns.return_order_numbers,
+    
+    -- Return Quantities
+    coalesce(returns.total_return_qty_ordered, 0) as return_qty_ordered,
+    coalesce(returns.total_return_qty_received, 0) as return_qty_received,
+    coalesce(returns.total_return_qty_invoiced, 0) as return_qty_invoiced,
+    coalesce(returns.total_return_qty_outstanding, 0) as return_qty_outstanding,
+    
+    -- Return Financials
+    coalesce(returns.total_return_amount, 0) as return_amount,
+    coalesce(returns.total_return_outstanding_amount, 0) as return_outstanding_amount,
+    
+    -- Return Status
+    returns.return_status,
+    
+    -- Return Dates
+    returns.first_return_order_date,
+    returns.last_return_order_date,
+    
+    -- Return Shipment Tracking
+    returns.return_shipment_numbers,
+    returns.return_reason_codes,
 
     -- DATES
     a.order_date,
@@ -130,8 +177,12 @@ select
     a.amount,
     a.outstanding_amount,
     
-    -- GROSS/NET CALCULATION
+    -- GROSS/NET CALCULATION (with simplified aliases)
     a.quantity * a.direct_unit_cost as gross_value,  -- Value before discount
+    a.quantity * a.direct_unit_cost as po_gross_value,  -- Value before discount (alias)
+    a.line_discount__ as po_discount_pct,  -- Discount percentage (alias)
+    a.line_discount_amount as po_discount_amount,  -- Discount amount (alias)
+    a.amount as po_net_value,  -- Net amount after discount (alias)
 
     -- POSTING GROUPS
     a.gen__bus__posting_group,
@@ -150,6 +201,7 @@ select
 
     b.status as po_header_status,
     b.document_date,
+    b.document_date as po_date,
     b.vendor_invoice_no_,
     b.buy_from_vendor_name,
 
@@ -157,10 +209,11 @@ select
 -- GRN DATA (grn.) - DIRECT MATCH RECEIPTS
 -- ══════════════════════════════════════════════════════════════════════════════
 
-    -- GRN-Based Receiving Metrics (Direct Match)
+    -- GRN-Based Receiving Metrics (Direct Match - with simplified aliases)
     coalesce(grn.grn_qty_received, 0) as grn_qty_received,
     coalesce(grn.grn_qty_invoiced, 0) as grn_qty_invoiced,
     coalesce(grn.grn_qty_pending_invoice, 0) as grn_qty_pending_invoice,
+    coalesce(grn.grn_qty_pending_invoice, 0) as qty_grn_pending_invoice,
     
     -- GRN COST & VALUE (from GRN - actual received cost)
     grn.grn_unit_cost,                           -- Weighted avg unit cost from GRN
@@ -205,9 +258,11 @@ select
 -- TOTAL RECEIVING (GRN + VARIANT SPLITS)
 -- ══════════════════════════════════════════════════════════════════════════════
 
-    -- TOTAL Received = Direct GRN + Variant Splits
+    -- TOTAL Received = Direct GRN + Variant Splits (with simplified aliases)
     coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0) as total_qty_received,
+    coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0) as qty_received,
     coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0) as total_qty_invoiced,
+    coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0) as qty_invoiced,
 
 -- ══════════════════════════════════════════════════════════════════════════════
 -- CALCULATED METRICS (Using TOTAL)
@@ -232,9 +287,11 @@ select
         then DATE_DIFF(CURRENT_DATE(), a.expected_receipt_date, DAY)
     end as delay_days_open,
     
-    -- First/Last Receipt Date (considering both GRN and Variants)
+    -- First/Last Receipt Date (considering both GRN and Variants - with simplified aliases)
     least(grn.first_receipt_date, vs.variant_first_receipt_date) as combined_first_receipt_date,
+    least(grn.first_receipt_date, vs.variant_first_receipt_date) as receipt_date,
     greatest(grn.last_receipt_date, vs.variant_last_receipt_date) as combined_last_receipt_date,
+    greatest(grn.last_receipt_date, vs.variant_last_receipt_date) as receipt_complete_date,
 
 -- ══════════════════════════════════════════════════════════════════════════════
 -- INVOICE DATA (inv.) - POSTED PURCHASE INVOICES
@@ -254,9 +311,11 @@ select
     coalesce(inv.inv_total_value, 0) as inv_total_value,  -- Total incl. VAT
     coalesce(inv.inv_value_lcy, 0) as inv_value_lcy,  -- Local currency value (AED)
     
-    -- Invoice Dates
+    -- Invoice Dates (with simplified aliases)
     inv.first_invoice_date,
+    inv.first_invoice_date as invoice_date,
     inv.last_invoice_date,
+    inv.last_invoice_date as invoice_complete_date,
     
     -- Invoice Document Tracking
     coalesce(inv.invoice_count, 0) as invoice_count,
@@ -271,7 +330,119 @@ select
 -- ══════════════════════════════════════════════════════════════════════════════
 
     -- Flag for lines superseded by PO modification (same item added on later line)
-    coalesce(sup.is_superseded, false) as is_superseded
+    coalesce(sup.is_superseded, false) as is_superseded,
+
+-- ══════════════════════════════════════════════════════════════════════════════
+-- CALCULATED STATUS FIELDS
+-- ══════════════════════════════════════════════════════════════════════════════
+
+    -- Delivery Status
+    case 
+        when least(grn.first_receipt_date, vs.variant_first_receipt_date) is null then 'Not Received'
+        when grn.is_on_time = 1 then 'On Time'
+        when grn.is_on_time = 0 then 'Late'
+        else 'Unknown'
+    end as delivery_status,
+
+    -- Receiving Status
+    case 
+        when (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) = 0 then 'Not Received'
+        when (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) > 0 
+            and (a.quantity - (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0))) > 0 
+        then 'Partially Received'
+        when (a.quantity - (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0))) <= 0 
+        then 'Fully Received'
+        else 'Unknown'
+    end as receiving_status,
+
+    -- Invoice Status
+    case 
+        when (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) = 0 then 'Not Yet Received'
+        when grn.grn_qty_pending_invoice > 0 
+            and (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) = 0 
+        then 'Pending Invoice'
+        when (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) > 0 
+            and (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) < (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) 
+        then 'Partially Invoiced'
+        when (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) >= (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) 
+            and (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) > 0 
+        then 'Fully Invoiced'
+        else 'Unknown'
+    end as invoice_status,
+
+    -- PO Stage
+    case 
+        when (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) > 0 then 'Invoiced'
+        when (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) > 0 then 'Received'
+        else 'Ordered'
+    end as po_stage,
+
+    -- PO Stage Sort
+    case 
+        when (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) > 0 then 3
+        when (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) > 0 then 2
+        else 1
+    end as po_stage_sort,
+
+    -- PO Stage Detail
+    case 
+        when (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) = 0 
+            and (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) = 0 then
+            case 
+                when b.status in ('Open', 'Pending Approval') then 'Draft'
+                when a.expected_receipt_date < CURRENT_DATE() then 'Overdue'
+                else 'Sent to Vendor'
+            end
+        when (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) > 0 
+            and (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) = 0 then
+            case 
+                when coalesce(a.qc_done, 0) = 0 then 'In QC'
+                else 'Pending Invoice'
+            end
+        when (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) > 0 then
+            case 
+                when (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) >= (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) 
+                    and (a.quantity - (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0))) <= 0 
+                then 'Fully Invoiced'
+                when (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) >= (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) 
+                    and (a.quantity - (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0))) > 0 
+                then 'Partial Delivery'
+                when (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) < (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) 
+                then 'Partially Invoiced'
+                else 'Invoiced'
+            end
+        else 'Unknown'
+    end as po_stage_detail,
+
+    -- PO Stage Detail Sort
+    case 
+        when (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) = 0 
+            and (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) = 0 then
+            case 
+                when b.status in ('Open', 'Pending Approval') then 1
+                when a.expected_receipt_date < CURRENT_DATE() then 3
+                else 2
+            end
+        when (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) > 0 
+            and (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) = 0 then
+            case 
+                when coalesce(a.qc_done, 0) = 0 then 4
+                else 5
+            end
+        when (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) > 0 then
+            case 
+                when (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) >= (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) 
+                    and (a.quantity - (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0))) <= 0 
+                then 8
+                when (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) >= (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) 
+                    and (a.quantity - (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0))) > 0 
+                then 7
+                when (coalesce(grn.grn_qty_invoiced, 0) + coalesce(vs.variant_qty_invoiced, 0)) < (coalesce(grn.grn_qty_received, 0) + coalesce(vs.variant_qty_received, 0)) 
+                then 6
+                else 6
+            end
+        else 99
+    end as po_stage_detail_sort
 
 from {{ ref('stg_petshop_purchase_line') }} as a
 
@@ -297,3 +468,16 @@ left join {{ ref('int_purchase_invoices') }} as inv
 -- Product Hierarchy (Pet → Block → Category → Sub-Category → Brand → Item)
 left join {{ ref('int_items') }} as item
     on a.no_ = item.item_no_
+
+-- Vendor Dimension
+left join {{ ref('int_vendor') }} as vendor
+    on a.buy_from_vendor_no_ = vendor.vendor_code
+
+-- Return Orders (aggregated by original PO)
+-- Only join returns to regular Orders (document_type = 1), not to Return Orders themselves
+-- Join by PO + Line if line_no > 0, or PO + Item + Line if line_no = 0 (to avoid duplicate matches)
+-- When line_no = 0, match only to the first line with that item (highest qty_received)
+left join {{ ref('int_return_by_po') }} as returns
+    on a.document_type = 1  -- Only for regular Orders
+    and a.document_no_ = returns.original_po_no
+    and a.line_no_ = returns.original_po_line_no  -- Always match by specific line number (int_return_by_po assigns line_no even when originally 0)

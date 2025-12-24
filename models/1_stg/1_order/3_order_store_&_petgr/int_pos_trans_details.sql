@@ -463,5 +463,9 @@ enriched AS (
     FROM joined
 )
 
-SELECT * FROM enriched
+SELECT 
+    enriched.*,
+    items.brand_ownership_type
+FROM enriched
+LEFT JOIN {{ ref('int_items') }} AS items ON items.item_no_ = enriched.item_no_
 

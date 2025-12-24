@@ -208,6 +208,7 @@ SELECT
     ve.item_category_sort_order,      -- Level 3 sort (NEW)
     ve.item_subcategory_sort_order,   -- Level 4 sort (NEW)
     ve.item_brand_sort_order,         -- Level 5 sort (NEW)
+    ve.brand_ownership_type,          -- Brand Ownership Type
     
     -- =====================================================
     -- Customer Tenure Metrics (Line-Level Context)
