@@ -1,0 +1,376 @@
+version: 2
+
+models:
+  # ============================================
+  # FACT_COMMERCIAL - Core Revenue Model
+  # Grain: One row per value_entry (PK: value_entry_id)
+  # ============================================
+  - name: fact_commercial
+    description: |
+      Line-level commercial transactions with full customer, product, and channel context.
+      Primary source for revenue analytics and BI dashboards.
+      
+      **Primary Key**: `value_entry_id` (Business Central _systemid GUID)
+      
+      **Known Data Gaps**:
+      - Pet Shop Services (POS) has NULL item_ledger_entry_no_
+      - TPS Café has NULL item_no_ (11K rows)
+    columns:
+      - name: value_entry_id
+        description: "Primary key - Business Central system GUID, unique per value entry row"
+        tests:
+          - unique
+          - not_null
+
+      - name: item_ledger_entry_no_
+        description: "Foreign key to item ledger entry. NULL for Pet Shop Services (POS). NOT unique - multiple cost entries per item."
+        tests:
+          - not_null:
+              config:
+                where: "company_source != 'Pet Shop Services'"
+                severity: warn
+
+      - name: unified_order_id
+        description: "Order identifier for grouping line items"
+        tests:
+          - not_null:
+              config:
+                where: "transaction_type = 'Sale'"
+                severity: warn
+
+      - name: unified_customer_id
+        description: "Customer identifier (phone-based or source_no_ fallback)"
+        tests:
+          - not_null
+
+      - name: sales_channel
+        description: "Sales channel classification"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Online', 'Shop', 'Affiliate', 'B2B', 'Service']
+              config:
+                severity: error
+
+      - name: transaction_type
+        description: "Sale or Refund classification"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Sale', 'Refund', 'Other']
+
+      - name: posting_date
+        description: "Transaction posting date"
+        tests:
+          - not_null
+
+      - name: sales_amount__actual_
+        description: "Net sales amount in AED"
+        tests:
+          - not_null
+
+      - name: item_no_
+        description: "Product item number. NULL for TPS Café service items."
+        tests:
+          - not_null:
+              config:
+                where: "company_source != 'TPS Café'"
+                severity: warn
+
+      - name: document_no_
+        description: "ERP document number"
+        tests:
+          - not_null
+
+  # ============================================
+  # FACT_ORDERS - Order-Level Model
+  # Grain: One row per (unified_order_id, order_date)
+  # Note: Same order can span multiple dates (partial deliveries, split invoicing)
+  # ============================================
+  - name: fact_orders
+    description: "Order-level aggregation with retention analytics, cohort analysis, and customer journey metrics. Grain is order + date."
+    columns:
+      - name: unified_order_id
+        description: "Order identifier (not unique alone - combine with order_date)"
+        tests:
+          - not_null
+
+      - name: order_date
+        description: "Order posting date (part of composite key)"
+        tests:
+          - not_null
+
+      - name: unified_customer_id
+        description: "Customer identifier"
+        tests:
+          - not_null
+
+      - name: sales_channel
+        description: "Order channel"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Online', 'Shop']
+
+      - name: transaction_type
+        description: "Sale or Refund"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Sale', 'Refund', 'Other']
+
+      - name: customer_order_sequence
+        description: "Order sequence number for customer (1st, 2nd, etc.)"
+        tests:
+          - not_null
+
+      - name: order_value
+        description: "Total order value in AED"
+        tests:
+          - not_null
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - unified_order_id
+              - order_date
+
+  # ============================================
+  # DIM_CUSTOMERS - Customer Dimension
+  # ============================================
+  - name: dim_customers
+    description: "Customer master with RFM segmentation, behavior analytics, pet ownership, and SuperApp integration."
+    columns:
+      - name: unified_customer_id
+        description: "Primary key - unique customer identifier"
+        tests:
+          - unique
+          - not_null
+
+      - name: customer_acquisition_channel
+        description: "First purchase channel"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Online', 'Shop', 'Other']
+
+      - name: customer_rfm_segment
+        description: "RFM behavioral classification"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - 'Champions'
+                  - 'Loyal Customers'
+                  - 'Cant Lose Them'
+                  - 'Potential Loyalists'
+                  - 'New Customers'
+                  - 'At Risk'
+                  - 'Lost'
+
+      - name: r_score
+        description: "Recency score (1-5, where 5 = most recent)"
+        tests:
+          - not_null
+
+      - name: f_score
+        description: "Frequency score (1-5, where 5 = most frequent)"
+        tests:
+          - not_null
+
+      - name: m_score
+        description: "Monetary score (1-5, where 5 = highest spend)"
+        tests:
+          - not_null
+
+      - name: total_order_count
+        description: "Total lifetime orders"
+        tests:
+          - not_null
+
+      - name: total_sales_value
+        description: "Total lifetime spend in AED"
+        tests:
+          - not_null
+
+      - name: customer_acquisition_date
+        description: "Date of first purchase"
+        tests:
+          - not_null
+
+  # ============================================
+  # DIM_ITEMS - Product Dimension
+  # ============================================
+  - name: dim_items
+    description: "Product master with 5-level hierarchy, ABC/XYZ classification, and performance metrics."
+    columns:
+      - name: item_id
+        description: "Primary key - unique item identifier"
+        tests:
+          - unique
+          - not_null
+
+      - name: item_name
+        description: "Product name/description"
+        tests:
+          - not_null
+
+      - name: item_division
+        description: "Level 1: Pet type (DOG, CAT, FISH, etc.)"
+        tests:
+          - not_null:
+              config:
+                severity: warn
+
+      - name: abc_classification
+        description: "ABC revenue classification"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['A', 'B', 'C']
+              config:
+                severity: warn
+
+      - name: xyz_class
+        description: "XYZ demand predictability classification"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['X', 'Y', 'Z']
+              config:
+                severity: warn
+
+  # ============================================
+  # FCT_PROCUREMENT - Purchase Orders
+  # ============================================
+  - name: fct_procurement
+    description: "Purchase order fact with GRN tracking, variant splits, and vendor analytics."
+    columns:
+      - name: document_no_
+        description: "Purchase order number"
+        tests:
+          - not_null
+
+      - name: line_no_
+        description: "PO line number"
+        tests:
+          - not_null
+
+      - name: item_no
+        description: "Item number on PO"
+        tests:
+          - not_null
+
+      - name: vendor_no_
+        description: "Vendor identifier"
+        tests:
+          - not_null
+
+      - name: po_date
+        description: "Purchase order date. NULL for credit memos and service invoices (SHIPMENT, CUST-DUTY) that don't originate from a PO."
+        tests:
+          - not_null:
+              config:
+                where: "document_type NOT IN ('Credit Memo') AND item_no NOT IN ('SHIPMENT', 'CUST-DUTY')"
+                severity: warn
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - document_no_
+              - line_no_
+
+  # ============================================
+  # FCT_PURCHASE_RECEIPTS - GRN Tracking
+  # ============================================
+  - name: fct_purchase_receipts
+    description: "Goods receipt notes (GRN) tracking for procurement."
+    columns:
+      - name: grn_no
+        description: "GRN document number"
+        tests:
+          - not_null
+
+      - name: grn_line_no
+        description: "GRN line number"
+        tests:
+          - not_null
+
+      - name: po_no
+        description: "Related purchase order number"
+        tests:
+          - not_null
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - grn_no
+              - grn_line_no
+
+  # ============================================
+  # FCT_OCC_ORDERS - Online Order Headers
+  # ============================================
+  - name: fct_occ_orders
+    description: "Online channel order headers from OFS system."
+    columns:
+      - name: web_order_id
+        description: "Web order identifier"
+        tests:
+          - unique:
+              config:
+                severity: warn
+          - not_null
+
+  # ============================================
+  # FCT_OCC_ORDER_ITEMS - Online Order Lines
+  # ============================================
+  - name: fct_occ_order_items
+    description: "Online channel order line items from OFS system."
+    columns:
+      - name: weborderno
+        description: "Web order number"
+        tests:
+          - not_null
+
+      - name: itemno
+        description: "Item number"
+        tests:
+          - not_null
+
+  # ============================================
+  # DIM_DATE - Date Dimension
+  # ============================================
+  - name: dim_date
+    description: "Date dimension for time-based analysis."
+
+  # ============================================
+  # DIM_STORE - Store/Location Dimension
+  # ============================================
+  - name: dim_store
+    description: "Store and location master data."
+
+  # ============================================
+  # FCT_BUDGET - Budget Targets
+  # ============================================
+  - name: fct_budget
+    description: "Budget targets by period."
+
+  # ============================================
+  # FCT_POS_TRANSACTIONS - POS Sales
+  # ============================================
+  - name: fct_pos_transactions
+    description: "Point of sale transaction details."
+
+  # ============================================
+  # FCT_DAILY_TRANSACTIONS - Daily Aggregates
+  # ============================================
+  - name: fct_daily_transactions
+    description: "Daily aggregated transaction summary."

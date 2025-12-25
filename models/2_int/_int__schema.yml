@@ -1,0 +1,212 @@
+version: 2
+
+models:
+  # ============================================
+  # INT_ORDER_LINES - Core Order Line Model
+  # Grain: One row per value_entry (PK: value_entry_id)
+  # ============================================
+  - name: int_order_lines
+    description: |
+      Order line items with unified customer and product context.
+      Replacement for int_commercial using new model structure.
+      
+      **Primary Key**: `value_entry_id` (Business Central _systemid GUID)
+    columns:
+      - name: value_entry_id
+        description: "Primary key - Business Central system GUID, unique per value entry row"
+        tests:
+          - unique
+          - not_null
+
+      - name: item_ledger_entry_no_
+        description: "Foreign key to item ledger entry. NULL for Pet Shop Services (POS source)."
+        tests:
+          - not_null:
+              config:
+                where: "company_source != 'Pet Shop Services'"
+                severity: warn
+
+      - name: unified_order_id
+        description: "Order identifier"
+        tests:
+          - not_null:
+              config:
+                where: "transaction_type = 'Sale'"
+                severity: warn
+
+      - name: unified_customer_id
+        description: "Customer identifier"
+        tests:
+          - not_null
+
+      - name: sales_channel
+        description: "Sales channel"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Online', 'Shop', 'Affiliate', 'B2B', 'Service', 'Check My Logic']
+
+      - name: transaction_type
+        description: "Sale or Refund"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Sale', 'Refund', 'Other']
+
+  # ============================================
+  # INT_ORDERS - Order Aggregation
+  # Grain: One row per (unified_order_id, order_date)
+  # ============================================
+  - name: int_orders
+    description: |
+      Order-level aggregation with retention analytics.
+      
+      **Grain**: (unified_order_id, order_date) - NOT unique on order_id alone!
+      
+      **Why?** Same order can have multiple invoices on different dates 
+      (partial deliveries, backorders). Example: Order O3285910 had 4 invoices over 15 days.
+      
+      **Usage**:
+      - For true order counts: `COUNT(DISTINCT unified_order_id)`
+      - For revenue by posting date: Use as-is
+      
+      **Future**: May add `int_orders_summary` for single-row-per-order analytics.
+    columns:
+      - name: unified_order_id
+        description: "Order identifier (not unique alone - combine with order_date)"
+        tests:
+          - not_null
+
+      - name: order_date
+        description: "Order posting date (part of composite key)"
+        tests:
+          - not_null
+
+      - name: unified_customer_id
+        description: "Customer identifier"
+        tests:
+          - not_null
+
+      - name: sales_channel
+        tests:
+          - not_null
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - unified_order_id
+              - order_date
+
+  # ============================================
+  # INT_CUSTOMERS - Customer Aggregation
+  # ============================================
+  - name: int_customers
+    description: "Customer master analysis with RFM segmentation rebuilt from int_orders."
+    columns:
+      - name: unified_customer_id
+        description: "Primary key - unique customer"
+        tests:
+          - unique
+          - not_null
+
+      - name: customer_acquisition_date
+        tests:
+          - not_null
+
+      - name: total_order_count
+        tests:
+          - not_null
+
+  # ============================================
+  # INT_COMMERCIAL - Legacy Commercial Model
+  # ============================================
+  - name: int_commercial
+    description: "Commercial order lines - wrapper around int_order_lines."
+    columns:
+      - name: unified_customer_id
+        tests:
+          - not_null
+
+  # ============================================
+  # INT_PURCHASE_LINE - Procurement
+  # ============================================
+  - name: int_purchase_line
+    description: "Purchase order lines with GRN and variant split tracking."
+    columns:
+      - name: document_no_
+        tests:
+          - not_null
+
+      - name: line_no_
+        tests:
+          - not_null
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - document_no_
+              - line_no_
+
+  # ============================================
+  # INT_ITEMS - Item Dimension Build
+  # ============================================
+  - name: int_items
+    description: "Item dimension with dynamic revenue-based sort orders."
+    columns:
+      - name: item_no_
+        tests:
+          - unique
+          - not_null
+
+  # ============================================
+  # INT_ITEMS_2 - Extended Item Metrics
+  # ============================================
+  - name: int_items_2
+    description: "Extended item metrics with ABC/XYZ classification."
+    columns:
+      - name: item_id
+        tests:
+          - unique
+          - not_null
+
+  # ============================================
+  # INT_VENDOR - Vendor Dimension
+  # ============================================
+  - name: int_vendor
+    description: "Vendor master data."
+    columns:
+      - name: vendor_code
+        description: "Vendor identifier"
+        tests:
+          - unique
+          - not_null
+
+  # ============================================
+  # INT_OCC_ORDERS - Online Orders
+  # ============================================
+  - name: int_occ_orders
+    description: "Online order aggregation from OFS."
+    columns:
+      - name: web_order_id
+        tests:
+          - unique:
+              config:
+                severity: warn
+          - not_null
+
+  # ============================================
+  # INT_OCC_ORDER_ITEMS - Online Order Items
+  # ============================================
+  - name: int_occ_order_items
+    description: "Online order line items from OFS."
+    columns:
+      - name: weborderno
+        description: "Web order number"
+        tests:
+          - not_null
+
+  # NOTE: int_mba_order_items tests are defined in models/2_int/5_item/schema.yml

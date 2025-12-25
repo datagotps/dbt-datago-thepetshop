@@ -20,6 +20,9 @@ WITH inbound_sales_line_dedup AS (
 -- Main Query: Sales Analysis with Categorizations
 -- =====================================================
 SELECT
+    -- Primary Key (Business Central GUID)
+    ve._systemid AS value_entry_id,
+    
     -- Source Information
     ve.document_no_,
     ve.source_code,

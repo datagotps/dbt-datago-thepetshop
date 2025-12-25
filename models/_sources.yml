@@ -1,167 +1,321 @@
 version: 2
+
 sources:
+  # ============================================
+  # ERP PRODUCTION DATABASE (Business Central)
+  # Primary source for sales, inventory, and financial data
+  # ============================================
   - name: sql_erp_prod_dbo
     database: tps-data-386515
+    description: "ERP production database (Microsoft Business Central) synced via Fivetran"
+    
     tables:
+      # Budget & Planning
       - name: tps_budget_target
+        description: "Budget targets by period"
+
+      # Transfer Operations
       - name: petshop_transfer_line_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_transfer_line_5ecfc871_5d82_43f1_9c54_59685e82318d
-
       - name: petshop_transfer_shipment_line_437dbf0e_84ff_417a_965d_ed2bb9650972
       - name: petshop_transfer_shipment_line_5ecfc871_5d82_43f1_9c54_59685e82318d
-
-      - name: petshop_pick_detail_c91094c2_db03_49d2_8cb9_95c179ecbf9d
-
-      - name: petshop_pna_details_c91094c2_db03_49d2_8cb9_95c179ecbf9d
-
       - name: petshop_transfer_header_437dbf0e_84ff_417a_965d_ed2bb9650972
 
-      ######## purchase #######
+      # Warehouse Operations
+      - name: petshop_pick_detail_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+        description: "Warehouse pick details"
+      - name: petshop_pna_details_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+        description: "PNA (Pick & Allocate) details"
+
+      ######## PURCHASE / PROCUREMENT #######
       - name: petshop_purchase_line_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "Purchase order lines - primary"
       - name: petshop_purchase_line_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+        description: "Purchase order lines - secondary company"
       - name: petshop_purchase_header_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "Purchase order headers - primary"
       - name: petshop_purchase_header_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+        description: "Purchase order headers - secondary company"
       - name: petshop_purch__rcpt__line_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "Goods Receipt Notes (GRN) - purchase receipt lines"
       - name: petshop_purch__inv__line_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "Purchase invoice lines"
 
-      - name: petshop_item_5ecfc871_5d82_43f1_9c54_59685e82318d # done
-      - name: petshop_item_c91094c2_db03_49d2_8cb9_95c179ecbf9d # done
-      - name: petshop_item_437dbf0e_84ff_417a_965d_ed2bb9650972 # not used
+      ######## ITEMS / PRODUCTS #######
+      - name: petshop_item_5ecfc871_5d82_43f1_9c54_59685e82318d
+        description: "Item master - PetHaus company"
+      - name: petshop_item_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+        description: "Item master - primary company"
+      - name: petshop_item_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "Item master - not currently used"
       - name: petshop_item_category_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "Item category hierarchy (Level 2 - Block)"
       - name: petshop_item_sub_category_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+        description: "Item subcategory hierarchy (Level 4)"
       - name: petshop_retail_product_group_5ecfc871_5d82_43f1_9c54_59685e82318d
+        description: "Retail product groups (Level 3 - Category)"
       - name: petshop_division_5ecfc871_5d82_43f1_9c54_59685e82318d
+        description: "Division hierarchy (Level 1 - Pet type)"
 
+      ######## VENDORS #######
       - name: petshop_vendor_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "Vendor master - primary"
       - name: petshop_vendor_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+        description: "Vendor master - secondary company"
       - name: petshop_replenishment_mapping_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+        description: "Replenishment mapping for inventory"
       - name: petshop_stock_bin_wise_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+        description: "Stock by bin location"
 
-      ######## Customer ########
+      ######## CUSTOMERS ########
       - name: petshop_customer_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "Customer master - primary"
       - name: petshop_customer_5ecfc871_5d82_43f1_9c54_59685e82318d
+        description: "Customer master - PetHaus"
       - name: petshop_customer_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+        description: "Customer master - secondary"
       - name: petshop_customer_230a02db_21eb_4476_8cfe_fef4ff006531
+        description: "Customer master - B2B"
       - name: petshop_customer_posting_group_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+        description: "Customer posting groups"
 
+      ######## VALUE ENTRY (CORE SALES DATA) ########
       - name: petshop_value_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "Value entry ledger - PRIMARY SOURCE for all revenue. Contains all sales, refunds, and inventory value movements."
       - name: petshop_value_entry_5ecfc871_5d82_43f1_9c54_59685e82318d
+        description: "Value entry ledger - PetHaus company"
+        
+      ######## DISCOUNTS ########
       - name: petshop_discount_ledger_entry_5ecfc871_5d82_43f1_9c54_59685e82318d
+        description: "Discount ledger entries for offline promotions"
       - name: petshop_periodic_discount_5ecfc871_5d82_43f1_9c54_59685e82318d
+        description: "Periodic discount definitions"
 
+      ######## DIMENSIONS ########
       - name: petshop_dimension_value_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "Dimension values for analytics dimensions"
       - name: petshop_dimension_set_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "Dimension set entries linking transactions to dimensions"
 
-      ## GL Entries
+      ######## GL ENTRIES ########
       - name: petshop_g_l_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "General ledger entries - primary"
       - name: petshop_g_l_entry_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+        description: "General ledger entries - secondary"
 
+      ######## INBOUND SALES ########
       - name: petshop_inbound_sales_header_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+        description: "Inbound sales headers from OFS sync"
       - name: petshop_inbound_sales_line_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+        description: "Inbound sales lines with discount details"
 
+      ######## SALES PRICING ########
       - name: petshop_sales_price_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "Sales price list"
 
+      ######## B2B SALES ########
       - name: petshop_sales_header_230a02db_21eb_4476_8cfe_fef4ff006531
+        description: "B2B/Amazon sales headers"
       - name: petshop_sales_line_230a02db_21eb_4476_8cfe_fef4ff006531
+        description: "B2B/Amazon sales lines"
 
+      ######## SALES INVOICES ########
       - name: petshop_sales_invoice_header_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "Posted sales invoice headers"
       - name: petshop_sales_invoice_line_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "Posted sales invoice lines"
 
+      ######## OTHER ########
       - name: petshop_tariff_number_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "Tariff/HS codes for import"
       - name: petshop_staff_5ecfc871_5d82_43f1_9c54_59685e82318d
+        description: "Staff master"
 
+      ######## POS TRANSACTIONS ########
       - name: petshop_transaction_header_5ecfc871_5d82_43f1_9c54_59685e82318d
+        description: "POS transaction headers"
       - name: petshop_trans__sales_entry_5ecfc871_5d82_43f1_9c54_59685e82318d
+        description: "POS transaction sales entries"
 
-      ######## Location/Store ########
+      ######## LOCATION/STORE ########
       - name: petshop_location_c91094c2_db03_49d2_8cb9_95c179ecbf9d
+        description: "Store and warehouse locations"
 
-      ## pethaus
-
-      # ERP Source Tables - Dimension Values
+      ######## PETHAUS COMPANY ########
+      # Dimension Values
       - name: pethaus_domestic_grooming_dimension_value_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "PetHaus Grooming dimensions"
       - name: pethaus_general_trading_dimension_value_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "PetHaus Trading dimensions"
 
-      # ERP Source Tables - Value Entry
+      # Value Entry
       - name: pethaus_domestic_grooming_value_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "PetHaus Grooming value entries"
       - name: pethaus_general_trading_value_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "PetHaus Trading value entries"
 
-      # ERP Source Tables - Staff
+      # Staff
       - name: pethaus_general_trading_staff_5ecfc871_5d82_43f1_9c54_59685e82318d
+        description: "PetHaus Trading staff"
       - name: pethaus_domestic_grooming_staff_5ecfc871_5d82_43f1_9c54_59685e82318d
+        description: "PetHaus Grooming staff"
 
-      # ERP Source Tables - Sales Entry
+      # Sales Entry
       - name: pethaus_general_trading_trans__sales_entry_5ecfc871_5d82_43f1_9c54_59685e82318d
+        description: "PetHaus Trading sales entries"
       - name: pethaus_domestic_grooming_trans__sales_entry_5ecfc871_5d82_43f1_9c54_59685e82318d
+        description: "PetHaus Grooming sales entries"
 
-      ## The Petshop Cafe
+      ######## PETSHOP CAFE ########
       - name: the_petshop_cafe_value_entry_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "TPS Cafe value entries"
       - name: the_petshop_cafe_dimension_value_437dbf0e_84ff_417a_965d_ed2bb9650972
+        description: "TPS Cafe dimensions"
 
+  # ============================================
+  # ORDER FULFILLMENT SYSTEM (OFS - MySQL)
+  # Online order management and fulfillment
+  # ============================================
   - name: mysql_ofs
     database: tps-data-386515
+    description: "Order Fulfillment System (OFS) - online order management via Fivetran"
+    
     tables:
       - name: inboundpaymentline
-      - name: inboundsalesheader # 422302
-      - name: crmorders # 422302
+        description: "Payment line details including coupons"
+      - name: inboundsalesheader
+        description: "Inbound sales headers from ERP"
+      - name: crmorders
+        description: "CRM order headers - PRIMARY online order source"
       - name: orderdetail
+        description: "Order line item details"
       - name: orderstatusmaster
+        description: "Order status reference"
       - name: inboundorderaddress
+        description: "Delivery addresses"
       - name: itemdetail
+        description: "Item details from OFS"
       - name: crmorderstatus
+        description: "CRM order status"
       - name: locationmaster
+        description: "Delivery locations/zones"
       - name: inboundsalesline
+        description: "Inbound sales lines"
       - name: orderdataanalysis
+        description: "Order analytics data"
       - name: crmlinestatus
+        description: "CRM line item status"
       - name: ordercount
+        description: "Order count aggregates"
       - name: customerdetails
+        description: "Customer details from OFS"
       - name: itemstock
+        description: "Item stock levels"
 
+  # ============================================
+  # LOYALTY SYSTEM (AWS)
+  # Customer loyalty program data
+  # ============================================
   - name: loyalty_aws
     database: tps-data-386515
+    description: "Loyalty program data from AWS"
+    
     tables:
       - name: members
+        description: "Loyalty program members"
       - name: points
+        description: "Points balance and history"
       - name: transactions
+        description: "Loyalty point transactions"
 
+  # ============================================
+  # HISTORICAL OFS (h_mysql_ofs)
+  # Delivery and fulfillment tracking
+  # ============================================
   - name: h_mysql_ofs
     database: tps-data-386515
+    description: "Historical OFS data for delivery tracking"
+    
     tables:
       - name: boxline
+        description: "Box/package line items"
       - name: boxheader
+        description: "Box/package headers"
       - name: orderstatusline
+        description: "Order status timeline"
       - name: driverdeliverystage
+        description: "Driver delivery stages"
       - name: boxstatus
+        description: "Box status reference"
 
+  # ============================================
+  # LEGACY FACT TABLES
+  # Historical data before dbt migration
+  # ============================================
   - name: Fact
     database: tps-data-386515
+    description: "Legacy fact tables - pre-dbt migration"
+    
     tables:
       - name: Fact_Old_Online_Order_Level_Sales_Data
+        description: "Legacy online order data"
       - name: Fact_Old_ERP_Sku_Level_Sales_Data
+        description: "Legacy SKU-level sales data"
 
+  # ============================================
+  # ARCHIVE DATA
+  # Historical customer data
+  # ============================================
   - name: Archive_Old_Online_Data
     database: tps-data-386515
+    description: "Archived historical online customer data"
+    
     tables:
       - name: Dan_DD_Customer
+        description: "Dan's customer export"
       - name: DD_Customer
+        description: "DD customer archive"
 
+  # ============================================
+  # SUPERAPP (Public Schema)
+  # Pet management mobile app data
+  # ============================================
   - name: public
     database: tps-data-386515
+    description: "SuperApp pet management data from PostgreSQL"
+    
     tables:
       - name: ActivityLevel
+        description: "Pet activity level reference"
       - name: Allergies
+        description: "Allergy types reference"
       - name: DietaryPreference
+        description: "Dietary preference reference"
       - name: HealthCondition
+        description: "Health condition reference"
       - name: PersonalityTrait
+        description: "Personality trait reference"
       - name: PetAllergies
+        description: "Pet-allergy mappings"
       - name: PetDietaryPreferences
+        description: "Pet dietary preference mappings"
       - name: PetDocument
+        description: "Pet documents"
       - name: PetDocumentGroup
+        description: "Document group reference"
       - name: PetHealthConditions
+        description: "Pet health condition mappings"
       - name: PetImage
+        description: "Pet images"
       - name: PetPersonalityTraits
+        description: "Pet personality mappings"
       - name: PetSubType
+        description: "Pet subtype reference (breed)"
       - name: PetType
+        description: "Pet type reference"
       - name: PetVaccination
+        description: "Pet vaccination records"
       - name: Pets
+        description: "Pet profiles - core SuperApp entity"
       - name: users
+        description: "SuperApp user accounts"

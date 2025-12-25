@@ -1,5 +1,8 @@
 select
 
+-- Primary Key
+value_entry_id,                    -- pk (Business Central GUID - unique per row)
+
 -- Core Identifiers
 source_no_,                        -- dim (customer ID)
 document_no_,                      -- dim (ERP document number)

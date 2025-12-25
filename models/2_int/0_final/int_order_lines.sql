@@ -9,6 +9,11 @@
 
 SELECT
     -- =====================================================
+    -- Primary Key (from int_value_entry)
+    -- =====================================================
+    ve.value_entry_id,  -- Business Central GUID - unique per value entry row
+    
+    -- =====================================================
     -- Core Identifiers (from int_value_entry)
     -- =====================================================
     ve.source_no_,

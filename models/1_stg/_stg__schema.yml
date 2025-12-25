@@ -1,0 +1,155 @@
+version: 2
+
+models:
+  # ============================================
+  # STG_VALUE_ENTRY - Core Staging Model
+  # Grain: One row per value entry (PK: _systemid)
+  # Note: entry_no_ is NOT unique per company (Pet Haus has duplicates)
+  # ============================================
+  - name: stg_value_entry
+    description: |
+      Staged value entry with multi-company union (PetShop, PetHaus, Cafe, Services).
+      
+      **Primary Key**: `_systemid` (Business Central GUID)
+      
+      **Note**: `entry_no_` is NOT unique per company - Pet Haus has duplicate entry_no_ values
+      for different transactions (different dimension_code or reprocessed records).
+    columns:
+      - name: _systemid
+        description: "Primary key - Business Central system GUID"
+        tests:
+          - unique
+          - not_null
+
+      - name: entry_no_
+        description: "Entry number from source (NOT unique - use _systemid as PK)"
+        tests:
+          - not_null
+
+      - name: company_source
+        description: "Source company identifier"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Pet Shop', 'Pet Haus', 'TPS Café', 'Pet Shop Services']
+
+      - name: posting_date
+        description: "Transaction posting date"
+        tests:
+          - not_null
+
+      - name: document_no_
+        tests:
+          - not_null
+
+  # ============================================
+  # STG_PETSHOP_ITEM - Item Master
+  # ============================================
+  - name: stg_petshop_item
+    description: "Item master from ERP."
+    columns:
+      - name: item_no_
+        tests:
+          - unique
+          - not_null
+
+  # ============================================
+  # STG_PETSHOP_VENDOR - Vendor Master
+  # ============================================
+  - name: stg_petshop_vendor
+    description: "Vendor master from ERP."
+    columns:
+      - name: no_
+        tests:
+          - unique
+          - not_null
+
+  # ============================================
+  # STG_OFS_CRMORDERS - Online Orders
+  # ============================================
+  - name: stg_ofs_crmorders
+    description: "CRM orders from OFS system."
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+
+      - name: weborderno
+        tests:
+          - not_null
+
+  # ============================================
+  # STG_ERP_INBOUND_SALES_HEADER - Sales Headers
+  # ============================================
+  - name: stg_erp_inbound_sales_header
+    description: "Inbound sales headers from ERP."
+    columns:
+      - name: documentno
+        tests:
+          - unique:
+              config:
+                severity: warn
+          - not_null
+
+  # ============================================
+  # STG_PETSHOP_PURCHASE_HEADER - PO Headers
+  # ============================================
+  - name: stg_petshop_purchase_header
+    description: "Purchase order headers from ERP."
+    columns:
+      - name: no_
+        tests:
+          - unique
+          - not_null
+
+  # ============================================
+  # STG_PETSHOP_PURCHASE_LINE - PO Lines
+  # ============================================
+  - name: stg_petshop_purchase_line
+    description: "Purchase order lines from ERP."
+    columns:
+      - name: document_no_
+        tests:
+          - not_null
+
+      - name: line_no_
+        tests:
+          - not_null
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - document_no_
+              - line_no_
+
+  # ============================================
+  # INT_VALUE_ENTRY - Enriched Value Entry
+  # Note: This is an int_ model in stg folder (architectural issue noted)
+  # ============================================
+  - name: int_value_entry
+    description: "Enriched value entry with customer, item, and channel joins."
+    columns:
+      - name: document_no_
+        tests:
+          - not_null
+
+      - name: sales_channel
+        tests:
+          - not_null
+
+  # NOTE: int_erp_customer tests are defined in models/1_stg/4_customer/2_erp/2_stg_erp_customer_deduped.yml
+
+  # ============================================
+  # STG_LOYALTY_MEMBERS - Loyalty Program
+  # ============================================
+  - name: stg_loyalty_members
+    description: "Loyalty program members."
+
+  # ============================================
+  # STG_ERP_LOCATION - Locations
+  # ============================================
+  - name: stg_erp_location
+    description: "Store and warehouse locations."

@@ -1,8 +1,38 @@
 {{ config(
     materialized='table',
-    description='TRUE Order-level analysis for Hyperlocal service performance with enhanced retention analytics - Sourced from int_order_lines'
+    description='Order-level aggregation with retention analytics. Grain: (unified_order_id, order_date)'
 ) }}
 
+-- =====================================================
+-- INT_ORDERS
+-- Grain: (unified_order_id, order_date)
+-- Source: int_order_lines
+-- 
+-- DESIGN DECISION (2024-12-25):
+-- ─────────────────────────────
+-- This model intentionally groups by BOTH order_id AND posting_date.
+-- The same order can span multiple dates due to:
+--   • Partial deliveries (not all items in stock)
+--   • Backorders (items shipped when they arrive)
+--   • Split shipments (from multiple warehouses)
+--
+-- Example: Order O3285910 had 4 invoices over 15 days:
+--   Nov 7:  INV00276297 - 40 items - 1,106 AED (main shipment)
+--   Nov 10: INV00277504 - 12 items - 85 AED (backorder)
+--   Nov 17: INV00280781 - 5 items  - 149 AED (backorder)
+--   Nov 22: INV00282515 - 1 item   - 30 AED (final item)
+--
+-- USAGE NOTES:
+-- ─────────────
+-- • For order counts: COUNT(DISTINCT unified_order_id)
+-- • For revenue by posting date: Use this model as-is
+-- • Primary key: (unified_order_id, order_date)
+--
+-- FUTURE CONSIDERATION:
+-- ─────────────────────
+-- May create int_orders_summary with single row per order for 
+-- customer analytics use cases (retention, cohort analysis).
+-- =====================================================
 
 -- =====================================================
 -- STEP 1: Aggregate line items to ORDER level from int_order_lines
