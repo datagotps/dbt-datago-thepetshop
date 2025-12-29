@@ -177,6 +177,7 @@ END as order_sync_category_sort,
     k.rec_rev_deferred,
     k.revenue_classification,
     k.nav_customer_id,
+    k.posting_date,
 
     case 
         when k.item_id is not null then 'Posted' 
@@ -218,7 +219,10 @@ END as order_sync_category_sort,
     when q.inserted_by = 'SYSTEM' then 'system_pna'
     else 'manual_pna' end as pna_reason,
 
-q.insert_date_time as pna_date
+q.insert_date_time as pna_date,
+
+-- Customer Location (for OTD SLA calculation)
+orders.c_city as customer_emirate
 
 -- Main joins
 from {{ ref('stg_ofs_inboundsalesline') }} as a 
@@ -234,6 +238,7 @@ left join order_head as l on l.weborderno = a.weborderno
 left join boxstatus as m on m.boxid = f.boxid
 left join {{ ref('stg_petshop_pick_detail') }} as p on p.itemid = a.itemid
 left join {{ ref('stg_petshop_pna_details') }} as q on q.item_id = a.itemid
+left join {{ ref('int_occ_orders') }} as orders on orders.weborderno = a.weborderno
 
 
 where b.insertedon is not null

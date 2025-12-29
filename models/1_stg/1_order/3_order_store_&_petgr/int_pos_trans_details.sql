@@ -467,7 +467,8 @@ SELECT
     enriched.*,
     items.brand_ownership_type,
     items.vendor_no_,
-    items.vendor_name
+    items.vendor_name,
+    items.vendor_posting_group
 FROM enriched
 LEFT JOIN {{ ref('int_items') }} AS items ON items.item_no_ = enriched.item_no_
 

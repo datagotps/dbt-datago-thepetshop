@@ -66,6 +66,7 @@ rec_rev_in_period,                 -- fact (AED recognized in period)
 rec_rev_deferred,                  -- fact (AED deferred revenue)
 revenue_classification,            -- dim (revenue classification type)
 erp_posting_status,                -- dim: Posted, Not Posted
+posting_date,                      -- dim (ERP posting date - when invoice was posted)
 unfulfilled_sales,                 -- fact (AED difference OFS vs ERP)
 
 -- Shipping
@@ -74,8 +75,148 @@ shipping,                          -- fact (AED shipping - first item only)
 -- Delivery Mode
 delivery_mode,                     -- dim: 60-min Express, 4-Hour Express, Regular
 
+-- On-Time Delivery (OTD) Metrics
+customer_emirate,                  -- dim: Dubai, Abu Dhabi, Sharjah, Ajman, etc.
+
+-- Delivery SLA in minutes (based on delivery mode + location)
+CASE 
+    WHEN delivery_mode = '60-min Express' THEN 60
+    WHEN delivery_mode = '4-Hour Express' THEN 240
+    WHEN customer_emirate = 'Dubai' 
+         AND EXTRACT(HOUR FROM shopify_order_datetime) < 9 THEN 720  -- Same day by 9 PM (12 hrs)
+    WHEN customer_emirate = 'Dubai' THEN 1440  -- Next day (24 hrs)
+    WHEN customer_emirate IN ('Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Ras Al-Khaimah') THEN 1440  -- Next day
+    ELSE 4320  -- Remote areas: 3 days (72 hrs)
+END AS delivery_sla_minutes,       -- fact: SLA in minutes
+
+-- Actual delivery time in minutes (from order to delivery)
+CASE 
+    WHEN isdelivered = TRUE AND deliverydate IS NOT NULL AND shopify_order_datetime IS NOT NULL
+    THEN DATETIME_DIFF(deliverydate, shopify_order_datetime, MINUTE)
+    ELSE NULL
+END AS delivery_time_minutes,      -- fact: actual time from order to delivery
+
+-- On-Time Flag (1 = on-time, 0 = late)
+CASE 
+    WHEN isdelivered = TRUE 
+         AND deliverydate IS NOT NULL 
+         AND shopify_order_datetime IS NOT NULL
+         AND DATETIME_DIFF(deliverydate, shopify_order_datetime, MINUTE) <= 
+             CASE 
+                 WHEN delivery_mode = '60-min Express' THEN 60
+                 WHEN delivery_mode = '4-Hour Express' THEN 240
+                 WHEN customer_emirate = 'Dubai' AND EXTRACT(HOUR FROM shopify_order_datetime) < 9 THEN 720
+                 WHEN customer_emirate = 'Dubai' THEN 1440
+                 WHEN customer_emirate IN ('Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Ras Al-Khaimah') THEN 1440
+                 ELSE 4320
+             END
+    THEN 1 
+    ELSE 0 
+END AS is_on_time,                 -- fact: 1 = on-time, 0 = late
+
+-- Delivery variance in minutes (negative = early, positive = late)
+CASE 
+    WHEN isdelivered = TRUE AND deliverydate IS NOT NULL AND shopify_order_datetime IS NOT NULL
+    THEN DATETIME_DIFF(deliverydate, shopify_order_datetime, MINUTE) - 
+         CASE 
+             WHEN delivery_mode = '60-min Express' THEN 60
+             WHEN delivery_mode = '4-Hour Express' THEN 240
+             WHEN customer_emirate = 'Dubai' AND EXTRACT(HOUR FROM shopify_order_datetime) < 9 THEN 720
+             WHEN customer_emirate = 'Dubai' THEN 1440
+             WHEN customer_emirate IN ('Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Ras Al-Khaimah') THEN 1440
+             ELSE 4320
+         END
+    ELSE NULL
+END AS delivery_variance_minutes,  -- fact: negative = early, positive = late
+
+-- OTD Performance Category
+CASE 
+    WHEN isdelivered = FALSE OR isdelivered IS NULL THEN 'Not Delivered'
+    WHEN deliverydate IS NULL OR shopify_order_datetime IS NULL THEN 'Missing Data'
+    WHEN DATETIME_DIFF(deliverydate, shopify_order_datetime, MINUTE) - 
+         CASE 
+             WHEN delivery_mode = '60-min Express' THEN 60
+             WHEN delivery_mode = '4-Hour Express' THEN 240
+             WHEN customer_emirate = 'Dubai' AND EXTRACT(HOUR FROM shopify_order_datetime) < 9 THEN 720
+             WHEN customer_emirate = 'Dubai' THEN 1440
+             WHEN customer_emirate IN ('Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Ras Al-Khaimah') THEN 1440
+             ELSE 4320
+         END <= -60 THEN 'Early (1hr+)'
+    WHEN DATETIME_DIFF(deliverydate, shopify_order_datetime, MINUTE) - 
+         CASE 
+             WHEN delivery_mode = '60-min Express' THEN 60
+             WHEN delivery_mode = '4-Hour Express' THEN 240
+             WHEN customer_emirate = 'Dubai' AND EXTRACT(HOUR FROM shopify_order_datetime) < 9 THEN 720
+             WHEN customer_emirate = 'Dubai' THEN 1440
+             WHEN customer_emirate IN ('Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Ras Al-Khaimah') THEN 1440
+             ELSE 4320
+         END <= 0 THEN 'On-Time'
+    WHEN DATETIME_DIFF(deliverydate, shopify_order_datetime, MINUTE) - 
+         CASE 
+             WHEN delivery_mode = '60-min Express' THEN 60
+             WHEN delivery_mode = '4-Hour Express' THEN 240
+             WHEN customer_emirate = 'Dubai' AND EXTRACT(HOUR FROM shopify_order_datetime) < 9 THEN 720
+             WHEN customer_emirate = 'Dubai' THEN 1440
+             WHEN customer_emirate IN ('Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Ras Al-Khaimah') THEN 1440
+             ELSE 4320
+         END <= 60 THEN 'Late (< 1hr)'
+    WHEN DATETIME_DIFF(deliverydate, shopify_order_datetime, MINUTE) - 
+         CASE 
+             WHEN delivery_mode = '60-min Express' THEN 60
+             WHEN delivery_mode = '4-Hour Express' THEN 240
+             WHEN customer_emirate = 'Dubai' AND EXTRACT(HOUR FROM shopify_order_datetime) < 9 THEN 720
+             WHEN customer_emirate = 'Dubai' THEN 1440
+             WHEN customer_emirate IN ('Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Ras Al-Khaimah') THEN 1440
+             ELSE 4320
+         END <= 120 THEN 'Late (1-2 hrs)'
+    ELSE 'Very Late (2+ hrs)'
+END AS otd_category,               -- dim: Early, On-Time, Late categories
+
+-- OTD Category Sort Order
+CASE 
+    WHEN isdelivered = FALSE OR isdelivered IS NULL THEN 6
+    WHEN deliverydate IS NULL OR shopify_order_datetime IS NULL THEN 7
+    WHEN DATETIME_DIFF(deliverydate, shopify_order_datetime, MINUTE) - 
+         CASE 
+             WHEN delivery_mode = '60-min Express' THEN 60
+             WHEN delivery_mode = '4-Hour Express' THEN 240
+             WHEN customer_emirate = 'Dubai' AND EXTRACT(HOUR FROM shopify_order_datetime) < 9 THEN 720
+             WHEN customer_emirate = 'Dubai' THEN 1440
+             WHEN customer_emirate IN ('Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Ras Al-Khaimah') THEN 1440
+             ELSE 4320
+         END <= -60 THEN 1  -- Early
+    WHEN DATETIME_DIFF(deliverydate, shopify_order_datetime, MINUTE) - 
+         CASE 
+             WHEN delivery_mode = '60-min Express' THEN 60
+             WHEN delivery_mode = '4-Hour Express' THEN 240
+             WHEN customer_emirate = 'Dubai' AND EXTRACT(HOUR FROM shopify_order_datetime) < 9 THEN 720
+             WHEN customer_emirate = 'Dubai' THEN 1440
+             WHEN customer_emirate IN ('Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Ras Al-Khaimah') THEN 1440
+             ELSE 4320
+         END <= 0 THEN 2  -- On-Time
+    WHEN DATETIME_DIFF(deliverydate, shopify_order_datetime, MINUTE) - 
+         CASE 
+             WHEN delivery_mode = '60-min Express' THEN 60
+             WHEN delivery_mode = '4-Hour Express' THEN 240
+             WHEN customer_emirate = 'Dubai' AND EXTRACT(HOUR FROM shopify_order_datetime) < 9 THEN 720
+             WHEN customer_emirate = 'Dubai' THEN 1440
+             WHEN customer_emirate IN ('Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Ras Al-Khaimah') THEN 1440
+             ELSE 4320
+         END <= 60 THEN 3  -- Late < 1hr
+    WHEN DATETIME_DIFF(deliverydate, shopify_order_datetime, MINUTE) - 
+         CASE 
+             WHEN delivery_mode = '60-min Express' THEN 60
+             WHEN delivery_mode = '4-Hour Express' THEN 240
+             WHEN customer_emirate = 'Dubai' AND EXTRACT(HOUR FROM shopify_order_datetime) < 9 THEN 720
+             WHEN customer_emirate = 'Dubai' THEN 1440
+             WHEN customer_emirate IN ('Abu Dhabi', 'Sharjah', 'Ajman', 'Al Ain', 'Ras Al-Khaimah') THEN 1440
+             ELSE 4320
+         END <= 120 THEN 4  -- Late 1-2 hrs
+    ELSE 5  -- Very Late
+END AS otd_category_sort,          -- dim: 1-7 sort order
+
 -- PNA (Product Not Available) Flags
-pna_flag,                          -- dim: pna, null
+pna_flag,                          -- dim: pxna, null
 pna_flag_detail,                   -- dim: resolved_pna, permanent_pna, no_pna
 pna_reason,                        -- dim: no_pna, system_pna, manual_pna
 pna_date,                          -- dim (datetime of PNA)

@@ -4,6 +4,7 @@ models:
   # ============================================
   # INT_ORDER_LINES - Core Order Line Model
   # Grain: One row per value_entry (PK: value_entry_id)
+  # Tests: Minimal - uniqueness tested at stg_value_entry._systemid
   # ============================================
   - name: int_order_lines
     description: |
@@ -11,12 +12,11 @@ models:
       Replacement for int_commercial using new model structure.
       
       **Primary Key**: `value_entry_id` (Business Central _systemid GUID)
+      **Note**: Uniqueness tested at stg_value_entry._systemid (source boundary)
     columns:
       - name: value_entry_id
-        description: "Primary key - Business Central system GUID, unique per value entry row"
-        tests:
-          - unique
-          - not_null
+        description: "Primary key - Business Central system GUID (tested at stg_value_entry)"
+        # REMOVED: unique/not_null - tested at stg_value_entry._systemid
 
       - name: item_ledger_entry_no_
         description: "Foreign key to item ledger entry. NULL for Pet Shop Services (POS source)."
@@ -164,14 +164,14 @@ models:
 
   # ============================================
   # INT_ITEMS_2 - Extended Item Metrics
+  # Tests: Minimal - uniqueness tested at int_items.item_no_
   # ============================================
   - name: int_items_2
     description: "Extended item metrics with ABC/XYZ classification."
     columns:
       - name: item_id
-        tests:
-          - unique
-          - not_null
+        description: "Same as int_items.item_no_ (tested there)"
+        # REMOVED: unique/not_null - tested at int_items.item_no_
 
   # ============================================
   # INT_VENDOR - Vendor Dimension

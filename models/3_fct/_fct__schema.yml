@@ -88,6 +88,7 @@ models:
   # FACT_ORDERS - Order-Level Model
   # Grain: One row per (unified_order_id, order_date)
   # Note: Same order can span multiple dates (partial deliveries, split invoicing)
+  # Tests: Minimal - composite key tested at int_orders
   # ============================================
   - name: fact_orders
     description: "Order-level aggregation with retention analytics, cohort analysis, and customer journey metrics. Grain is order + date."
@@ -132,24 +133,18 @@ models:
         tests:
           - not_null
 
-    tests:
-      - dbt_utils.unique_combination_of_columns:
-          arguments:
-            combination_of_columns:
-              - unified_order_id
-              - order_date
+    # REMOVED: unique_combination_of_columns - tested at int_orders
 
   # ============================================
   # DIM_CUSTOMERS - Customer Dimension
+  # Tests: Business rules only - PK tested at int_customers
   # ============================================
   - name: dim_customers
     description: "Customer master with RFM segmentation, behavior analytics, pet ownership, and SuperApp integration."
     columns:
       - name: unified_customer_id
-        description: "Primary key - unique customer identifier"
-        tests:
-          - unique
-          - not_null
+        description: "Primary key - unique customer identifier (tested at int_customers)"
+        # REMOVED: unique/not_null - tested at int_customers
 
       - name: customer_acquisition_channel
         description: "First purchase channel"
@@ -206,15 +201,14 @@ models:
 
   # ============================================
   # DIM_ITEMS - Product Dimension
+  # Tests: Business rules only - PK tested at int_items
   # ============================================
   - name: dim_items
     description: "Product master with 5-level hierarchy, ABC/XYZ classification, and performance metrics."
     columns:
       - name: item_id
-        description: "Primary key - unique item identifier"
-        tests:
-          - unique
-          - not_null
+        description: "Primary key - unique item identifier (tested at int_items.item_no_)"
+        # REMOVED: unique/not_null - tested at int_items.item_no_
 
       - name: item_name
         description: "Product name/description"
